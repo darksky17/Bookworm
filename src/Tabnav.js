@@ -1,8 +1,9 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons'; // For tab icons
-import ProfileScreen from './Screens/ProfileScreen'; // Your Profile screen file
-
+import ProfileScreen from './Screens/ProfileScreen';// Your Profile screen file
+import MatchScreen from './Screens/MatchScreen';
+import ChatScreenList from './Screens/chatScreenList';
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
@@ -21,6 +22,9 @@ const BottomTabNavigator = () => {
         headerShown: false, // Hide the header for tabs
       })}
     >
+
+      <Tab.Screen name="Match" component={MatchScreen} />
+      <Tab.Screen name="Chats" component={ChatScreenList} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

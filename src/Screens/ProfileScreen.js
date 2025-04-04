@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, Button, StyleSheet, TouchableOpacity, FlatList, Modal, Alert, TextInput  } from 'react-native';
-import { firestore } from '../Firebaseconfig';
+import { db, firestore } from '../Firebaseconfig';
 import moment from 'moment';
 import auth from '@react-native-firebase/auth';
 import { useSelector, useDispatch } from 'react-redux'
 import { setUserState } from '../redux/userSlice';
 import axios from 'axios'; // Add axios for API calls
-const SERVER_URL = 'http://192.168.1.10:3000';
+import { onSnapshot, doc, deleteDoc } from '@react-native-firebase/firestore';
+const SERVER_URL = 'http://192.168.1.11:3000';
 
 const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
@@ -25,18 +26,17 @@ const ProfileScreen = ({ navigation }) => {
   
     // Check if the phone number is valid
     if (!userPhoneNumber) return;
+
+    userDocRef = doc(db,"Users", auth().currentUser.uid);
   
     // Set up a Firestore listener for real-time updates
-    const unsubscribe = firestore()
-      .collection('Users')
-      .doc(auth().currentUser.uid)
-      .onSnapshot(
-        (doc) => {
-          if (doc.exists) {
-            setUserData(doc.data()); // Update local state with real-time data
-            console.log('Real-time user data:', doc.data());
-            
-            dispatch(setUserState(doc.data()));
+    const unsubscribe = onSnapshot(userDocRef,
+        (docSnap) => {
+          if (docSnap.exists) {
+            setUserData(docSnap.data()); // Update local state with real-time data
+            //console.log('Real-time user data:', doc.data());
+            const { lastUpdated, ...updatedData } = docSnap.data(); 
+            dispatch(setUserState(updatedData));
           } else {
             Alert.alert('Error', 'No user data found for this phone number.');
           }
@@ -71,7 +71,7 @@ const ProfileScreen = ({ navigation }) => {
       console.log("Cloudinary folder deletion response:", response.data);
 
       // Delete the user document from Firestore
-      await firestore().collection('Users').doc(userId).delete();
+      await deleteDoc(doc(db, "Users", userId));
       console.log('User profile deleted successfully.');
 
       // Sign the user out
@@ -172,7 +172,7 @@ const ProfileScreen = ({ navigation }) => {
               .signOut()
               .then(() => {
                 console.log('User signed out!');
-                navigation.navigate('Home');
+                navigation.replace('Home');
               })
           }
         >

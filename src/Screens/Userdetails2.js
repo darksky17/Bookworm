@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { firestore } from '../Firebaseconfig';
+import { firestore, db } from '../Firebaseconfig';
 import {
   View,
   Text,
@@ -13,12 +13,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import * as ImagePicker from 'expo-image-picker';
 import { setFavGenres, setFavAuthors, setPhotos } from '../redux/userSlice';
 import auth from '@react-native-firebase/auth';
+import { setDoc, updateDoc, doc } from '@react-native-firebase/firestore';
 
 const genres = ['Fiction', 'Fantasy', 'Science Fiction', 'Romance', 'Horror'];
 const authors = ['J.K. Rowling', 'George Orwell', 'Agatha Christie', 'J.R.R. Tolkien', 'Stephen King'];
 
 
-const SERVER_URL = 'http://192.168.1.10:3000';
+const SERVER_URL = 'http://192.168.1.11:3000';
 
 const Userdetails2 = ({ navigation }) => {
   const userId = auth().currentUser.uid;
@@ -87,7 +88,7 @@ const Userdetails2 = ({ navigation }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder: folderName }),
-      }); 
+      });
 
       if (!response.ok) throw new Error('Failed to get upload signature.');
 
@@ -129,11 +130,12 @@ const Userdetails2 = ({ navigation }) => {
       const photoUrls = [];
       for (const image of selectedImages) {
         const url = await uploadImageToCloudinary(image, userId);
+
         photoUrls.push(url);
       }
 
-      const userRef = firestore().collection('Users');
-      await userRef.doc(userId).set(
+      const userRef = doc(db, "Users", userId);
+      await setDoc(userRef,
         {
           favGenres: selectedGenres,
           favAuthors: selectedAuthors,
@@ -146,8 +148,8 @@ const Userdetails2 = ({ navigation }) => {
       dispatch(setFavAuthors(selectedAuthors));
       dispatch(setPhotos(photoUrls));
 
-      await userRef.doc(userId).update({ step2Completed: true });
-      navigation.navigate('MainTabs');
+      await updateDoc(userRef, { step2Completed: true });
+      navigation.replace('MainTabs');
     } catch (error) {
       console.error('Error saving user data to Firestore:', error);
       Alert.alert('Error', 'There was an error saving your data. Please try again.');

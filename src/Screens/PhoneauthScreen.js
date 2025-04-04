@@ -3,7 +3,8 @@ import { useDispatch } from 'react-redux';
 import { setPhoneNumber } from '../redux/userSlice';
 import { Text, View, Button, Alert, TextInput, StyleSheet } from 'react-native';
 import auth from '@react-native-firebase/auth'; // Import Firebase auth
-import { firestore } from '../Firebaseconfig'; // Import Firestore
+import { firestore, db } from '../Firebaseconfig'; // Import Firestore
+import { collection, getDocs, query, setDoc, doc, where } from '@react-native-firebase/firestore';
 
 const PhoneauthScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -62,14 +63,15 @@ const PhoneauthScreen = ({ navigation }) => {
 
       // After OTP is verified, check if the phone number is registered in Firestore
       const fullPhoneNumber = `${countryCode}${phoneNumber}`;
-      const usersRef = firestore().collection("Users");
+      const usersRef = collection(db, "Users");
 
       // Check if the user document exists
-      const userQuery = await usersRef.where("phoneNumber", "==", fullPhoneNumber).get();
+      const userQuery = query(usersRef, where("phoneNumber", "==", fullPhoneNumber));
+      const querySnapshot = await getDocs(userQuery);
 
-      if (!userQuery.empty) {
+      if (!querySnapshot.empty) {
         // Existing user
-        const userDoc = userQuery.docs[0]; // Get the first matching document
+        const userDoc = querySnapshot.docs[0]; // Get the first matching document
         const userData = userDoc.data();
 
         if (!userData.step1Completed) {
@@ -77,12 +79,12 @@ const PhoneauthScreen = ({ navigation }) => {
         } else if (!userData.step2Completed) {
           navigation.navigate("Userdeet2"); // Navigate to Step 2 of the signup process
         } else {
-          navigation.navigate("MainTabs"); // Navigate to main app (signup complete)
+          navigation.replace("MainTabs"); // Navigate to main app (signup complete)
         }
       } else {
         // New user, create a document
-        const newUserRef = usersRef.doc(userId); // Auto-generate document ID
-        await newUserRef.set({
+        const newUserRef = doc(usersRef, userId); // Auto-generate document ID
+        await setDoc(newUserRef, {
           phoneNumber: fullPhoneNumber, // Save phone number as a field
           step1Completed: false, // Default signup steps
           step2Completed: false,

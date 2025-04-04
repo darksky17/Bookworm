@@ -5,13 +5,20 @@ import { auth } from "./Firebaseconfig";
 import PhoneauthScreen from "./Screens/PhoneauthScreen";
 import Userdetails1 from "./Screens/Userdetails1";
 import Userdetails2 from "./Screens/Userdetails2";
+import ChatDisplay from "./Screens/chatScreen";
 import Tabnav from "./Tabnav";
 import { Text, View, Button } from 'react-native';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
 import SignupScreen from './Screens/SignupScreen';
 import EditProfileScreen from "./Screens/EditProfileScreen";
-import { firestore } from "./Firebaseconfig";
+import { db } from "./Firebaseconfig";
+import { doc, getDoc } from "@react-native-firebase/firestore";
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
+import { StatusBar } from 'react-native';
+import ViewProfile from "./Screens/ViewProfile";
+
 
 function HomeScreen({ navigation }) {
   return (
@@ -19,15 +26,15 @@ function HomeScreen({ navigation }) {
       <Text style={{ fontSize: 40, color: 'darkgreen' }}>BookWorm</Text>
       <Button
         title="Get Started"
-        onPress={() => navigation.navigate('Phoneauth')}
+        onPress={() => navigation.replace('Phoneauth')}
         color="lightgreen"
       />
 
-      < Button title="Logout" onPress={() =>auth()
-  .signOut()
-  .then(() => console.log('User signed out!'))}
-  color="blue"
-  />
+      < Button title="Logout" onPress={() => auth()
+        .signOut()
+        .then(() => console.log('User signed out!'))}
+        color="blue"
+      />
 
     </View>
   );
@@ -35,25 +42,24 @@ function HomeScreen({ navigation }) {
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
+  
   const [initializing, setInitializing] = useState(true);
   const [initialRoute, setInitialRoute] = useState("Home");
   const [user, setUser] = useState();
 
   useEffect(() => {
-     auth().onAuthStateChanged(async (user) => {
+    auth().onAuthStateChanged(async (user) => {
       setUser(user);
       console.log("USER:", user);
 
       if (user) {
         const uid = user.uid;
         try {
-          const userDoc = await firestore()
-            .collection('Users')
-            .doc(uid) // Using phoneNumber as the document ID
-            .get();
-            userData = userDoc.data();
-  
-          if (!userDoc.exists || !userData.step1Completed) {
+          const userDocRef = doc(db, "Users", uid);
+          const userDocSnap = await getDoc(userDocRef);
+          const userData = userDocSnap.data();
+
+          if (!userDocSnap.exists || !userData.step1Completed) {
             setInitialRoute("Userdeet1"); // Step 1 of the signup process
           } else if (!userData.step2Completed) {
             setInitialRoute("Userdeet2"); // Step 2 of the signup process
@@ -64,8 +70,8 @@ const AppNavigator = () => {
           console.error('Error fetching user data:', error);
           setInitialRoute("Home"); // Fallback to home on error
         }
-      } 
-      
+      }
+
       else {
         setInitialRoute("Home");
       }
@@ -73,7 +79,7 @@ const AppNavigator = () => {
       setInitializing(false);
     });
 
-   // return () => unsubscribe();
+    // return () => unsubscribe();
   }, []);
 
   if (initializing) {
@@ -85,8 +91,9 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRoute}>
+    <NavigationContainer >
+      <StatusBar  backgroundColor="transparent" barStyle="dark-content" />
+      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Phoneauth" component={PhoneauthScreen} />
         <Stack.Screen name="Userdeet1" component={Userdetails1} />
@@ -94,6 +101,8 @@ const AppNavigator = () => {
         <Stack.Screen name="MainTabs" component={Tabnav} />
         <Stack.Screen name="Signup" component={SignupScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="ChatDisplay" component={ChatDisplay} />
+        <Stack.Screen name="ProfileDisplay" component={ViewProfile} />
       </Stack.Navigator>
     </NavigationContainer>
   );

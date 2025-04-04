@@ -41,8 +41,20 @@ const userSlice = createSlice({
     },
 
     setUserState: (state, action) => {
-      return { ...state, ...action.payload };
+      
+  
+  // Destructure the payload to exclude lastUpdated
+  const { lastUpdated, ...updatedData } = action.payload;
+
+  // Log the updatedData to verify it's excluding lastUpdated
+  
+  return { ...state, ...updatedData };
   },
+
+  setLocation: (state, action) => {
+    state.location = action.payload; // Update location in state
+  },
+
 },
 });
 
@@ -56,6 +68,7 @@ export const {
   setFavAuthors,
   setPhotos,
   setUserState,
+  setLocation,
 } = userSlice.actions;
 
 export default userSlice.reducer;

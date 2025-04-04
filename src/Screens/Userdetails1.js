@@ -4,9 +4,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setName, setEmail, setDateOfBirth, setGender } from '../redux/userSlice';
 import { Picker } from '@react-native-picker/picker';
 import auth from '@react-native-firebase/auth';
-//import firestore from '@react-native-firebase/firestore';
 import moment from 'moment';
-import { firestore } from '../Firebaseconfig';
+import { firestore, db } from '../Firebaseconfig';
+import { collection, doc, getDoc, getDocs, query, updateDoc, where, setDoc } from '@react-native-firebase/firestore';
 const Screen1 = ({ navigation }) => {
   const dispatch = useDispatch();
 
@@ -16,11 +16,36 @@ const Screen1 = ({ navigation }) => {
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
   const [gender, setGenderState] = useState('');
-  
+
 
   const phoneNumber = auth().currentUser?.phoneNumber;
   const userId = auth().currentUser.uid;
-  
+
+  const generateRandomDisplayName = async () => {
+    const adjectives = ['Mysterious', 'Curious', 'Enthusiastic', 'Witty', 'Adventurous', 'Charming'];
+    const nouns = ['Reader', 'Bookworm', 'Storyteller', 'Bibliophile', 'PageTurner', 'Wordsmith'];
+
+    let displayName = `${adjectives[Math.floor(Math.random() * adjectives.length)]}${nouns[Math.floor(Math.random() * nouns.length)]}${Math.floor(100 + Math.random() * 900)}`;
+
+    // Ensure uniqueness in Firestore
+    let nameExists = true;
+    while (nameExists) {
+      const nameRef = collection(db, "Users");
+      const nameQuery = query(nameRef, where('displayname', '==', displayName));
+      const querySnapshot = await getDocs(nameQuery);
+
+      //const snapshot = await firestore().collection('Users').where('displayName', '==', displayName).get();
+      if (querySnapshot.empty) {
+        nameExists = false;
+      } else {
+        // Generate a new one if duplicate exists
+        displayName = `${adjectives[Math.floor(Math.random() * adjectives.length)]}${nouns[Math.floor(Math.random() * nouns.length)]}${Math.floor(100 + Math.random() * 900)}`;
+      }
+    }
+
+    return displayName;
+  };
+
 
 
   const validateAndContinue = async () => {
@@ -63,24 +88,29 @@ const Screen1 = ({ navigation }) => {
     console.log('Date of Birth:', formattedDOB);
 
     try {
+      const displayName = await generateRandomDisplayName();
       const payload = {
         name: name || 'Unknown',
         email: email || 'Unknown',
         gender: gender,
         dateOfBirth: formattedDOB || 'Not specified',
+        displayName,
       };
 
-      console.log('Payload sent to Firestore:', payload);
 
-      const userDoc = await firestore().collection("Users").doc(userId).get();
- 
-      if (userDoc.exists) {
+      console.log("USER ID IS HERE", userId);
+      const userDocRef = doc(db, "Users", userId);   //modular new added
+      const userDocSnap = await getDoc(userDocRef);   //modular new added
+
+      //const userDoc = await firestore().collection("Users").doc(userId).get();    //namspaced code - deprecated
+
+      if (userDocSnap.exists) {
         // Update the document
-        await firestore().collection("Users").doc(userId).set(payload, { merge: true });
+        await setDoc(userDocRef, payload, { merge: true });
         console.log("Firestore write successful.");
 
         // Update step1Completed and navigate to Userdeet2
-        await firestore().collection("Users").doc(userId).update({
+        await updateDoc(userDocRef, {
           step1Completed: true,
         });
         navigation.navigate("Userdeet2");
@@ -91,6 +121,7 @@ const Screen1 = ({ navigation }) => {
           "No user document found. Please restart the signup process."
         );
       }
+      console.log('Payload sent to Firestore:', payload);
     } catch (error) {
       console.error('Error writing to Firestore:', error);
       Alert.alert('Error', 'Failed to save user data.');
