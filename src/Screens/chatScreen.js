@@ -216,19 +216,23 @@ const ChatDisplay = ({ route, navigation }) => {
 
         setIsDisabled(true);  // Disable button after selection
     };
+   
+    const swipeGesture = Gesture.Pan().simultaneousWithExternalGesture(Gesture.Native())
+    .onEnd((event) => {
+      if (event.translationX < -50) {
+        console.log("Swiped Left");
+        runOnJS(navigation.navigate)("ProfileDisplay",{mateId, 
+          mateDisplay, 
+          isAscended, 
+          mateName });
+      } else if (event.translationX > 50) {
+        Alert.alert("Swiped Right");
+      }
+    });
 
-    const swipeGesture = Gesture.Pan()
-  .onEnd((event) => {
-    if (event.translationX < -50) {
-      console.log("Swiped Left");
-      runOnJS(navigation.navigate)("ProfileDisplay",{mateId, 
-        mateDisplay, 
-        isAscended, 
-        mateName });
-    } else if (event.translationX > 50) {
-      Alert.alert("Swiped Right");
-    }
-  });
+
+  
+
 
 
 
