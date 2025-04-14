@@ -17,7 +17,7 @@ import {
     updateDoc,
     increment
 } from "@react-native-firebase/firestore";
-import { db, firestore } from '../Firebaseconfig';
+import { db } from '../Firebaseconfig';
 import { Bubble } from "react-native-gifted-chat";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Feather from '@expo/vector-icons/Feather';
@@ -25,7 +25,7 @@ import { GestureHandlerRootView, Gesture, GestureDetector} from "react-native-ge
 import { runOnJS } from "react-native-reanimated";
 
 const ChatDisplay = ({ route, navigation }) => {
-    const { mateId, mateDisplay, isAscended, mateName } = route.params;
+    const { allData } = route.params;
     const userId = auth().currentUser?.uid;
     const [messages, setMessages] = useState([]);
     const [chatId, setChatId] = useState(null);
@@ -34,7 +34,9 @@ const ChatDisplay = ({ route, navigation }) => {
     let clickedYes = [];
     const [isdisabled, setIsDisabled] = useState(false);
     const [isMenuVisible, setMenuVisible] = useState(false);
+    const [hasHandledChoice, setHasHandledChoice] = useState(false);
      
+    console.log("THIS IS WHAT I GOT as ALL DATA", allData);
     const toggleMenu = () => {
         setMenuVisible(prev => !prev); // ✅ This correctly toggles the modal
       };
@@ -48,7 +50,7 @@ const ChatDisplay = ({ route, navigation }) => {
 
         chatSnapshot.forEach((doc) => {
             const chatData = doc.data();
-            if (chatData.participants.includes(mateId)) {
+            if (chatData.participants.includes(allData.id)) {
                 chatId = doc.id;
             }
         });
@@ -58,7 +60,7 @@ const ChatDisplay = ({ route, navigation }) => {
         // If chat does not exist, create a new one
         if (!chatId) {
             const newChat = await addDoc(chatsRef, {
-                participants: [userId, mateId],
+                participants: [userId, allData.id],
                 ascended: false,
                 lastMessage: "",
                 timestamp: serverTimestamp(),
@@ -126,11 +128,11 @@ const ChatDisplay = ({ route, navigation }) => {
         const messagesRef = collection(db, "Chats", chatId, "messages");
         const messagesDocRef = doc(db, "Chats", chatId);
         const message = newMessages[0];
-        console.log("ARE THESE MESSAGES?", message);
+        
         const firestoreMessage = {
             content: message.text,
             senderID: userId,
-            receiverID: mateId,
+            receiverID: allData.id,
             timestamp: serverTimestamp(),
         };
 
@@ -151,7 +153,7 @@ const ChatDisplay = ({ route, navigation }) => {
 
             chatData = docSnap.data();
             const choice = Array.isArray(docSnap.data().choices) ? docSnap.data().choices : [];
-            console.log("Updated choices:", choice);
+            
             const messageCount = docSnap.data().messageCount || 0;
 
 
@@ -166,11 +168,16 @@ const ChatDisplay = ({ route, navigation }) => {
             }
 
 
-            if (choice.length === 2) {
+            if (choice.length === 2 && !hasHandledChoice) {
+                setHasHandledChoice(true);
                 if (!choice.some(c => c.endsWith(":No"))) {
-                    updateDoc(messagesDocRef, { ascended: true });
+                    if (!chatData.ascended){
+                    await updateDoc(messagesDocRef, { ascended: true });
+                    }
                 } else {
-                    updateDoc(messagesDocRef, { choices: [] });
+                    if (chatData.choices.length !== 0) {
+                        await updateDoc(messagesDocRef, { choices: [] });
+                    }
                     Alert.alert("Looks like one of you chose not to Ascend. We will ask again later.");
                     await updateDoc(messagesDocRef, { messageCount: increment(1) });
                     setModalState(false);
@@ -183,14 +190,14 @@ const ChatDisplay = ({ route, navigation }) => {
         const unsubscribeMessages = onSnapshot(messagesRef, (snapshot) => {
             const messageCount = snapshot.size; // ✅ Count messages dynamically
             console.log("Message count:", messageCount);
-            console.log(chatData.ascended);
+           
 
             if (messageCount > 0 && messageCount % 10 === 0 && !chatData.ascended) {
                 setModalState(true);
             }
         });
 
-        return () => unsubscribe();
+        return () => { unsubscribe();  unsubscribeMessages();}
     }, [chatId]);
 
 
@@ -217,18 +224,15 @@ const ChatDisplay = ({ route, navigation }) => {
         setIsDisabled(true);  // Disable button after selection
     };
    
-    const swipeGesture = Gesture.Pan().simultaneousWithExternalGesture(Gesture.Native())
+    const swipeGesture = Gesture.Pan()
     .onEnd((event) => {
       if (event.translationX < -50) {
         console.log("Swiped Left");
-        runOnJS(navigation.navigate)("ProfileDisplay",{mateId, 
-          mateDisplay, 
-          isAscended, 
-          mateName });
+        runOnJS(navigation.navigate)("ProfileDisplay",{allData});
       } else if (event.translationX > 50) {
         Alert.alert("Swiped Right");
       }
-    });
+    }).activeOffsetX([-10,10]);
 
 
   
@@ -246,14 +250,14 @@ const ChatDisplay = ({ route, navigation }) => {
                 <TouchableOpacity onPress={navigation.goBack}>
             <Ionicons name="chevron-back" size={24} color="black" style={{left:5}} />
             </TouchableOpacity>
-                <Text style={styles.headerText}>{isAscended ? mateName : mateDisplay}</Text>
+                <Text style={styles.headerText}>{allData.ascended? allData.name : allData.displayName}</Text>
                 <TouchableOpacity onPress={toggleMenu}>
                 <Feather name="more-vertical" size={24} color="black" />
                 </TouchableOpacity>
-                < Menu visible={isMenuVisible} onClose={toggleMenu}/>
+                < Menu visible={isMenuVisible} onClose={toggleMenu} allData={allData} chatId={chatId}/>
             </View>
             <View style={{flexDirection:"row", justifyContent:"space-evenly", alignItems:"flex-end", height:30, backgroundColor:"lawngreen"}}>
-                <Text>Chat</Text>
+                <Text style={{fontWeight:"bold"}}>Chat</Text>
                 <Text>Profile</Text>
 
             </View>

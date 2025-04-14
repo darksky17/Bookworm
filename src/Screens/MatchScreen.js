@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { useDispatch, useSelector } from 'react-redux';
-import { collection, setDoc, updateDoc, doc, query, where, getDocs, serverTimestamp } from '@react-native-firebase/firestore';
+import { collection, setDoc, updateDoc, doc, query, where, getDocs, serverTimestamp, addDoc } from '@react-native-firebase/firestore';
 import { setLocation } from '../redux/userSlice';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import geohash from 'ngeohash';
@@ -15,7 +15,7 @@ import { db } from '../Firebaseconfig';
 import  Container  from '../components/Container';
 import Header from '../components/Header';
 
-const MatchScreen = () => {
+const MatchScreen = ({navigation}) => {
   const dispatch = useDispatch();
   const location = useSelector((state) => state.user.location);
   const [matches, setMatches] = useState([]);
@@ -23,6 +23,7 @@ const MatchScreen = () => {
   const [showMatches, setShowMatches] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  
 
   const scaleAnim = useState(new Animated.Value(1))[0];
   const matchAnim = useState(new Animated.Value(0))[0]; // For match pop effect
@@ -123,7 +124,8 @@ const MatchScreen = () => {
             );
 
             if (distance <= 10000) {
-              nearbyUsers.push({ id: userData.displayName, ...userData, distance });
+              console.log("FRESH nearbyuser", nearbyUsers);
+              nearbyUsers.push({ id: userId, ...userData, distance });
             }
           }
         }
@@ -168,6 +170,18 @@ const MatchScreen = () => {
     setSelectedMatch(null);
   };
 
+    const newChat = async (userId, friendId)=>{ 
+       console.log("This is friend Id", friendId);
+      const chatsRef = collection(db, "Chats");
+      await addDoc(chatsRef, {
+                  participants: [userId, friendId],
+                  ascended: false,
+                  lastMessage: "",
+                  timestamp: serverTimestamp(),
+                  choices: [],
+              });
+            };
+
   return (
    
     
@@ -196,7 +210,7 @@ const MatchScreen = () => {
       {showMatches && (
         <FlatList
           data={matches}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.displayName}
           numColumns={3}
           contentContainerStyle={styles.matchList}
           renderItem={({ item }) => (
@@ -236,7 +250,7 @@ const MatchScreen = () => {
                 <Text style={styles.chatPromptText}>
                   Do you want to start a chat?
                 </Text>
-                <Pressable onPress={closeChatModal}>
+                <Pressable onPress={()=>{newChat(auth().currentUser?.uid, selectedMatch.id); navigation.navigate("ChatScreenList");}}>
                   <Text style={styles.chatPromptButton}>Start Chat!</Text>
                 </Pressable>
               </Pressable>

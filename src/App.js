@@ -17,7 +17,9 @@ import { doc, getDoc } from "@react-native-firebase/firestore";
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import { StatusBar } from 'react-native';
+import { PaperProvider } from 'react-native-paper';
 import ViewProfile from "./Screens/ViewProfile";
+import ChatScreenList from "./Screens/chatScreenList";
 
 
 function HomeScreen({ navigation }) {
@@ -103,6 +105,7 @@ const AppNavigator = () => {
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="ChatDisplay" component={ChatDisplay} />
         <Stack.Screen name="ProfileDisplay" component={ViewProfile} />
+        <Stack.Screen name="ChatScreenList" component={ChatScreenList} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -110,7 +113,9 @@ const AppNavigator = () => {
 
 const App = () => (
   <Provider store={store}>
+    <PaperProvider>
     <AppNavigator />
+    </PaperProvider>
   </Provider>
 );
 

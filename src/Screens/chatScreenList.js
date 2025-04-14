@@ -166,7 +166,7 @@ const ChatScreenList = ({ navigation }) => {
                             <InitialIcon ascended={item.ascended} 
                                          photo={item.photos[0]} 
                                          initials={item.displayName?.[0]} />
-                            <Pressable onPress={() => navigation.navigate("ChatDisplay", { mateId: item.id, mateDisplay: item.displayName, isAscended: item.ascended, mateName:item.name })} >
+                            <Pressable onPress={() => navigation.navigate("ChatDisplay", { allData:item })} >
                                 <Text style={styles.chatText}>{item.ascended? item.name : item.displayName}
                                 </Text>
                             </Pressable>
