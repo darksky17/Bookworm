@@ -4,7 +4,7 @@ import ViewProfile from "../Screens/ViewProfile";
 import { Modal as PaperModal, Portal, Button, PaperProvider } from 'react-native-paper';
 import { db } from "../Firebaseconfig";
 import auth from '@react-native-firebase/auth';
-import { collection, getDocs, writeBatch, deleteDoc, doc } from "@react-native-firebase/firestore";
+import { collection, getDocs, writeBatch, deleteDoc, doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "@react-native-firebase/firestore";
 
 
 
@@ -43,6 +43,26 @@ const Menu = ({ visible, onClose, allData, chatId}) => {
       const chatDocRef = doc(db, `Chats/${chatId}`);
       await deleteDoc(chatDocRef);
       console.log("Chat document deleted.");
+
+        const userDocRef = doc(db, "Users", userId);
+             const userSnap = await getDoc(userDocRef);
+           
+              
+               const data = userSnap.data();
+               console.log("I DID REACH HERE", data);
+               const currentMatches = data.currentMatches;
+
+               console.log("Hellooo", currentMatches, typeof currentMatches, Array.isArray(currentMatches));
+           
+               // Step 2: Avoid duplicates
+               
+                 const updatedMatches = currentMatches.filter(id => id !== allData.id);
+           
+                 // Step 3: Update Firestore
+                 await updateDoc(userDocRef, {
+                   currentMatches: arrayRemove(allData.id),
+                 });
+               
   
  
       

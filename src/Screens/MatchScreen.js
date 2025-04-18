@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { useDispatch, useSelector } from 'react-redux';
-import { collection, setDoc, updateDoc, doc, query, where, getDocs, serverTimestamp, addDoc } from '@react-native-firebase/firestore';
+import { collection, setDoc, updateDoc, doc, query, where, getDocs, serverTimestamp, addDoc, getDoc } from '@react-native-firebase/firestore';
 import { setLocation } from '../redux/userSlice';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import geohash from 'ngeohash';
@@ -98,6 +98,10 @@ const MatchScreen = ({navigation}) => {
 
     try {
       const matchesRef = collection(db, "Users");
+      const mainUserDocs = doc(db, "Users", auth().currentUser.uid);
+      mainDocSnap = await getDoc(mainUserDocs);
+      mainData = mainDocSnap.data();
+      mainUserMatches = mainData.currentMatches;
 
       // Query users based on geohash range
       const q = query(
@@ -123,7 +127,7 @@ const MatchScreen = ({navigation}) => {
               { latitude: userLat, longitude: userLng }
             );
 
-            if (distance <= 10000) {
+            if (distance <= 10000 && !mainUserMatches.includes(userId)) {
               console.log("FRESH nearbyuser", nearbyUsers);
               nearbyUsers.push({ id: userId, ...userData, distance });
             }
@@ -172,6 +176,26 @@ const MatchScreen = ({navigation}) => {
 
     const newChat = async (userId, friendId)=>{ 
        console.log("This is friend Id", friendId);
+
+       const userDocRef = doc(db, "Users", userId);
+       const userSnap = await getDoc(userDocRef);
+     
+        
+         const data = userSnap.data();
+         console.log("I DID REACH HERE", data);
+         const currentMatches = data.currentMatches || [];
+     
+         // Step 2: Avoid duplicates
+         if (!currentMatches.includes(friendId)) {
+           const updatedMatches = [...currentMatches, friendId];
+     
+           // Step 3: Update Firestore
+           await updateDoc(userDocRef, {
+             currentMatches: updatedMatches,
+           });
+         }
+       
+
       const chatsRef = collection(db, "Chats");
       await addDoc(chatsRef, {
                   participants: [userId, friendId],
