@@ -1,72 +1,108 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { setName, setEmail, setDateOfBirth, setGender } from '../redux/userSlice';
-import { Picker } from '@react-native-picker/picker';
-import auth from '@react-native-firebase/auth';
-import moment from 'moment';
-import { firestore, db } from '../Firebaseconfig';
-import { collection, doc, getDoc, getDocs, query, updateDoc, where, setDoc } from '@react-native-firebase/firestore';
+import React, { useState } from "react";
+import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setName,
+  setEmail,
+  setDateOfBirth,
+  setGender,
+} from "../redux/userSlice";
+import { Picker } from "@react-native-picker/picker";
+import auth from "@react-native-firebase/auth";
+import moment from "moment";
+import { firestore, db } from "../Firebaseconfig";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  updateDoc,
+  where,
+  setDoc,
+} from "@react-native-firebase/firestore";
+import {
+  fetchUserDataByQuery,
+  fetchUserDataById,
+} from "../components/FirestoreHelpers";
+
 const Screen1 = ({ navigation }) => {
   const dispatch = useDispatch();
 
-  const [name, setNameState] = useState('');
-  const [email, setEmailState] = useState('');
-  const [day, setDay] = useState('');
-  const [month, setMonth] = useState('');
-  const [year, setYear] = useState('');
-  const [gender, setGenderState] = useState('');
-
+  const [name, setNameState] = useState("");
+  const [email, setEmailState] = useState("");
+  const [day, setDay] = useState("");
+  const [month, setMonth] = useState("");
+  const [year, setYear] = useState("");
+  const [gender, setGenderState] = useState("");
 
   const phoneNumber = auth().currentUser?.phoneNumber;
   const userId = auth().currentUser.uid;
 
   const generateRandomDisplayName = async () => {
-    const adjectives = ['Mysterious', 'Curious', 'Enthusiastic', 'Witty', 'Adventurous', 'Charming'];
-    const nouns = ['Reader', 'Bookworm', 'Storyteller', 'Bibliophile', 'PageTurner', 'Wordsmith'];
+    const adjectives = [
+      "Mysterious",
+      "Curious",
+      "Enthusiastic",
+      "Witty",
+      "Adventurous",
+      "Charming",
+    ];
+    const nouns = [
+      "Reader",
+      "Bookworm",
+      "Storyteller",
+      "Bibliophile",
+      "PageTurner",
+      "Wordsmith",
+    ];
 
-    let displayName = `${adjectives[Math.floor(Math.random() * adjectives.length)]}${nouns[Math.floor(Math.random() * nouns.length)]}${Math.floor(100 + Math.random() * 900)}`;
+    let displayName = `${
+      adjectives[Math.floor(Math.random() * adjectives.length)]
+    }${nouns[Math.floor(Math.random() * nouns.length)]}${Math.floor(
+      100 + Math.random() * 900
+    )}`;
 
     // Ensure uniqueness in Firestore
     let nameExists = true;
     while (nameExists) {
-      const nameRef = collection(db, "Users");
-      const nameQuery = query(nameRef, where('displayname', '==', displayName));
-      const querySnapshot = await getDocs(nameQuery);
+      querySnapshot = await fetchUserDataByQuery(
+        "Users",
+        where("displayname", "==", displayName)
+      );
 
-      //const snapshot = await firestore().collection('Users').where('displayName', '==', displayName).get();
       if (querySnapshot.empty) {
         nameExists = false;
       } else {
         // Generate a new one if duplicate exists
-        displayName = `${adjectives[Math.floor(Math.random() * adjectives.length)]}${nouns[Math.floor(Math.random() * nouns.length)]}${Math.floor(100 + Math.random() * 900)}`;
+        displayName = `${
+          adjectives[Math.floor(Math.random() * adjectives.length)]
+        }${nouns[Math.floor(Math.random() * nouns.length)]}${Math.floor(
+          100 + Math.random() * 900
+        )}`;
       }
     }
 
     return displayName;
   };
 
-
-
   const validateAndContinue = async () => {
     if (!email || !name || !day || !month || !year || !gender) {
-      Alert.alert('Error', 'All fields must be filled!');
+      Alert.alert("Error", "All fields must be filled!");
       return;
     }
 
     const dateOfBirth = `${day}/${month}/${year}`;
     const formattedDOB = `${year}-${month}-${day}`;
-    console.log("Formatted DOB:", formattedDOB);
-    console.log("Gender:", gender);
 
-    if (!moment(formattedDOB, 'YYYY-MM-DD', true).isValid()) {
-      Alert.alert('Error', 'Invalid date. Please enter a valid date.');
+    if (!moment(formattedDOB, "YYYY-MM-DD", true).isValid()) {
+      Alert.alert("Error", "Invalid date. Please enter a valid date.");
       return;
     }
 
-    const age = moment().diff(moment(formattedDOB, 'YYYY-MM-DD'), 'years');
+    const age = moment().diff(moment(formattedDOB, "YYYY-MM-DD"), "years");
     if (age < 18) {
-      Alert.alert('Error', 'You must be at least 18 years old.');
+      Alert.alert("Error", "You must be at least 18 years old.");
       return;
     }
 
@@ -76,33 +112,21 @@ const Screen1 = ({ navigation }) => {
     dispatch(setGender(gender));
 
     if (!phoneNumber) {
-      Alert.alert('Error', 'Phone number is missing.');
+      Alert.alert("Error", "Phone number is missing.");
       return;
     }
-
-    console.log('Preparing to write to Firestore:');
-    console.log('Phone Number:', phoneNumber);
-    console.log('Name:', name);
-    console.log('Email:', email);
-    console.log('Gender:', gender);
-    console.log('Date of Birth:', formattedDOB);
 
     try {
       const displayName = await generateRandomDisplayName();
       const payload = {
-        name: name || 'Unknown',
-        email: email || 'Unknown',
+        name: name || "Unknown",
+        email: email || "Unknown",
         gender: gender,
-        dateOfBirth: formattedDOB || 'Not specified',
+        dateOfBirth: formattedDOB || "Not specified",
         displayName,
       };
 
-
-      console.log("USER ID IS HERE", userId);
-      const userDocRef = doc(db, "Users", userId);   //modular new added
-      const userDocSnap = await getDoc(userDocRef);   //modular new added
-
-      //const userDoc = await firestore().collection("Users").doc(userId).get();    //namspaced code - deprecated
+      const { userDocSnap, userDocRef } = await fetchUserDataById(userId);
 
       if (userDocSnap.exists) {
         // Update the document
@@ -115,16 +139,14 @@ const Screen1 = ({ navigation }) => {
         });
         navigation.navigate("Userdeet2");
       } else {
-        console.error("No document found for the phone number.");
         Alert.alert(
           "Error",
           "No user document found. Please restart the signup process."
         );
       }
-      console.log('Payload sent to Firestore:', payload);
     } catch (error) {
-      console.error('Error writing to Firestore:', error);
-      Alert.alert('Error', 'Failed to save user data.');
+      console.error("Error writing to Firestore:", error);
+      Alert.alert("Error", "Failed to save user data.");
     }
   };
 
@@ -150,7 +172,9 @@ const Screen1 = ({ navigation }) => {
           style={[styles.dateInput, styles.dayInput]}
           placeholder="DD"
           value={day}
-          onChangeText={(value) => setDay(value.replace(/[^0-9]/g, '').slice(0, 2))}
+          onChangeText={(value) =>
+            setDay(value.replace(/[^0-9]/g, "").slice(0, 2))
+          }
           keyboardType="numeric"
         />
         <Text style={styles.separator}>/</Text>
@@ -158,7 +182,9 @@ const Screen1 = ({ navigation }) => {
           style={[styles.dateInput, styles.monthInput]}
           placeholder="MM"
           value={month}
-          onChangeText={(value) => setMonth(value.replace(/[^0-9]/g, '').slice(0, 2))}
+          onChangeText={(value) =>
+            setMonth(value.replace(/[^0-9]/g, "").slice(0, 2))
+          }
           keyboardType="numeric"
         />
         <Text style={styles.separator}>/</Text>
@@ -166,14 +192,17 @@ const Screen1 = ({ navigation }) => {
           style={[styles.dateInput, styles.yearInput]}
           placeholder="YYYY"
           value={year}
-          onChangeText={(value) => setYear(value.replace(/[^0-9]/g, '').slice(0, 4))}
+          onChangeText={(value) =>
+            setYear(value.replace(/[^0-9]/g, "").slice(0, 4))
+          }
           keyboardType="numeric"
         />
       </View>
 
       <Picker
         selectedValue={gender}
-        onValueChange={(itemValue) => setGenderState(itemValue)}>
+        onValueChange={(itemValue) => setGenderState(itemValue)}
+      >
         <Picker.Item label="Select gender" value="" />
         <Picker.Item label="Male" value="male" />
         <Picker.Item label="Female" value="female" />
@@ -189,24 +218,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   input: {
     height: 50,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderWidth: 1,
     marginBottom: 10,
     paddingLeft: 10,
   },
   dateInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
   },
   dateInput: {
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderWidth: 1,
-    textAlign: 'center',
+    textAlign: "center",
     height: 50,
   },
   dayInput: {
@@ -225,10 +254,10 @@ const styles = StyleSheet.create({
   label: {
     marginBottom: 5,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   errorText: {
-    color: 'red',
+    color: "red",
     marginBottom: 10,
   },
 });

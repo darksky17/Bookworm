@@ -1,19 +1,26 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { setPhoneNumber } from '../redux/userSlice';
-import { Text, View, Button, Alert, TextInput, StyleSheet } from 'react-native';
-import auth from '@react-native-firebase/auth'; // Import Firebase auth
-import { firestore, db } from '../Firebaseconfig'; // Import Firestore
-import { collection, getDocs, query, setDoc, doc, where } from '@react-native-firebase/firestore';
+import React, { useState } from "react";
+import { useDispatch } from "react-redux";
+import { setPhoneNumber } from "../redux/userSlice";
+import { Text, View, Button, Alert, TextInput, StyleSheet } from "react-native";
+import auth from "@react-native-firebase/auth"; // Import Firebase auth
+import { firestore, db } from "../Firebaseconfig"; // Import Firestore
+import {
+  collection,
+  getDocs,
+  query,
+  setDoc,
+  doc,
+  where,
+} from "@react-native-firebase/firestore";
+import { fetchUserDataByQuery } from "../components/FirestoreHelpers";
+import { current } from "@reduxjs/toolkit";
 
 const PhoneauthScreen = ({ navigation }) => {
   const dispatch = useDispatch();
-  const [phoneNumber, setPhoneNumberState] = useState('');
+  const [phoneNumber, setPhoneNumberState] = useState("");
   const [verificationId, setVerificationId] = useState(null);
-  const [otp, setOtp] = useState('');
-  const [countryCode, setCountryCode] = useState('+1'); // Default to +1 (U.S.)
-  
-
+  const [otp, setOtp] = useState("");
+  const [countryCode, setCountryCode] = useState("+91"); // Default to +91
 
   // Function to handle phone authentication
   const handlePhoneAuth = async () => {
@@ -25,82 +32,70 @@ const PhoneauthScreen = ({ navigation }) => {
 
     const fullPhoneNumber = `${countryCode}${phoneNumber}`;
 
-
     try {
-      console.log('Attempting to get Firebase Auth instance...');
       const confirmation = await auth().signInWithPhoneNumber(fullPhoneNumber);
-      console.log('Phone sign-in success, confirmation:', confirmation);
-
 
       setVerificationId(confirmation.verificationId); // Set verification ID
-      console.log('Verification ID set:', confirmation.verificationId);
 
       dispatch(setPhoneNumber(fullPhoneNumber)); // Dispatch the phone number to Redux
-      console.log("Dispatching phone number:", fullPhoneNumber);
     } catch (error) {
-      console.error('Error during phone authentication:', error);
-      Alert.alert('Phone Authentication Error', error.message);
+      Alert.alert("Phone Authentication Error", error.message);
     }
   };
 
-  // Function to verify OTP and check phone number existence
   const handleVerifyOtp = async () => {
     if (!verificationId) {
-      console.log('No verification ID available');
+      console.log("No verification ID available");
       Alert.alert("Verification Error", "No verification ID found.");
       return;
     }
 
-    console.log('Attempting to verify OTP...');
+    console.log("Attempting to verify OTP...");
     try {
       const credential = auth.PhoneAuthProvider.credential(verificationId, otp); // Create credential
-      console.log('Credential created:', credential);
+      console.log("Credential created:", credential);
 
       // Sign in with credential
       await auth().signInWithCredential(credential);
-      console.log('OTP verified successfully');
+      console.log("OTP verified successfully");
       const userId = auth().currentUser.uid;
 
       // After OTP is verified, check if the phone number is registered in Firestore
       const fullPhoneNumber = `${countryCode}${phoneNumber}`;
       const usersRef = collection(db, "Users");
 
-      // Check if the user document exists
-      const userQuery = query(usersRef, where("phoneNumber", "==", fullPhoneNumber));
-      const querySnapshot = await getDocs(userQuery);
+      const querySnapshot = await fetchUserDataByQuery(
+        "Users",
+        where("phoneNumber", "==", fullPhoneNumber)
+      );
 
       if (!querySnapshot.empty) {
         // Existing user
-        const userDoc = querySnapshot.docs[0]; // Get the first matching document
+        const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data();
 
         if (!userData.step1Completed) {
-          navigation.navigate("Userdeet1"); // Navigate to Step 1 of the signup process
+          navigation.navigate("Userdeet1");
         } else if (!userData.step2Completed) {
-          navigation.navigate("Userdeet2"); // Navigate to Step 2 of the signup process
+          navigation.navigate("Userdeet2");
         } else {
-          navigation.replace("MainTabs"); // Navigate to main app (signup complete)
+          navigation.replace("MainTabs");
         }
       } else {
         // New user, create a document
-        const newUserRef = doc(usersRef, userId); // Auto-generate document ID
+        const newUserRef = doc(usersRef, userId);
         await setDoc(newUserRef, {
-          phoneNumber: fullPhoneNumber, // Save phone number as a field
-          step1Completed: false, // Default signup steps
+          phoneNumber: fullPhoneNumber,
+          step1Completed: false,
           step2Completed: false,
+          currentMatches: [],
         });
 
-        navigation.navigate("Userdeet1"); // Navigate to Step 1 of the signup process
+        navigation.navigate("Userdeet1");
       }
-
-
-    
-
-
-
     } catch (error) {
-      console.error('Error during OTP verification:', error);
-      Alert.alert('OTP Verification Error', error.message);
+      console.error("Error during OTP verification:", error);
+      Alert.alert("OTP Verification Error", error.message);
     }
   };
 
@@ -131,7 +126,7 @@ const PhoneauthScreen = ({ navigation }) => {
       <Button
         title="Send OTP"
         onPress={() => {
-          console.log('Send OTP button pressed');
+          console.log("Send OTP button pressed");
           handlePhoneAuth();
         }}
         disabled={!phoneNumber || phoneNumber.length < 10 || !countryCode}
@@ -150,10 +145,13 @@ const PhoneauthScreen = ({ navigation }) => {
             keyboardType="number-pad"
             maxLength={6}
           />
-          <Button title="Verify OTP" onPress={() => {
-            console.log('Verify OTP button pressed');
-            handleVerifyOtp();
-          }} />
+          <Button
+            title="Verify OTP"
+            onPress={() => {
+              console.log("Verify OTP button pressed");
+              handleVerifyOtp();
+            }}
+          />
         </>
       )}
     </View>
@@ -164,11 +162,11 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   input: {
     height: 50,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderWidth: 1,
     marginBottom: 15,
     paddingLeft: 10,
