@@ -36,6 +36,7 @@ import {
   GestureDetector,
 } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
+import { fetchChatsByQuery } from "../components/FirestoreHelpers";
 
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
@@ -55,12 +56,9 @@ const ChatDisplay = ({ route, navigation }) => {
   };
   // Fetch or create chat between users
   const getChatId = async () => {
-    const chatQuery = query(
-      chatsRef,
+    const chatSnapshot = await fetchChatsByQuery(
       where("participants", "array-contains", userId)
     );
-
-    const chatSnapshot = await getDocs(chatQuery);
 
     let chatId = null;
 

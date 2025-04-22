@@ -39,11 +39,11 @@ export const fetchUserDataByQuery = async (
 };
 
 export const fetchChatsByQuery = async (...queryConstraints) => {
-  const chatsRef = doc(db, "Chats"); //This step fetches the particular document
+  const chatsRef = collection(db, "Chats"); //This step fetches the collection
   const q = query(chatsRef, ...queryConstraints);
   const chatsSnap = await getDocs(q);
 
-  if (!chatsSnap.exists) {
+  if (chatsSnap.empty) {
     throw new Error("User not found");
   }
 
