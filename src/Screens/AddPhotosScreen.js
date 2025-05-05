@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   Button,
-  TextInput,
   Image,
   FlatList,
   TouchableOpacity,
@@ -15,16 +14,11 @@ import auth from "@react-native-firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { setFavGenres, setFavAuthors, setPhotos } from "../redux/userSlice";
 import { setDoc, updateDoc } from "@react-native-firebase/firestore";
-import {
-  SERVER_URL,
-  GOOGLE_BOOKS_API_URL,
-  BOOKS_API_KEY,
-} from "../constants/api";
+import { SERVER_URL } from "../constants/api";
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
 import Header from "../components/Header";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { MultiSelect } from "react-native-element-dropdown";
 
 const genres = ["Fiction", "Fantasy", "Science Fiction", "Romance", "Horror"];
 const authors = [
@@ -35,7 +29,7 @@ const authors = [
   "Stephen King",
 ];
 
-const EditProfileScreen = ({ navigation }) => {
+const AddPhotosScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const [selectedAuthors, setSelectedAuthors] = useState([
@@ -48,10 +42,6 @@ const EditProfileScreen = ({ navigation }) => {
     ...globalSelected.photos,
   ]);
   const tempphotos = [...globalSelected.photos];
-  const [searchQuery, setSearchQuery] = useState("");
-  const [books, setBooks] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [loading, setLoading] = useState(false);
   userId = auth().currentUser.uid;
 
   const handleGenreSelect = (genres) => {
@@ -226,211 +216,130 @@ const EditProfileScreen = ({ navigation }) => {
       </View>
     );
   };
-  const searchBooks = async (query) => {
-    if (!query) return; // Skip if query is empty
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(
-        `${GOOGLE_BOOKS_API_URL}?q=${query}&key=${BOOKS_API_KEY}`
-      );
-      const data = await response.json();
-      setBooks(data.items || []);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching books:", error);
-      setLoading(false);
-    }
-  };
-
-  // Format the data for the dropdown
-  const formattedBooks = books.map((item) => ({
-    label: item.volumeInfo.title,
-    value: item.id,
-    authors: item.volumeInfo.authors?.join(", ") || "Unknown Author",
-  }));
-
-  useEffect(() => {
-    if (searchQuery) {
-      searchBooks(searchQuery);
-    }
-  }, [searchQuery]);
-
-  // Function to handle selection of items
-  const handleSelect = (selectedList) => {
-    setSelectedItems(selectedList);
-  };
 
   return (
     <View style={{ flex: 1 }}>
-      <Header title={"Edit Profile"} />
+      <Header title={"Add Photos"} />
       <Container>
-        <View style={styles.container}>
-          <View style={{ alignItems: "center", justifyContent: "center" }}>
-            <Image source={{ uri: selectedPhotos[0] }} style={styles.photo} />
-            <TouchableOpacity onPress={() => navigation.navigate("AddPhotos")}>
-              <Ionicons
-                name="add-circle-sharp"
-                size={37}
-                color="green"
-                style={{
-                  marginTop: -30,
-                  marginLeft: 60,
-                  backgroundColor: "white",
-                  borderRadius: 1000,
-                }}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <InfoRow label="Name" value={globalSelected.name} />
-          <InfoRow label="Phone" value={globalSelected.phoneNumber} />
-          <InfoRow label="Gender" value={globalSelected.gender} />
-          <InfoRow label="Date of Birth" value={globalSelected.dateOfBirth} />
-          <Multiselect
-            data={formattedBooks}
-            labelField="label"
-            valueField="value"
-            placeholder="Search for books/authors"
-            value={selectedItems}
-            onChange={handleSelect}
-            search
-            searchPlaceholder="Search for books/authors"
-            loading={loading}
-            renderItem={(item) => (
-              <View style={styles.dropdownItem}>
-                <Text>{item.label}</Text>
-                <Text style={styles.authorText}>{item.authors}</Text>
-              </View>
-            )}
-          />
-        </View>
-
-        {/* <Text style={styles.header}>Edit Profile</Text> */}
-
-        {/* <Text style={styles.subHeader}>
-        Select your favorite authors (max 3):
-      </Text>
-      <View style={styles.optionsContainer}>
-        {authors.map((authors) => (
-          <TouchableOpacity
-            key={authors}
-            onPress={() => handleAuthorSelect(authors)}
-            style={[
-              styles.optionBox,
-              selectedAuthors.includes(authors) && styles.selectedBox,
-            ]}
-          >
-            <Text style={styles.optionText}>{authors}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.subHeader}>Select your favorite genres (max 3):</Text>
-      <View style={styles.optionsContainer}>
-        {genres.map((genres) => (
-          <TouchableOpacity
-            key={genres}
-            onPress={() => handleGenreSelect(genres)}
-            style={[
-              styles.optionBox,
-              selectedGenres.includes(genres) && styles.selectedBox,
-            ]}
-          >
-            <Text style={styles.optionText}>{genres}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.label}> Photos</Text>
-      <View style={styles.section}>
-        <FlatList
-          data={selectedPhotos}
-          horizontal
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item, index }) => {
-            if (item != "") {
-              return (
-                <View style={styles.imageWrapper}>
-                  <Image source={{ uri: item }} style={styles.photo} />
-
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => removeImage(index)}
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={selectedPhotos}
+            horizontal
+            scrollEnabled={false}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item, index }) => {
+              if (item != "") {
+                return (
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "center",
+                      alignContent: "center",
+                    }}
                   >
-                    <Text style={styles.removeButtonText}>X</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            } else {
-              return (
-                <TouchableOpacity
-                  style={styles.photoBox}
-                  onPress={handleImagePicker}
-                >
-                  <Text style={styles.photoText}>+</Text>
-                </TouchableOpacity>
-              );
-            }
-          }}
-          ItemSeparatorComponent={() => <View style={{ width: 10 }} />} // Adds spacing between images
-          contentContainerStyle={{ paddingHorizontal: 10 }} // Optional padding around the list
-          showsHorizontalScrollIndicator={false}
-        />
-      </View>
+                    <Image source={{ uri: item }} style={styles.photo} />
+                    <TouchableOpacity onPress={() => removeImage(index)}>
+                      <Ionicons
+                        name="close-circle-sharp"
+                        size={34}
+                        color="green"
+                        style={{
+                          marginTop: -30,
+                          marginLeft: 70,
+                          backgroundColor: "white",
+                          borderRadius: 1000,
+                        }}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                );
+              } else {
+                return (
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "center",
+                      alignContent: "center",
+                    }}
+                  >
+                    <Image source={{ uri: item }} style={styles.photo} />
+                    <TouchableOpacity onPress={handleImagePicker}>
+                      <Ionicons
+                        name="add-circle-sharp"
+                        size={34}
+                        color="green"
+                        style={{
+                          marginTop: -30,
+                          marginLeft: 70,
+                          backgroundColor: "white",
+                          borderRadius: 1000,
+                        }}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+            }}
+            ItemSeparatorComponent={<View style={{ width: 30 }} />}
+          />
+          {/* <FlatList
+            data={selectedPhotos}
+            horizontal
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item, index }) => {
+              if (item != "") {
+                return (
+                  <View style={styles.imageWrapper}>
+                    <Image source={{ uri: item }} style={styles.photo} />
 
-      <View style={styles.buttonContainer}>
-        <Button title="Save Changes" onPress={handleSave} />
-        <Button
-          title="Cancel"
-          onPress={() => navigation.goBack()}
-          color="red"
-        />
-      </View> */}
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => removeImage(index)}
+                    >
+                      <Text style={styles.removeButtonText}>X</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              } else {
+                return (
+                  <TouchableOpacity
+                    style={styles.photoBox}
+                    onPress={handleImagePicker}
+                  >
+                    <Text style={styles.photoText}>+</Text>
+                  </TouchableOpacity>
+                );
+              }
+            }}
+            ItemSeparatorComponent={() => <View style={{ width: 10 }} />} // Adds spacing between images
+            contentContainerStyle={{ paddingHorizontal: 10 }} // Optional padding around the list
+            showsHorizontalScrollIndicator={false}
+          /> */}
+
+          <View style={styles.buttonContainer}>
+            <Button title="Save Changes" onPress={handleSave} />
+            <Button
+              title="Cancel"
+              onPress={() => navigation.goBack()}
+              color="red"
+            />
+          </View>
+        </View>
       </Container>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  input: {
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 20,
-    paddingLeft: 10,
-  },
-  dropdownItem: {
-    padding: 10,
-  },
-  authorText: {
-    color: "gray",
-    fontSize: 12,
-  },
   container: {
     flex: 1,
     flexDirection: "column",
     gap: 60,
     borderRadius: 10,
-    marginTop: 80,
     padding: 10,
     backgroundColor: "white",
   },
 
-  rowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignContent: "centre",
-    paddingBottom: 10,
-    borderBottomColor: "grey",
-    borderBottomWidth: 1,
-  },
-
-  flatListContent: {
-    alignItems: "center",
-  },
   photoText: {
     fontSize: 30,
     color: "black",
@@ -518,12 +427,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   photo: {
-    width: 120,
-    aspectRatio: 1,
-    borderRadius: 100,
-    marginTop: -70,
-    borderWidth: 3,
-    borderColor: "brown",
+    width: 100,
+    height: 150,
+    borderWidth: 2,
+    borderRadius: 10,
   },
   removeButton: {
     position: "absolute",
@@ -548,4 +455,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EditProfileScreen;
+export default AddPhotosScreen;
