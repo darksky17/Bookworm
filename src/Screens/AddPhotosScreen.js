@@ -20,53 +20,15 @@ import Container from "../components/Container";
 import Header from "../components/Header";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const genres = ["Fiction", "Fantasy", "Science Fiction", "Romance", "Horror"];
-const authors = [
-  "J.K. Rowling",
-  "George Orwell",
-  "Agatha Christie",
-  "J.R.R. Tolkien",
-  "Stephen King",
-];
-
 const AddPhotosScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();
-  const [selectedAuthors, setSelectedAuthors] = useState([
-    ...globalSelected.favAuthors,
-  ]);
-  const [selectedGenres, setSelectedGenres] = useState([
-    ...globalSelected.favGenres,
-  ]);
+
   const [selectedPhotos, setSelectedPhotos] = useState([
     ...globalSelected.photos,
   ]);
   const tempphotos = [...globalSelected.photos];
   userId = auth().currentUser.uid;
-
-  const handleGenreSelect = (genres) => {
-    if (selectedGenres.includes(genres)) {
-      const updatedGenres = selectedGenres.filter((item) => item !== genres);
-      setSelectedGenres(updatedGenres);
-    } else if (selectedGenres.length < 3) {
-      const updatedGenres = [...selectedGenres, genres];
-      setSelectedGenres(updatedGenres);
-    } else {
-      Alert.alert("Error", "You can select only 3 genres.");
-    }
-  };
-
-  const handleAuthorSelect = (authors) => {
-    if (selectedAuthors.includes(authors)) {
-      const updatedAuthors = selectedAuthors.filter((item) => item !== authors);
-      setSelectedAuthors(updatedAuthors);
-    } else if (selectedAuthors.length < 3) {
-      const updatedAuthors = [...selectedAuthors, authors];
-      setSelectedAuthors(updatedAuthors);
-    } else {
-      Alert.alert("Error", "You can select only 3 authors.");
-    }
-  };
 
   const removeImage = (index) => {
     const updatedImages = [...selectedPhotos];
@@ -208,15 +170,6 @@ const AddPhotosScreen = ({ navigation }) => {
     }
   };
 
-  const InfoRow = ({ label, value }) => {
-    return (
-      <View style={styles.rowContainer}>
-        <Text>{label}</Text>
-        <Text style={{ crolor: "black", fontWeight: "bold" }}>{value}</Text>
-      </View>
-    );
-  };
-
   return (
     <View style={{ flex: 1 }}>
       <Header title={"Add Photos"} />
@@ -282,39 +235,6 @@ const AddPhotosScreen = ({ navigation }) => {
             }}
             ItemSeparatorComponent={<View style={{ width: 30 }} />}
           />
-          {/* <FlatList
-            data={selectedPhotos}
-            horizontal
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item, index }) => {
-              if (item != "") {
-                return (
-                  <View style={styles.imageWrapper}>
-                    <Image source={{ uri: item }} style={styles.photo} />
-
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => removeImage(index)}
-                    >
-                      <Text style={styles.removeButtonText}>X</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              } else {
-                return (
-                  <TouchableOpacity
-                    style={styles.photoBox}
-                    onPress={handleImagePicker}
-                  >
-                    <Text style={styles.photoText}>+</Text>
-                  </TouchableOpacity>
-                );
-              }
-            }}
-            ItemSeparatorComponent={() => <View style={{ width: 10 }} />} // Adds spacing between images
-            contentContainerStyle={{ paddingHorizontal: 10 }} // Optional padding around the list
-            showsHorizontalScrollIndicator={false}
-          /> */}
 
           <View style={styles.buttonContainer}>
             <Button title="Save Changes" onPress={handleSave} />

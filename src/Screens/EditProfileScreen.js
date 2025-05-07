@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import auth from "@react-native-firebase/auth";
@@ -25,6 +26,7 @@ import Container from "../components/Container";
 import Header from "../components/Header";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { MultiSelect } from "react-native-element-dropdown";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 const genres = ["Fiction", "Fantasy", "Science Fiction", "Romance", "Horror"];
 const authors = [
@@ -48,10 +50,7 @@ const EditProfileScreen = ({ navigation }) => {
     ...globalSelected.photos,
   ]);
   const tempphotos = [...globalSelected.photos];
-  const [searchQuery, setSearchQuery] = useState("");
-  const [books, setBooks] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+
   userId = auth().currentUser.uid;
 
   const handleGenreSelect = (genres) => {
@@ -226,90 +225,155 @@ const EditProfileScreen = ({ navigation }) => {
       </View>
     );
   };
-  const searchBooks = async (query) => {
-    if (!query) return; // Skip if query is empty
-
-    setLoading(true);
+  const fetchAuthors = async (query) => {
+    if (!query || query.length < 3) {
+      console.log("Returned");
+      return;
+    }
 
     try {
       const response = await fetch(
-        `${GOOGLE_BOOKS_API_URL}?q=${query}&key=${BOOKS_API_KEY}`
+        `${GOOGLE_BOOKS_API_URL}?q=inauthor:${query}&key=${BOOKS_API_KEY}`
       );
       const data = await response.json();
-      setBooks(data.items || []);
-      setLoading(false);
+
+      console.log("This si sauthor data", data);
+
+      const authorsSet = new Set();
+
+      if (data.items) {
+        data.items.forEach((item) => {
+          const authors = item.volumeInfo.authors || [];
+          authors.forEach((author) => authorsSet.add(author));
+        });
+      }
+
+      const formatted = Array.from(authorsSet).map((author) => ({
+        label: author,
+        value: author,
+      }));
+
+      setAuthorOptions(formatted);
     } catch (error) {
-      console.error("Error fetching books:", error);
-      setLoading(false);
+      console.error("Error fetching authors:", error);
     }
   };
 
-  // Format the data for the dropdown
-  const formattedBooks = books.map((item) => ({
-    label: item.volumeInfo.title,
-    value: item.id,
-    authors: item.volumeInfo.authors?.join(", ") || "Unknown Author",
-  }));
-
-  useEffect(() => {
-    if (searchQuery) {
-      searchBooks(searchQuery);
+  const handleAuthorChange = (selected) => {
+    if (selectedAuthors.length > 3) {
+      Alert.alert("Limit reached", "You can select up to 3 authors.");
+      return;
     }
-  }, [searchQuery]);
-
-  // Function to handle selection of items
-  const handleSelect = (selectedList) => {
-    setSelectedItems(selectedList);
+    setSelectedAuthors(selected);
   };
-
   return (
     <View style={{ flex: 1 }}>
       <Header title={"Edit Profile"} />
-      <Container>
-        <View style={styles.container}>
-          <View style={{ alignItems: "center", justifyContent: "center" }}>
-            <Image source={{ uri: selectedPhotos[0] }} style={styles.photo} />
-            <TouchableOpacity onPress={() => navigation.navigate("AddPhotos")}>
-              <Ionicons
-                name="add-circle-sharp"
-                size={37}
-                color="green"
-                style={{
-                  marginTop: -30,
-                  marginLeft: 60,
-                  backgroundColor: "white",
-                  borderRadius: 1000,
-                }}
-              />
-            </TouchableOpacity>
-          </View>
+      <ScrollView>
+        <Container>
+          <View style={styles.container}>
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <Image source={{ uri: selectedPhotos[0] }} style={styles.photo} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("AddPhotos")}
+              >
+                <Ionicons
+                  name="add-circle-sharp"
+                  size={37}
+                  color="green"
+                  style={{
+                    marginTop: -30,
+                    marginLeft: 60,
+                    backgroundColor: "white",
+                    borderRadius: 1000,
+                  }}
+                />
+              </TouchableOpacity>
+            </View>
 
-          <InfoRow label="Name" value={globalSelected.name} />
-          <InfoRow label="Phone" value={globalSelected.phoneNumber} />
-          <InfoRow label="Gender" value={globalSelected.gender} />
-          <InfoRow label="Date of Birth" value={globalSelected.dateOfBirth} />
-          <Multiselect
-            data={formattedBooks}
+            <InfoRow label="Name" value={globalSelected.name} />
+            <InfoRow label="Phone" value={globalSelected.phoneNumber} />
+            <InfoRow label="Gender" value={globalSelected.gender} />
+            <InfoRow label="Date of Birth" value={globalSelected.dateOfBirth} />
+
+            {/* <MultiSelect
+            style={styles.dropdown}
+            data={authorOptions}
             labelField="label"
             valueField="value"
-            placeholder="Search for books/authors"
-            value={selectedItems}
-            onChange={handleSelect}
+            placeholder="Search and select authors"
             search
-            searchPlaceholder="Search for books/authors"
-            loading={loading}
-            renderItem={(item) => (
-              <View style={styles.dropdownItem}>
-                <Text>{item.label}</Text>
-                <Text style={styles.authorText}>{item.authors}</Text>
+            value={selectedAuthors}
+            onChange={handleAuthorChange}
+            onChangeText={fetchAuthors} // Key line: fetch authors as user types
+            maxSelect={3}
+          /> */}
+
+            <View style={styles.chipContainer}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 10,
+                }}
+              >
+                <Text>Your favorite Authors:</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("AddAuthors")}
+                >
+                  <FontAwesome name="caret-right" size={24} color="black" />
+                </TouchableOpacity>
               </View>
-            )}
-          />
-        </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 5,
+                  justifyContent: "flex-start",
+                  flexWrap: "wrap",
+                }}
+              >
+                {selectedAuthors.map((author, index) => (
+                  <View key={index} style={styles.chip}>
+                    <Text style={styles.chipText}>{author}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View style={styles.chipContainer}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 10,
+                }}
+              >
+                <Text>Your favorite Genres:</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("AddGenres")}
+                >
+                  <FontAwesome name="caret-right" size={24} color="black" />
+                </TouchableOpacity>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 5,
+                  justifyContent: "flex-start",
+                  flexWrap: "wrap",
+                }}
+              >
+                {selectedGenres.map((genre, index) => (
+                  <View key={index} style={styles.chip}>
+                    <Text style={styles.chipText}>{genre}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
 
-        {/* <Text style={styles.header}>Edit Profile</Text> */}
+          {/* <Text style={styles.header}>Edit Profile</Text> */}
 
-        {/* <Text style={styles.subHeader}>
+          {/* <Text style={styles.subHeader}>
         Select your favorite authors (max 3):
       </Text>
       <View style={styles.optionsContainer}>
@@ -388,26 +452,34 @@ const EditProfileScreen = ({ navigation }) => {
           color="red"
         />
       </View> */}
-      </Container>
+        </Container>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  input: {
-    height: 40,
-    borderColor: "#ccc",
+  dropdown: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  chipContainer: {
+    flexDirection: "column",
     borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 20,
-    paddingLeft: 10,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 20,
+    gap: 20,
   },
-  dropdownItem: {
-    padding: 10,
+  chip: {
+    backgroundColor: "#d1e7dd",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
-  authorText: {
-    color: "gray",
-    fontSize: 12,
+  chipText: {
+    color: "#0f5132",
+    fontSize: 14,
   },
   container: {
     flex: 1,

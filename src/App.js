@@ -21,7 +21,8 @@ import { PaperProvider } from "react-native-paper";
 import ViewProfile from "./Screens/ViewProfile";
 import ChatScreenList from "./Screens/chatScreenList";
 import AddPhotosScreen from "./Screens/AddPhotosScreen";
-
+import AddAuthorsScreen from "./Screens/AddAuthorsScreen";
+import AddGenresScreen from "./Screens/AddGenresScreen";
 function HomeScreen({ navigation }) {
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -110,6 +111,8 @@ const AppNavigator = () => {
         <Stack.Screen name="ProfileDisplay" component={ViewProfile} />
         <Stack.Screen name="ChatScreenList" component={ChatScreenList} />
         <Stack.Screen name="AddPhotos" component={AddPhotosScreen} />
+        <Stack.Screen name="AddAuthors" component={AddAuthorsScreen} />
+        <Stack.Screen name="AddGenres" component={AddGenresScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
