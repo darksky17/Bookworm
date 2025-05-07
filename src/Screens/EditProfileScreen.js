@@ -1,21 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   Button,
+  TextInput,
   Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import auth from "@react-native-firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { setFavGenres, setFavAuthors, setPhotos } from "../redux/userSlice";
 import { setDoc, updateDoc } from "@react-native-firebase/firestore";
-import { SERVER_URL } from "../constants/api";
+import {
+  SERVER_URL,
+  GOOGLE_BOOKS_API_URL,
+  BOOKS_API_KEY,
+} from "../constants/api";
 import { fetchUserDataById } from "../components/FirestoreHelpers";
+import Container from "../components/Container";
+import Header from "../components/Header";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { MultiSelect } from "react-native-element-dropdown";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 const genres = ["Fiction", "Fantasy", "Science Fiction", "Romance", "Horror"];
 const authors = [
@@ -39,6 +50,7 @@ const EditProfileScreen = ({ navigation }) => {
     ...globalSelected.photos,
   ]);
   const tempphotos = [...globalSelected.photos];
+
   userId = auth().currentUser.uid;
 
   const handleGenreSelect = (genres) => {
@@ -205,11 +217,163 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Edit Profile</Text>
+  const InfoRow = ({ label, value }) => {
+    return (
+      <View style={styles.rowContainer}>
+        <Text>{label}</Text>
+        <Text style={{ crolor: "black", fontWeight: "bold" }}>{value}</Text>
+      </View>
+    );
+  };
+  const fetchAuthors = async (query) => {
+    if (!query || query.length < 3) {
+      console.log("Returned");
+      return;
+    }
 
-      <Text style={styles.subHeader}>
+    try {
+      const response = await fetch(
+        `${GOOGLE_BOOKS_API_URL}?q=inauthor:${query}&key=${BOOKS_API_KEY}`
+      );
+      const data = await response.json();
+
+      console.log("This si sauthor data", data);
+
+      const authorsSet = new Set();
+
+      if (data.items) {
+        data.items.forEach((item) => {
+          const authors = item.volumeInfo.authors || [];
+          authors.forEach((author) => authorsSet.add(author));
+        });
+      }
+
+      const formatted = Array.from(authorsSet).map((author) => ({
+        label: author,
+        value: author,
+      }));
+
+      setAuthorOptions(formatted);
+    } catch (error) {
+      console.error("Error fetching authors:", error);
+    }
+  };
+
+  const handleAuthorChange = (selected) => {
+    if (selectedAuthors.length > 3) {
+      Alert.alert("Limit reached", "You can select up to 3 authors.");
+      return;
+    }
+    setSelectedAuthors(selected);
+  };
+  return (
+    <View style={{ flex: 1 }}>
+      <Header title={"Edit Profile"} />
+      <ScrollView>
+        <Container>
+          <View style={styles.container}>
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <Image source={{ uri: selectedPhotos[0] }} style={styles.photo} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("AddPhotos")}
+              >
+                <Ionicons
+                  name="add-circle-sharp"
+                  size={37}
+                  color="green"
+                  style={{
+                    marginTop: -30,
+                    marginLeft: 60,
+                    backgroundColor: "white",
+                    borderRadius: 1000,
+                  }}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <InfoRow label="Name" value={globalSelected.name} />
+            <InfoRow label="Phone" value={globalSelected.phoneNumber} />
+            <InfoRow label="Gender" value={globalSelected.gender} />
+            <InfoRow label="Date of Birth" value={globalSelected.dateOfBirth} />
+
+            {/* <MultiSelect
+            style={styles.dropdown}
+            data={authorOptions}
+            labelField="label"
+            valueField="value"
+            placeholder="Search and select authors"
+            search
+            value={selectedAuthors}
+            onChange={handleAuthorChange}
+            onChangeText={fetchAuthors} // Key line: fetch authors as user types
+            maxSelect={3}
+          /> */}
+
+            <View style={styles.chipContainer}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 10,
+                }}
+              >
+                <Text>Your favorite Authors:</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("AddAuthors")}
+                >
+                  <FontAwesome name="caret-right" size={24} color="black" />
+                </TouchableOpacity>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 5,
+                  justifyContent: "flex-start",
+                  flexWrap: "wrap",
+                }}
+              >
+                {selectedAuthors.map((author, index) => (
+                  <View key={index} style={styles.chip}>
+                    <Text style={styles.chipText}>{author}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View style={styles.chipContainer}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 10,
+                }}
+              >
+                <Text>Your favorite Genres:</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("AddGenres")}
+                >
+                  <FontAwesome name="caret-right" size={24} color="black" />
+                </TouchableOpacity>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  gap: 5,
+                  justifyContent: "flex-start",
+                  flexWrap: "wrap",
+                }}
+              >
+                {selectedGenres.map((genre, index) => (
+                  <View key={index} style={styles.chip}>
+                    <Text style={styles.chipText}>{genre}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* <Text style={styles.header}>Edit Profile</Text> */}
+
+          {/* <Text style={styles.subHeader}>
         Select your favorite authors (max 3):
       </Text>
       <View style={styles.optionsContainer}>
@@ -287,17 +451,55 @@ const EditProfileScreen = ({ navigation }) => {
           onPress={() => navigation.goBack()}
           color="red"
         />
-      </View>
+      </View> */}
+        </Container>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  dropdown: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+  },
+  chipContainer: {
+    flexDirection: "column",
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 20,
+    gap: 20,
+  },
+  chip: {
+    backgroundColor: "#d1e7dd",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  chipText: {
+    color: "#0f5132",
+    fontSize: 14,
+  },
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f9f9f9",
+    flexDirection: "column",
+    gap: 60,
+    borderRadius: 10,
+    marginTop: 80,
+    padding: 10,
+    backgroundColor: "white",
   },
+
+  rowContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignContent: "centre",
+    paddingBottom: 10,
+    borderBottomColor: "grey",
+    borderBottomWidth: 1,
+  },
+
   flatListContent: {
     alignItems: "center",
   },
@@ -339,7 +541,6 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
     textAlign: "center",
   },
   label: {
@@ -389,9 +590,12 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   photo: {
-    width: 80,
-    height: 80,
-    borderRadius: 5,
+    width: 120,
+    aspectRatio: 1,
+    borderRadius: 100,
+    marginTop: -70,
+    borderWidth: 3,
+    borderColor: "brown",
   },
   removeButton: {
     position: "absolute",

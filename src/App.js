@@ -7,44 +7,47 @@ import Userdetails1 from "./Screens/Userdetails1";
 import Userdetails2 from "./Screens/Userdetails2";
 import ChatDisplay from "./Screens/chatScreen";
 import Tabnav from "./Tabnav";
-import { Text, View, Button } from 'react-native';
-import { Provider } from 'react-redux';
-import { store } from './redux/store';
-import SignupScreen from './Screens/SignupScreen';
+import { Text, View, Button } from "react-native";
+import { Provider } from "react-redux";
+import { store } from "./redux/store";
+import SignupScreen from "./Screens/SignupScreen";
 import EditProfileScreen from "./Screens/EditProfileScreen";
 import { db } from "./Firebaseconfig";
 import { doc, getDoc } from "@react-native-firebase/firestore";
-import 'react-native-gesture-handler';
-import 'react-native-reanimated';
-import { StatusBar } from 'react-native';
-import { PaperProvider } from 'react-native-paper';
+import "react-native-gesture-handler";
+import "react-native-reanimated";
+import { StatusBar } from "react-native";
+import { PaperProvider } from "react-native-paper";
 import ViewProfile from "./Screens/ViewProfile";
 import ChatScreenList from "./Screens/chatScreenList";
-
-
+import AddPhotosScreen from "./Screens/AddPhotosScreen";
+import AddAuthorsScreen from "./Screens/AddAuthorsScreen";
+import AddGenresScreen from "./Screens/AddGenresScreen";
 function HomeScreen({ navigation }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: 40, color: 'darkgreen' }}>BookWorm</Text>
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ fontSize: 40, color: "darkgreen" }}>BookWorm</Text>
       <Button
         title="Get Started"
-        onPress={() => navigation.replace('Phoneauth')}
+        onPress={() => navigation.replace("Phoneauth")}
         color="lightgreen"
       />
 
-      < Button title="Logout" onPress={() => auth()
-        .signOut()
-        .then(() => console.log('User signed out!'))}
+      <Button
+        title="Logout"
+        onPress={() =>
+          auth()
+            .signOut()
+            .then(() => console.log("User signed out!"))
+        }
         color="blue"
       />
-
     </View>
   );
 }
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
-  
   const [initializing, setInitializing] = useState(true);
   const [initialRoute, setInitialRoute] = useState("Home");
   const [user, setUser] = useState();
@@ -69,12 +72,10 @@ const AppNavigator = () => {
             setInitialRoute("MainTabs"); // Completed signup
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error("Error fetching user data:", error);
           setInitialRoute("Home"); // Fallback to home on error
         }
-      }
-
-      else {
+      } else {
         setInitialRoute("Home");
       }
 
@@ -86,16 +87,19 @@ const AppNavigator = () => {
 
   if (initializing) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <Text>Loading...</Text>
       </View>
     );
   }
 
   return (
-    <NavigationContainer >
-      <StatusBar  backgroundColor="transparent" barStyle="dark-content" />
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
+    <NavigationContainer>
+      <StatusBar backgroundColor="transparent" barStyle="dark-content" />
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={initialRoute}
+      >
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Phoneauth" component={PhoneauthScreen} />
         <Stack.Screen name="Userdeet1" component={Userdetails1} />
@@ -106,6 +110,9 @@ const AppNavigator = () => {
         <Stack.Screen name="ChatDisplay" component={ChatDisplay} />
         <Stack.Screen name="ProfileDisplay" component={ViewProfile} />
         <Stack.Screen name="ChatScreenList" component={ChatScreenList} />
+        <Stack.Screen name="AddPhotos" component={AddPhotosScreen} />
+        <Stack.Screen name="AddAuthors" component={AddAuthorsScreen} />
+        <Stack.Screen name="AddGenres" component={AddGenresScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -114,10 +121,9 @@ const AppNavigator = () => {
 const App = () => (
   <Provider store={store}>
     <PaperProvider>
-    <AppNavigator />
+      <AppNavigator />
     </PaperProvider>
   </Provider>
 );
 
 export default App;
-

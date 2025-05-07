@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Image,
-  Button,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -20,13 +19,27 @@ import axios from "axios"; // Add axios for API calls
 import { onSnapshot, doc, deleteDoc } from "@react-native-firebase/firestore";
 import { SERVER_URL } from "../constants/api";
 import { fetchUserDataById } from "../components/FirestoreHelpers";
-
+import Container from "../components/Container";
+import { Button } from "react-native-paper";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import Octicons from "@expo/vector-icons/Octicons";
+import {
+  Switch,
+  Modal as PModal,
+  Portal,
+  PaperProvider,
+} from "react-native-paper";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false); // Delete confirmation modal
   const [deleteConfirmation, setDeleteConfirmation] = useState(""); // Confirmation text input
   const [selectedImage, setSelectedImage] = useState(null);
+  const [logoutModal, setLogoutModal] = useState(false);
   const dispatch = useDispatch();
   const unsubscribeRef = useRef(null);
 
@@ -144,10 +157,26 @@ const ProfileScreen = ({ navigation }) => {
     setModalVisible(true);
   };
 
+  const SettingsRow = ({ icon, iconLibrary: Icon, label, rightComponent }) => (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Icon name={icon} size={24} color="black" />
+        <Text style={{ fontWeight: "bold", fontSize: 16 }}>{label}</Text>
+      </View>
+      {rightComponent}
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      <View style={styles.profileHeader}>
-        {profilePicture ? (
+    <Container>
+      <View style={styles.container}>
+        <View style={styles.profileHeader}>
           <Image
             source={{ uri: profilePicture }}
             style={styles.profileImage}
@@ -158,142 +187,210 @@ const ProfileScreen = ({ navigation }) => {
               )
             }
           />
-        ) : (
-          <View style={styles.placeholderProfileImage}>
-            <Text style={styles.placeholderText}>No Image</Text>
+
+          <View
+            style={{
+              flexDirection: "column",
+              gap: 10,
+              width: "full",
+              marginTop: 10,
+            }}
+          >
+            <Text style={styles.nameText}>
+              {Myuser.name}, {calculateAge(Myuser.dateOfBirth)}
+            </Text>
+            <Button
+              mode="contained"
+              compact="true"
+              onPress={() => navigation.navigate("EditProfile")}
+            >
+              Edit Profile
+            </Button>
           </View>
-        )}
-        <View style={styles.profileDetails}>
-          <Text style={styles.nameText}>{Myuser.name}</Text>
-          <Text style={styles.ageText}>
-            Age: {calculateAge(Myuser.dateOfBirth)}
-          </Text>
-          <Text style={styles.genderText}>
-            Gender: {Myuser.gender || "N/A"}
-          </Text>
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Favorite Genres</Text>
-        <Text style={styles.infoText}>{favGenres?.join(", ") || "N/A"}</Text>
-      </View>
+        <View style={styles.section}>
+          <SettingsRow
+            icon="notifications-outline"
+            iconLibrary={Ionicons}
+            label="Get notifications"
+            rightComponent={<Switch value={true} />}
+          />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Favorite Authors</Text>
-        <Text style={styles.infoText}>{favAuthors?.join(", ") || "N/A"}</Text>
-      </View>
+          <SettingsRow
+            icon="account"
+            iconLibrary={MaterialCommunityIcons}
+            label="Account Settings"
+            rightComponent={
+              <FontAwesome name="caret-right" size={24} color="black" />
+            }
+          />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Photos</Text>
-        <FlatList
-          data={Myuser.photos}
-          horizontal
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => handleImagePress(item)}>
-              <Image source={{ uri: item }} style={styles.photo} />
-            </TouchableOpacity>
-          )}
-        />
-      </View>
+          <SettingsRow
+            icon="logout"
+            iconLibrary={MaterialIcons}
+            label="Logout"
+            rightComponent={
+              <TouchableOpacity onPress={() => setLogoutModal(true)}>
+                <FontAwesome name="caret-right" size={24} color="black" />
+              </TouchableOpacity>
+            }
+          />
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate("EditProfile")}
+          <SettingsRow
+            icon="delete"
+            iconLibrary={AntDesign}
+            label="Delete Account"
+            rightComponent={
+              <TouchableOpacity onPress={() => setDeleteModalVisible(true)}>
+                <FontAwesome name="caret-right" size={24} color="black" />
+              </TouchableOpacity>
+            }
+          />
+
+          <SettingsRow
+            icon="report"
+            iconLibrary={Octicons}
+            label="Report"
+            rightComponent={
+              <FontAwesome name="caret-right" size={24} color="black" />
+            }
+          />
+        </View>
+
+        <Modal
+          transparent={true}
+          visible={logoutModal}
+          animationType="slide"
+          onRequestClose={() => setLogoutModal(false)}
         >
-          <Text style={styles.buttonText}>Edit Profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.logoutButton]}
-          onPress={() =>
-            auth()
-              .signOut()
-              .then(() => {
-                console.log("User signed out!");
-                navigation.replace("Home");
-              })
-          }
-        >
-          <Text style={styles.buttonText}>Logout</Text>
-        </TouchableOpacity>
+          <View
+            style={{
+              padding: 20,
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <View style={styles.unmatchModal}>
+              <Text>Are you sure you want to Logout?</Text>
+              <View style={{ flexDirection: "row", gap: 30 }}>
+                <Button
+                  mode="contained"
+                  onPress={() => {
+                    auth()
+                      .signOut()
+                      .then(() => {
+                        console.log("User signed out!");
+                        setLogoutModal(false);
+                        navigation.replace("Home");
+                      });
+                  }}
+                >
+                  <Text>Yes</Text>
+                </Button>
+                <Button mode="contained" onPress={() => setLogoutModal(false)}>
+                  <Text>No</Text>
+                </Button>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
-        <TouchableOpacity
-          style={[styles.button, styles.deleteButton]}
-          onPress={() => setDeleteModalVisible(true)}
-        >
-          <Text style={styles.buttonText}>Delete Profile</Text>
-        </TouchableOpacity>
-      </View>
+        {/* <View style={styles.section}>
+          <Text style={styles.sectionHeader}>Favorite Genres</Text>
+          <Text style={styles.infoText}>{favGenres?.join(", ") || "N/A"}</Text>
+        </View>
 
-      {/* Modal for Delete Confirmation */}
-      <Modal
-        visible={deleteModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setDeleteModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalHeaderText}>
-              Are you sure you want to delete your profile?
-            </Text>
-            <Text style={styles.modalSubText}>
-              This action is permanent and cannot be undone. Type "delete" below
-              to confirm.
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={deleteConfirmation}
-              onChangeText={(text) => setDeleteConfirmation(text)}
-              placeholder="Type 'delete' to confirm"
-            />
-            <View style={styles.modalButtons}>
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>Favorite Authors</Text>
+          <Text style={styles.infoText}>{favAuthors?.join(", ") || "N/A"}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>Photos</Text>
+          <FlatList
+            data={Myuser.photos}
+            horizontal
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => handleImagePress(item)}>
+                <Image source={{ uri: item }} style={styles.photo} />
+              </TouchableOpacity>
+            )}
+          />
+        </View> */}
+
+        {/* Modal for Delete Confirmation */}
+        <Modal
+          visible={deleteModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setDeleteModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalHeaderText}>
+                Are you sure you want to delete your profile?
+              </Text>
+              <Text style={styles.modalSubText}>
+                This action is permanent and cannot be undone. Type "delete"
+                below to confirm.
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={deleteConfirmation}
+                onChangeText={(text) => setDeleteConfirmation(text)}
+                placeholder="Type 'delete' to confirm"
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.closeModalButton}
+                  onPress={() => setDeleteModalVisible(false)}
+                >
+                  <Text style={styles.closeModalText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.closeModalButton, styles.deleteModalButton]}
+                  onPress={handleDeleteProfile}
+                >
+                  <Text style={styles.closeModalText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={modalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.modalImage}
+              />
               <TouchableOpacity
                 style={styles.closeModalButton}
-                onPress={() => setDeleteModalVisible(false)}
+                onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.closeModalText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.closeModalButton, styles.deleteModalButton]}
-                onPress={handleDeleteProfile}
-              >
-                <Text style={styles.closeModalText}>Delete</Text>
+                <Text style={styles.closeModalText}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Image source={{ uri: selectedImage }} style={styles.modalImage} />
-            <TouchableOpacity
-              style={styles.closeModalButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeModalText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </Container>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f8f9fa",
+    flexDirection: "column",
+    gap: 80,
   },
   loaderContainer: {
     flex: 1,
@@ -304,10 +401,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#555",
   },
+  unmatchModal: {
+    padding: 20,
+    gap: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "snow",
+    elevation: 3,
+    borderRadius: 10,
+  },
   profileHeader: {
     flexDirection: "row",
-    marginBottom: 20,
-    alignItems: "center",
+    gap: 15,
     backgroundColor: "#ffffff",
     padding: 15,
     borderRadius: 10,
@@ -317,25 +422,19 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginRight: 20,
   },
   placeholderProfileImage: {
     width: 100,
     height: 100,
     backgroundColor: "#dfe4ea",
     borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
   },
   placeholderText: {
     color: "#7f8c8d",
     fontSize: 16,
   },
-  profileDetails: {
-    flex: 1,
-  },
   nameText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#2d3436",
   },
@@ -349,7 +448,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   section: {
-    marginBottom: 20,
+    flexDirection: "column",
+    backgroundColor: "#ffffff",
+    gap: 25,
+    borderRadius: 10,
+    padding: 10,
+    paddingTop: 20,
+    paddingBottom: 30,
   },
   sectionHeader: {
     fontSize: 20,
