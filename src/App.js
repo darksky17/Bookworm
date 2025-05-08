@@ -23,6 +23,7 @@ import ChatScreenList from "./Screens/chatScreenList";
 import AddPhotosScreen from "./Screens/AddPhotosScreen";
 import AddAuthorsScreen from "./Screens/AddAuthorsScreen";
 import AddGenresScreen from "./Screens/AddGenresScreen";
+import AccountSettings from "./Screens/AccountSettings";
 function HomeScreen({ navigation }) {
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -113,6 +114,7 @@ const AppNavigator = () => {
         <Stack.Screen name="AddPhotos" component={AddPhotosScreen} />
         <Stack.Screen name="AddAuthors" component={AddAuthorsScreen} />
         <Stack.Screen name="AddGenres" component={AddGenresScreen} />
+        <Stack.Screen name="AccountSettings" component={AccountSettings} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -216,37 +216,38 @@ const ProfileScreen = ({ navigation }) => {
             label="Get notifications"
             rightComponent={<Switch value={true} />}
           />
-
-          <SettingsRow
-            icon="account"
-            iconLibrary={MaterialCommunityIcons}
-            label="Account Settings"
-            rightComponent={
-              <FontAwesome name="caret-right" size={24} color="black" />
-            }
-          />
-
-          <SettingsRow
-            icon="logout"
-            iconLibrary={MaterialIcons}
-            label="Logout"
-            rightComponent={
-              <TouchableOpacity onPress={() => setLogoutModal(true)}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("AccountSettings")}
+          >
+            <SettingsRow
+              icon="account"
+              iconLibrary={MaterialCommunityIcons}
+              label="Account Settings"
+              rightComponent={
                 <FontAwesome name="caret-right" size={24} color="black" />
-              </TouchableOpacity>
-            }
-          />
-
-          <SettingsRow
-            icon="delete"
-            iconLibrary={AntDesign}
-            label="Delete Account"
-            rightComponent={
-              <TouchableOpacity onPress={() => setDeleteModalVisible(true)}>
+              }
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setLogoutModal(true)}>
+            <SettingsRow
+              icon="logout"
+              iconLibrary={MaterialIcons}
+              label="Logout"
+              rightComponent={
                 <FontAwesome name="caret-right" size={24} color="black" />
-              </TouchableOpacity>
-            }
-          />
+              }
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setDeleteModalVisible(true)}>
+            <SettingsRow
+              icon="delete"
+              iconLibrary={AntDesign}
+              label="Delete Account"
+              rightComponent={
+                <FontAwesome name="caret-right" size={24} color="black" />
+              }
+            />
+          </TouchableOpacity>
 
           <SettingsRow
             icon="report"
