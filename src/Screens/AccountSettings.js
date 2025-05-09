@@ -14,24 +14,41 @@ import { db } from "../Firebaseconfig";
 import moment from "moment";
 import auth from "@react-native-firebase/auth";
 import { useSelector, useDispatch } from "react-redux";
-import { setUserState } from "../redux/userSlice";
+import { setUserState, setAgeRange, setDistance } from "../redux/userSlice";
 import Slider from "@react-native-community/slider";
-import { onSnapshot, doc, deleteDoc } from "@react-native-firebase/firestore";
-
 import {
-  Switch,
-  Modal as PModal,
-  Portal,
-  PaperProvider,
-} from "react-native-paper";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+  onSnapshot,
+  doc,
+  deleteDoc,
+  updateDoc,
+} from "@react-native-firebase/firestore";
+import RangeSlider from "../components/Slider";
 import Header from "../components/Header";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Button } from "react-native-paper";
 const AccountSettings = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
 
   const dispatch = useDispatch();
   const unsubscribeRef = useRef(null);
+  const { ageMin, ageMax } = useSelector((s) => s.user);
+  const [localMin, setLocalMin] = useState(ageMin);
+  const [localMax, setLocalMax] = useState(ageMax);
+  const [value, setValue] = useState(10);
+  const handleSave = async () => {
+    console.log("LOL USERID");
+    dispatch(setAgeRange({ min: localMin, max: localMax }));
 
+    await updateDoc(doc(db, "Users", auth().currentUser.uid), {
+      ageMin: localMin,
+      ageMax: localMax,
+      distance: value,
+    });
+  };
+  const handleValuesChange = (min, max) => {
+    setLocalMin(min);
+    setLocalMax(max);
+  };
   useEffect(() => {
     // Get the current user's phone number
     const userPhoneNumber = auth().currentUser?.phoneNumber;
@@ -75,13 +92,6 @@ const AccountSettings = ({ navigation }) => {
   }, []);
 
   const Myuser = useSelector((state) => state.user);
-  const calculateAge = (birthdate) => {
-    if (!birthdate) return "N/A";
-    const birthMoment = moment(birthdate, "DD/MM/YYYY");
-    if (!birthMoment.isValid()) return "N/A";
-    const age = moment().diff(birthMoment, "years");
-    return age;
-  };
 
   if (!userData) {
     return (
@@ -99,47 +109,61 @@ const AccountSettings = ({ navigation }) => {
     favGenres,
     favAuthors,
   } = userData;
-  const profilePicture = photos[0] || null;
-
-  const SettingsRow = ({ icon, iconLibrary: Icon, label, rightComponent }) => (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <Icon name={icon} size={24} color="black" />
-        <Text style={{ fontWeight: "bold", fontSize: 16 }}>{label}</Text>
-      </View>
-      {rightComponent}
-    </View>
-  );
 
   return (
     <View>
       <Header title={"Enter Your Prefrences"} />
-      <View style={{ padding: 10 }}>
-        <View style={styles.chipContainer}>
-          <View
-            style={{
-              paddingHorizontal: 10,
-            }}
-          >
-            <Text style={{ fontWeight: "bold", fontSize: 16 }}>
-              How old should your new friend be?
-            </Text>
-          </View>
+      <View style={{ padding: 20, paddingTop: 25, gap: 40 }}>
+        <View style={{ gap: 20 }}>
+          <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+            How old should your new friend be?
+          </Text>
+          <View style={styles.chipContainer}>
+            <View
+              style={{
+                paddingHorizontal: 10,
+              }}
+            >
+              <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                Between {localMin} and {localMax}
+              </Text>
+            </View>
 
-          <Slider
-            style={{ width: 200, height: 40 }}
-            minimumValue={0}
-            maximumValue={1}
-            minimumTrackTintColor="#FFFFFF"
-            maximumTrackTintColor="#000000"
-          />
+            <RangeSlider
+              initialMin={ageMin}
+              initialMax={ageMax}
+              onValuesChange={handleValuesChange}
+            />
+          </View>
         </View>
+        <View style={{ gap: 20 }}>
+          <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+            How close do you want them to yourself?
+          </Text>
+          <View style={styles.chipContainer}>
+            <View
+              style={{
+                paddingHorizontal: 10,
+              }}
+            >
+              <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                Upto {Myuser.distance} Kilometers away
+              </Text>
+            </View>
+
+            <Slider
+              minimumValue={10}
+              maximumValue={100}
+              value={Myuser.distance}
+              onValueChange={(val) => setValue(val)}
+              onSlidingComplete={(val) => dispatch(setDistance(val))}
+              step={1}
+            />
+          </View>
+        </View>
+        <Button mode="contained" onPress={handleSave}>
+          Save Settings
+        </Button>
       </View>
     </View>
   );
@@ -150,11 +174,29 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     gap: 80,
   },
+  sliderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sliderBlock: {
+    flex: 1,
+    paddingHorizontal: 0, // No spacing between blocks
+  },
+  sliderLabel: {
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  slider: {
+    width: "100%",
+    height: 40,
+  },
+
   chipContainer: {
     flexDirection: "column",
     borderWidth: 1,
     borderRadius: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
     paddingVertical: 20,
     gap: 20,
   },

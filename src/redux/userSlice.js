@@ -1,18 +1,20 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-  phoneNumber: '',
-  name: '',
-  email: '',
-  dateOfBirth: '',
-  gender: '',
+  phoneNumber: "",
+  name: "",
+  email: "",
+  dateOfBirth: "",
+  gender: "",
   favGenres: [],
   favAuthors: [],
   photos: [],
+  ageMin: 18,
+  ageMax: 100,
 };
 
 const userSlice = createSlice({
-  name: 'user',
+  name: "user",
   initialState,
   reducers: {
     setPhoneNumber: (state, action) => {
@@ -39,23 +41,29 @@ const userSlice = createSlice({
     setPhotos: (state, action) => {
       state.photos = action.payload;
     },
+    setAgeRange(state, action) {
+      const { min, max } = action.payload;
+      state.ageMin = min;
+      state.ageMax = max;
+    },
+
+    setDistance: (state, action) => {
+      state.distance = action.payload;
+    },
 
     setUserState: (state, action) => {
-      
-  
-  // Destructure the payload to exclude lastUpdated
-  const { lastUpdated, ...updatedData } = action.payload;
+      // Destructure the payload to exclude lastUpdated
+      const { lastUpdated, ...updatedData } = action.payload;
 
-  // Log the updatedData to verify it's excluding lastUpdated
-  
-  return { ...state, ...updatedData };
+      // Log the updatedData to verify it's excluding lastUpdated
+
+      return { ...state, ...updatedData };
+    },
+
+    setLocation: (state, action) => {
+      state.location = action.payload; // Update location in state
+    },
   },
-
-  setLocation: (state, action) => {
-    state.location = action.payload; // Update location in state
-  },
-
-},
 });
 
 export const {
@@ -69,6 +77,8 @@ export const {
   setPhotos,
   setUserState,
   setLocation,
+  setAgeRange,
+  setDistance,
 } = userSlice.actions;
 
 export default userSlice.reducer;
