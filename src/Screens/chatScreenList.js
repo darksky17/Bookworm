@@ -143,32 +143,35 @@ const ChatScreenList = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Header title={"Chats"} />
-      <FlatList
-        style={styles.chatListContainer}
-        data={chats}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.chatlistbg}>
-            <View style={styles.chatRow}>
-              <InitialIcon
-                ascended={item.ascended}
-                photo={item.photos[0]}
-                initials={item.displayName?.[0]}
-              />
-              <Pressable
-                onPress={() =>
-                  navigation.navigate("ChatDisplay", { allData: item })
-                }
-              >
-                <Text style={styles.chatText}>
-                  {item.ascended ? item.name : item.displayName}
-                </Text>
-              </Pressable>
-              <AscendIcon value={item.ascended} />
+      <View style={{ flex: 1, paddingTop: 5, padding: 15 }}>
+        <FlatList
+          style={styles.chatListContainer}
+          data={chats}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.chatlistbg}>
+              <View style={styles.chatRow}>
+                <InitialIcon
+                  ascended={item.ascended}
+                  photo={item.photos[0]}
+                  initials={item.displayName?.[0]}
+                />
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate("ChatDisplay", { allData: item })
+                  }
+                >
+                  <Text style={styles.chatText}>
+                    {item.ascended ? item.name : item.displayName}
+                  </Text>
+                </Pressable>
+                <AscendIcon value={item.ascended} />
+              </View>
             </View>
-          </View>
-        )}
-      />
+          )}
+          contentContainerStyle={{ gap: 10 }}
+        />
+      </View>
     </View>
   );
 };
@@ -199,8 +202,8 @@ const styles = StyleSheet.create({
     backgroundColor: "snow",
     padding: 15,
     //marginHorizontal: 15,
-    marginBottom: 10,
-    borderRadius: 1,
+
+    borderRadius: 10,
   },
 
   chatRow: {
