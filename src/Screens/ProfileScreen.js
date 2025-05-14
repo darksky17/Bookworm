@@ -34,56 +34,12 @@ import {
 } from "react-native-paper";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 const ProfileScreen = ({ navigation }) => {
-  const [userData, setUserData] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false); // Delete confirmation modal
   const [deleteConfirmation, setDeleteConfirmation] = useState(""); // Confirmation text input
-  const [selectedImage, setSelectedImage] = useState(null);
+
   const [logoutModal, setLogoutModal] = useState(false);
-  const dispatch = useDispatch();
+
   const unsubscribeRef = useRef(null);
-
-  useEffect(() => {
-    // Get the current user's phone number
-    const userPhoneNumber = auth().currentUser?.phoneNumber;
-    const userId = auth().currentUser.uid;
-
-    // Check if the phone number is valid
-    if (!userPhoneNumber) return;
-
-    userDocRef = doc(db, "Users", userId);
-
-    // Set up a Firestore listener for real-time updates
-    const unsubscribe = onSnapshot(
-      userDocRef,
-      (docSnap) => {
-        if (docSnap.exists) {
-          setUserData(docSnap.data()); // Update local state with real-time data
-          //console.log('Real-time user data:', doc.data());
-          const { lastUpdated, ...updatedData } = docSnap.data();
-          dispatch(setUserState(updatedData));
-        } else {
-          Alert.alert("Error", "No user data found for this phone number.");
-        }
-      },
-      (error) => {
-        console.error("Error fetching real-time updates:", error);
-        Alert.alert(
-          "Error",
-          "Failed to fetch real-time updates from Firestore."
-        );
-      }
-    );
-
-    unsubscribeRef.current = unsubscribe;
-
-    // Cleanup listener on unmount
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
-    };
-  }, []);
 
   const handleDeleteProfile = async () => {
     if (deleteConfirmation.toLowerCase() !== "delete") {
@@ -134,28 +90,13 @@ const ProfileScreen = ({ navigation }) => {
     return age;
   };
 
-  if (!userData) {
+  if (!Myuser) {
     return (
       <View style={styles.loaderContainer}>
         <Text style={styles.loaderText}>Loading your profile...</Text>
       </View>
     );
   }
-
-  const {
-    name,
-    dateOfBirth,
-    gender,
-    photos = [],
-    favGenres,
-    favAuthors,
-  } = userData;
-  const profilePicture = photos[0] || null;
-
-  const handleImagePress = (imageUri) => {
-    setSelectedImage(imageUri);
-    setModalVisible(true);
-  };
 
   const SettingsRow = ({ icon, iconLibrary: Icon, label, rightComponent }) => (
     <View
@@ -178,7 +119,7 @@ const ProfileScreen = ({ navigation }) => {
       <View style={styles.container}>
         <View style={styles.profileHeader}>
           <Image
-            source={{ uri: profilePicture }}
+            source={{ uri: Myuser.photos[0] }}
             style={styles.profileImage}
             onError={(e) =>
               console.error(
@@ -358,28 +299,6 @@ const ProfileScreen = ({ navigation }) => {
                   <Text style={styles.closeModalText}>Delete</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
-        </Modal>
-
-        <Modal
-          visible={modalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.modalImage}
-              />
-              <TouchableOpacity
-                style={styles.closeModalButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.closeModalText}>Close</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </Modal>

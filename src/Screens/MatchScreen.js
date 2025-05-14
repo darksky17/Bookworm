@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -28,16 +28,16 @@ import {
   serverTimestamp,
   addDoc,
   getDoc,
+  onSnapshot,
 } from "@react-native-firebase/firestore";
-import { setLocation } from "../redux/userSlice";
+import { setLocation, setUserState } from "../redux/userSlice";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
 import auth from "@react-native-firebase/auth";
 import { getDistance } from "geolib";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { db } from "../Firebaseconfig";
-import Container from "../components/Container";
-import Header from "../components/Header";
+import moment from "moment";
 
 const MatchScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -47,10 +47,55 @@ const MatchScreen = ({ navigation }) => {
   const [showMatches, setShowMatches] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const Myuser = useSelector((state) => state.user);
+  const unsubscribeRef = useRef(null);
+
+  useEffect(() => {
+    const userId = auth().currentUser.uid;
+
+    userDocRef = doc(db, "Users", userId);
+
+    // Set up a Firestore listener for real-time updates
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (docSnap) => {
+        if (docSnap.exists) {
+          const { lastUpdated, ...updatedData } = docSnap.data();
+          dispatch(setUserState(updatedData));
+        } else {
+          Alert.alert("Error", "No user data found for this phone number.");
+        }
+      },
+      (error) => {
+        console.error("Error fetching real-time updates:", error);
+        Alert.alert(
+          "Error",
+          "Failed to fetch real-time updates from Firestore."
+        );
+      }
+    );
+
+    unsubscribeRef.current = unsubscribe;
+
+    // Cleanup listener on unmount
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
+  }, []);
 
   const scaleAnim = useState(new Animated.Value(1))[0];
   const matchAnim = useState(new Animated.Value(0))[0]; // For match pop effect
   let matchInterval = null;
+
+  const calculateAge = (birthdate) => {
+    if (!birthdate) return "N/A";
+    const birthMoment = moment(birthdate, "DD/MM/YYYY");
+    if (!birthMoment.isValid()) return "N/A";
+    const age = moment().diff(birthMoment, "years");
+    return age;
+  };
 
   useEffect(() => {
     getCurrentLocation();
@@ -108,7 +153,16 @@ const MatchScreen = ({ navigation }) => {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
-
+  function getGeohashPrefixLength(kilometers) {
+    if (kilometers <= 0.5) return 9; // ~0.004 km
+    if (kilometers <= 1) return 8; // ~0.019 km
+    if (kilometers <= 5) return 7; // ~0.076 km
+    if (kilometers <= 20) return 6; // ~0.61 km
+    if (kilometers <= 80) return 5; // ~2.4 km
+    if (kilometers <= 300) return 4; // ~20 km
+    if (kilometers <= 1000) return 3; // ~78 km
+    return 2; // ~630 km (for huge ranges)
+  }
   const findNearbyUsers = async () => {
     if (!location) return;
 
@@ -117,7 +171,9 @@ const MatchScreen = ({ navigation }) => {
 
     const { latitude, longitude } = location;
     const userGeohash = geohash.encode(latitude, longitude, 10);
-    const geohashPrefix = userGeohash.substring(0, 6);
+    const kilometers = getGeohashPrefixLength(Myuser.distance);
+
+    const geohashPrefix = userGeohash.substring(0, kilometers);
 
     try {
       const matchesRef = collection(db, "Users");
@@ -139,26 +195,52 @@ const MatchScreen = ({ navigation }) => {
       snapshot.forEach((doc) => {
         const userData = doc.data();
         const userId = doc.id;
+        const age = calculateAge(userData.dateOfBirth);
 
         if (userId !== auth().currentUser?.uid) {
           const userLat = userData.location?.latitude;
           const userLng = userData.location?.longitude;
 
           if (userLat && userLng) {
-            const distance = getDistance(
+            const distance_user = getDistance(
               { latitude, longitude },
               { latitude: userLat, longitude: userLng }
             );
 
-            if (distance <= 10000 && !mainUserMatches.includes(userId)) {
-              console.log("FRESH nearbyuser", nearbyUsers);
-              nearbyUsers.push({ id: userId, ...userData, distance });
+            console.log(age);
+            console.log(mainData.ageMax);
+            console.log(mainData.ageMin);
+            if (
+              distance_user <= Myuser.distance * 1000 &&
+              !mainUserMatches.includes(userId) &&
+              age >= mainData.ageMin &&
+              age <= mainData.ageMax
+            ) {
+              nearbyUsers.push({ id: userId, ...userData, distance_user });
             }
           }
         }
       });
+      const temp = [];
 
-      nearbyUsers.sort((a, b) => a.distance - b.distance);
+      nearbyUsers.forEach((user) => {
+        const commonAuthors = user.favAuthors?.filter((author) =>
+          mainData.favAuthors?.includes(author)
+        );
+
+        const commonGenres = user.favGenres?.filter((genre) =>
+          mainData.favGenres?.includes(genre)
+        );
+
+        // Modify condition as per your matching preference
+        if (commonAuthors?.length > 0 || commonGenres?.length > 1) {
+          temp.push(user); // push user, not nearbyUsers
+        }
+      });
+
+      nearbyUsers = temp;
+
+      nearbyUsers.sort((a, b) => a.distance_user - b.distance_user);
 
       setTimeout(() => {
         setMatches(nearbyUsers);
@@ -288,7 +370,7 @@ const MatchScreen = ({ navigation }) => {
               >
                 <Icon name="user-circle" size={50} color="lightgreen" />
                 <Text style={styles.matchDistance}>
-                  {(item.distance / 1000).toFixed(1)} km
+                  {(item.distance_user / 1000).toFixed(1)} km
                 </Text>
               </Animated.View>
             </Pressable>

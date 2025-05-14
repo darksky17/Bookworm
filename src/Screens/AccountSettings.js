@@ -24,7 +24,6 @@ import {
 } from "@react-native-firebase/firestore";
 import RangeSlider from "../components/Slider";
 import Header from "../components/Header";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Button } from "react-native-paper";
 const AccountSettings = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
@@ -34,9 +33,10 @@ const AccountSettings = ({ navigation }) => {
   const { ageMin, ageMax } = useSelector((s) => s.user);
   const [localMin, setLocalMin] = useState(ageMin);
   const [localMax, setLocalMax] = useState(ageMax);
-  const [value, setValue] = useState(10);
+  const reduxDistance = useSelector((state) => state.user.distance);
+  const [value, setValue] = useState(reduxDistance ?? 10);
+
   const handleSave = async () => {
-    console.log("LOL USERID");
     dispatch(setAgeRange({ min: localMin, max: localMax }));
 
     await updateDoc(doc(db, "Users", auth().currentUser.uid), {
@@ -44,6 +44,7 @@ const AccountSettings = ({ navigation }) => {
       ageMax: localMax,
       distance: value,
     });
+    navigation.goBack();
   };
   const handleValuesChange = (min, max) => {
     setLocalMin(min);
@@ -100,15 +101,6 @@ const AccountSettings = ({ navigation }) => {
       </View>
     );
   }
-
-  const {
-    name,
-    dateOfBirth,
-    gender,
-    photos = [],
-    favGenres,
-    favAuthors,
-  } = userData;
 
   return (
     <View>
