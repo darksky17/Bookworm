@@ -58,7 +58,7 @@ const ProfileScreen = ({ navigation }) => {
 
       console.log("Cloudinary folder deletion response:", response.data);
 
-      unsubscribeRef.current();
+      // unsubscribeRef.current();
       console.log("Now my listner should stop listening");
       // Delete the user document from Firestore
       await deleteDoc(doc(db, "Users", userId));

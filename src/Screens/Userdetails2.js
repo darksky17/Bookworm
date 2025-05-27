@@ -242,11 +242,8 @@ const Userdetails2 = ({ navigation }) => {
     <ScrollView contentContainerStyle={styles.container}>
       {/* Other UI elements */}
       <Text style={styles.header}>Complete Your Details</Text>
-      <Text>Phone Number: {phoneNumber}</Text>
-      <Text>Name: {name}</Text>
-      <Text>Email: {email}</Text>
 
-      <Text style={styles.subHeader}>Select your favorite genres (max 3):</Text>
+      <Text style={styles.subHeader}>Select Your Favorite Genres (max 3):</Text>
       <View style={styles.optionsContainer}>
         {genres.map((genre) => (
           <TouchableOpacity
@@ -263,7 +260,7 @@ const Userdetails2 = ({ navigation }) => {
       </View>
 
       <Text style={styles.subHeader}>
-        Select your favorite authors (max 3):
+        Select Your Favorite Authors (max 3):
       </Text>
       <View style={styles.optionsContainer}>
         {authors.map((author) => (
@@ -309,14 +306,18 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     alignItems: "center",
+    backgroundColor: "snow",
+    flex: 1,
   },
   header: {
-    fontSize: 20,
+    fontSize: 32,
     fontWeight: "bold",
     marginBottom: 20,
+    color: "lawngreen",
   },
   subHeader: {
-    fontSize: 16,
+    fontSize: 20,
+    fontWeight: "bold",
     marginVertical: 10,
   },
   optionsContainer: {
@@ -324,12 +325,14 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "center",
     marginBottom: 20,
+    paddingTop: 10,
+    gap: 15,
   },
   optionBox: {
     borderWidth: 1,
     borderColor: "gray",
     padding: 10,
-    margin: 5,
+
     borderRadius: 5,
   },
   selectedBox: {

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { setPhoneNumber } from "../redux/userSlice";
-import { Text, View, Button, Alert, TextInput, StyleSheet } from "react-native";
+import { Text, View, Alert, TextInput, StyleSheet } from "react-native";
+import { Button } from "react-native-paper";
 import auth from "@react-native-firebase/auth"; // Import Firebase auth
 import { firestore, db } from "../Firebaseconfig"; // Import Firestore
 import {
@@ -13,7 +14,7 @@ import {
   where,
 } from "@react-native-firebase/firestore";
 import { fetchUserDataByQuery } from "../components/FirestoreHelpers";
-import { current } from "@reduxjs/toolkit";
+import Container from "../components/Container";
 
 const PhoneauthScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -100,60 +101,86 @@ const PhoneauthScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter phone number"
-        value={phoneNumber}
-        onChangeText={(text) => {
-          console.log("Phone number entered:", text);
-          setPhoneNumberState(text); // Using the renamed setter
-        }}
-        keyboardType="phone-pad"
-        maxLength={15}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Enter country code (e.g. +1, +91)"
-        value={countryCode}
-        onChangeText={(text) => {
-          console.log("Country code entered:", text);
-          setCountryCode(text);
-        }}
-        keyboardType="default"
-        maxLength={4}
-      />
-      <Button
-        title="Send OTP"
-        onPress={() => {
-          console.log("Send OTP button pressed");
-          handlePhoneAuth();
-        }}
-        disabled={!phoneNumber || phoneNumber.length < 10 || !countryCode}
-      />
+    <View style={{ flex: 1 }}>
+      <Container>
+        <View
+          style={{
+            flex: 1,
 
-      {verificationId && (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter OTP"
-            value={otp}
-            onChangeText={(text) => {
-              console.log("OTP entered:", text);
-              setOtp(text);
-            }}
-            keyboardType="number-pad"
-            maxLength={6}
-          />
+            paddingBottom: "20%",
+          }}
+        >
+          <View style={{ flex: 1, gap: 70 }}>
+            <Text
+              style={{
+                fontSize: 50,
+                fontWeight: "bold",
+                color: "lawngreen",
+              }}
+            >
+              What's your number?
+            </Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TextInput
+                style={[styles.input, { flex: 0.125 }]}
+                placeholder="+91"
+                value={countryCode}
+                onChangeText={(text) => {
+                  console.log("Country code entered:", text);
+                  setCountryCode(text);
+                }}
+                keyboardType="phone-pad"
+                maxLength={5}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Enter phone number"
+                value={phoneNumber}
+                onChangeText={(text) => {
+                  console.log("Phone number entered:", text);
+                  setPhoneNumberState(text);
+                }}
+                keyboardType="phone-pad"
+                maxLength={15}
+              />
+            </View>
+            {verificationId && (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChangeText={(text) => {
+                    console.log("OTP entered:", text);
+                    setOtp(text);
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              </>
+            )}
+          </View>
+
           <Button
-            title="Verify OTP"
-            onPress={() => {
-              console.log("Verify OTP button pressed");
-              handleVerifyOtp();
-            }}
-          />
-        </>
-      )}
+            onPress={handlePhoneAuth}
+            disabled={!phoneNumber || phoneNumber.length < 10 || !countryCode}
+            mode="contained"
+            labelStyle={{ color: "lawngreen" }}
+          >
+            SEND OTP
+          </Button>
+
+          {verificationId && (
+            <Button
+              onPress={handleVerifyOtp}
+              mode="contained"
+              style={{ marginBottom: -50, marginTop: 10 }}
+            >
+              Verify OTP
+            </Button>
+          )}
+        </View>
+      </Container>
     </View>
   );
 };
@@ -165,11 +192,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   input: {
-    height: 50,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    marginBottom: 15,
-    paddingLeft: 10,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: "black",
+    borderRadius: 15,
+    fontSize: 16,
   },
 });
 

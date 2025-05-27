@@ -7,7 +7,7 @@ import Userdetails1 from "./Screens/Userdetails1";
 import Userdetails2 from "./Screens/Userdetails2";
 import ChatDisplay from "./Screens/chatScreen";
 import Tabnav from "./Tabnav";
-import { Text, View, Button } from "react-native";
+import { Text, View, StatusBar, Image } from "react-native";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
 import SignupScreen from "./Screens/SignupScreen";
@@ -16,33 +16,54 @@ import { db } from "./Firebaseconfig";
 import { doc, getDoc } from "@react-native-firebase/firestore";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
-import { StatusBar } from "react-native";
-import { PaperProvider } from "react-native-paper";
+import { PaperProvider, Button } from "react-native-paper";
 import ViewProfile from "./Screens/ViewProfile";
 import ChatScreenList from "./Screens/chatScreenList";
 import AddPhotosScreen from "./Screens/AddPhotosScreen";
 import AddAuthorsScreen from "./Screens/AddAuthorsScreen";
 import AddGenresScreen from "./Screens/AddGenresScreen";
 import AccountSettings from "./Screens/AccountSettings";
+import Logo from "./assets/BookWorm_logo.png";
+
 function HomeScreen({ navigation }) {
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: 40, color: "darkgreen" }}>BookWorm</Text>
-      <Button
-        title="Get Started"
-        onPress={() => navigation.replace("Phoneauth")}
-        color="lightgreen"
-      />
+    <View
+      style={{ flex: 1, gap: 20, padding: 20, backgroundColor: "lightgreen" }}
+    >
+      {/* <Text style={{ fontSize: 40, color: "darkgreen" }}>BookWorm</Text> */}
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Image
+          source={Logo}
+          style={{ flex: 1, height: 250, width: 300 }}
+          onError={(e) =>
+            console.error("Error loading profile picture:", e.nativeEvent.error)
+          }
+        />
+      </View>
 
-      <Button
-        title="Logout"
-        onPress={() =>
-          auth()
-            .signOut()
-            .then(() => console.log("User signed out!"))
-        }
-        color="blue"
-      />
+      <View style={{ flex: 1, gap: 10 }}>
+        <Button
+          mode="contained"
+          onPress={() => navigation.replace("Phoneauth")}
+          style={{ backgroundColor: "snow" }}
+          textColor="brown"
+        >
+          Get Started
+        </Button>
+
+        <Button
+          mode="contained"
+          onPress={() =>
+            auth()
+              .signOut()
+              .then(() => console.log("User signed out!"))
+          }
+          style={{ backgroundColor: "snow" }}
+          textColor="brown"
+        >
+          Logout
+        </Button>
+      </View>
     </View>
   );
 }
@@ -96,7 +117,7 @@ const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      <StatusBar backgroundColor="transparent" barStyle="dark-content" />
+      <StatusBar backgroundColor="lightgreen" barStyle="dark-content" />
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
         initialRouteName={initialRoute}

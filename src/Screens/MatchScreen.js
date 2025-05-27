@@ -398,7 +398,10 @@ const MatchScreen = ({ navigation }) => {
                 <Pressable
                   onPress={() => {
                     newChat(auth().currentUser?.uid, selectedMatch.id);
-                    navigation.navigate("ChatScreenList");
+                    setScanning(false);
+                    setTimeout(() => {
+                      navigation.navigate("Chats");
+                    }, 500);
                   }}
                 >
                   <Text style={styles.chatPromptButton}>Start Chat!</Text>
