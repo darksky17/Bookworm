@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Modal,
@@ -136,9 +137,11 @@ const ChatScreenList = ({ navigation }) => {
     } else return;
   };
 
-  useEffect(() => {
-    fetchChatDocsbyID(userId);
-  }, [userId]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchChatDocsbyID(userId);
+    }, [userId])
+  );
 
   return (
     <View style={styles.container}>

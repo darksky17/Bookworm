@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
+import { View, Text, TextInput, Alert, StyleSheet } from "react-native";
+import { Button } from "react-native-paper";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setName,
@@ -10,7 +11,7 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import auth from "@react-native-firebase/auth";
 import moment from "moment";
-import { firestore, db } from "../Firebaseconfig";
+
 import {
   collection,
   doc,
@@ -152,64 +153,80 @@ const Screen1 = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your name"
-        value={name}
-        onChangeText={setNameState}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your email"
-        value={email}
-        onChangeText={setEmailState}
-        keyboardType="email-address"
-      />
-
-      <Text style={styles.label}>Date of Birth (DD/MM/YYYY):</Text>
-      <View style={styles.dateInputContainer}>
-        <TextInput
-          style={[styles.dateInput, styles.dayInput]}
-          placeholder="DD"
-          value={day}
-          onChangeText={(value) =>
-            setDay(value.replace(/[^0-9]/g, "").slice(0, 2))
-          }
-          keyboardType="numeric"
-        />
-        <Text style={styles.separator}>/</Text>
-        <TextInput
-          style={[styles.dateInput, styles.monthInput]}
-          placeholder="MM"
-          value={month}
-          onChangeText={(value) =>
-            setMonth(value.replace(/[^0-9]/g, "").slice(0, 2))
-          }
-          keyboardType="numeric"
-        />
-        <Text style={styles.separator}>/</Text>
-        <TextInput
-          style={[styles.dateInput, styles.yearInput]}
-          placeholder="YYYY"
-          value={year}
-          onChangeText={(value) =>
-            setYear(value.replace(/[^0-9]/g, "").slice(0, 4))
-          }
-          keyboardType="numeric"
-        />
-      </View>
-
-      <Picker
-        selectedValue={gender}
-        onValueChange={(itemValue) => setGenderState(itemValue)}
+      <View
+        style={{
+          alignItems: "center",
+          fontWeight: "bold",
+          paddingHorizontal: 10,
+        }}
       >
-        <Picker.Item label="Select gender" value="" />
-        <Picker.Item label="Male" value="male" />
-        <Picker.Item label="Female" value="female" />
-        <Picker.Item label="Other" value="other" />
-      </Picker>
+        <Text style={{ fontSize: 34, color: "lawngreen" }}>
+          Tell Us About Yourself
+        </Text>
+      </View>
+      <View style={{ flex: 1, gap: 40 }}>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your name"
+          value={name}
+          onChangeText={setNameState}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmailState}
+          keyboardType="email-address"
+        />
 
-      <Button title="Continue" onPress={validateAndContinue} />
+        <Text style={styles.label}>Date of Birth (DD/MM/YYYY):</Text>
+        <View style={styles.dateInputContainer}>
+          <TextInput
+            style={[styles.dateInput, styles.dayInput]}
+            placeholder="DD"
+            value={day}
+            onChangeText={(value) =>
+              setDay(value.replace(/[^0-9]/g, "").slice(0, 2))
+            }
+            keyboardType="numeric"
+          />
+          <Text style={styles.separator}>/</Text>
+          <TextInput
+            style={[styles.dateInput, styles.monthInput]}
+            placeholder="MM"
+            value={month}
+            onChangeText={(value) =>
+              setMonth(value.replace(/[^0-9]/g, "").slice(0, 2))
+            }
+            keyboardType="numeric"
+          />
+          <Text style={styles.separator}>/</Text>
+          <TextInput
+            style={[styles.dateInput, styles.yearInput]}
+            placeholder="YYYY"
+            value={year}
+            onChangeText={(value) =>
+              setYear(value.replace(/[^0-9]/g, "").slice(0, 4))
+            }
+            keyboardType="numeric"
+          />
+        </View>
+
+        <Picker
+          selectedValue={gender}
+          onValueChange={(itemValue) => setGenderState(itemValue)}
+        >
+          <Picker.Item label="Select gender" value="" />
+          <Picker.Item label="Male" value="male" />
+          <Picker.Item label="Female" value="female" />
+          <Picker.Item label="Other" value="other" />
+        </Picker>
+      </View>
+      <View>
+        <Button mode="contained" onPress={validateAndContinue}>
+          Continue
+        </Button>
+      </View>
     </View>
   );
 };
@@ -218,19 +235,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: "center",
+    backgroundColor: "snow",
+    gap: 100,
+    paddingBottom: 40,
   },
   input: {
-    height: 50,
+    height: 70,
     borderColor: "#ccc",
     borderWidth: 1,
-    marginBottom: 10,
+    borderRadius: 10,
+
     paddingLeft: 10,
   },
   dateInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    gap: 10,
   },
   dateInput: {
     borderColor: "#ccc",
