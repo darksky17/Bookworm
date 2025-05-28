@@ -77,6 +77,10 @@ const ChatDisplay = ({ route, navigation }) => {
         lastMessage: "",
         timestamp: serverTimestamp(),
         choices: [],
+        unreadCounts: {
+          [userId]: 0,
+          [allData.id]: 0,
+        },
       });
       chatId = newChat.id;
     }
@@ -141,6 +145,12 @@ const ChatDisplay = ({ route, navigation }) => {
       };
 
       await addDoc(messagesRef, firestoreMessage);
+      await updateDoc(doc(db, "Chats", chatId), {
+        lastMessage: message.text,
+        timestamp: serverTimestamp(),
+        [`unreadCounts.${allData.id}`]: increment(1),
+        lastSenderId: userId,
+      });
     },
     [chatId]
   );
@@ -240,6 +250,23 @@ const ChatDisplay = ({ route, navigation }) => {
       }
     })
     .activeOffsetX([-10, 10]);
+
+  useEffect(() => {
+    const markChatAsRead = async () => {
+      if (!chatId || !userId) return;
+
+      const chatDocRef = doc(db, "Chats", chatId);
+      try {
+        await updateDoc(chatDocRef, {
+          [`unreadCounts.${userId}`]: 0,
+        });
+      } catch (error) {
+        console.error("Error updating unread count:", error);
+      }
+    };
+
+    markChatAsRead(); // ✅ Actually call the function
+  }, [chatId, userId]); // ✅ Run when chatId or userId changes
 
   return (
     <View style={styles.container}>

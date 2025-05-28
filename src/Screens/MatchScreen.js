@@ -315,6 +315,10 @@ const MatchScreen = ({ navigation }) => {
       lastMessage: "",
       timestamp: serverTimestamp(),
       choices: [],
+      unreadCounts: {
+        [userId]: 0,
+        [friendId]: 0,
+      },
     });
   };
 

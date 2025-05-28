@@ -21,6 +21,8 @@ import {
   getDocs,
   setDoc,
   getDoc,
+  limit,
+  orderBy,
 } from "@react-native-firebase/firestore";
 import { firestore, db } from "../Firebaseconfig";
 
@@ -66,30 +68,57 @@ const ChatScreenList = ({ navigation }) => {
 
     if (chatRefDocs.empty) {
       console.log("No chats found.");
-      // Clear the list if no chats exist
-    } else {
-      chatData = chatRefDocs.docs.map((doc) => ({
-        id: doc.id, // Firestore document ID
-        ...doc.data(), // Spread document fields
-      }));
+      return;
     }
 
-    otherUserId = chatData
+    // Extract all chat data
+    chatData = await Promise.all(
+      chatRefDocs.docs.map(async (docSnap) => {
+        const chatInfo = { id: docSnap.id, ...docSnap.data() };
+
+        // Fetch latest message from "messages" subcollection
+        const messagesQuery = query(
+          collection(db, "Chats", docSnap.id, "messages"),
+          orderBy("timestamp", "desc"),
+          limit(1)
+        );
+
+        const latestMessageSnapshot = await getDocs(messagesQuery);
+
+        let latestMessage = null;
+
+        if (!latestMessageSnapshot.empty) {
+          latestMessage = latestMessageSnapshot.docs[0].data();
+        }
+
+        return {
+          ...chatInfo,
+          latestMessage: latestMessage?.content || "", // Add only the text
+        };
+      })
+    );
+
+    // Get IDs of the other participants
+    const otherUserIds = chatData
       .map((chat) => chat.participants.find((id) => id !== userId))
       .filter(Boolean);
 
-    friendDocs = await fetchFriends(otherUserId);
+    const friendDocs = await fetchFriends(otherUserIds);
 
+    // Merge friend data with chat & latest message
     const updatedFriendDocs = friendDocs.map((user) => {
-      // Find a chat where the user is a participant
-      const chat = chatData.find((chat) => chat.participants.includes(user.id));
+      const chat = chatData.find((c) => c.participants.includes(user.id));
+      const unreadCount = chat?.unreadCounts?.[userId] ?? 0;
 
-      // Return a new user object with the `ascended` property added
       return {
         ...user,
-        ascended: chat ? chat.ascended : null, // If chat exists, use `ascended`, otherwise set to null
+        ascended: chat?.ascended ?? null,
+        latestMessage: chat?.latestMessage || "",
+        unreadCount,
       };
     });
+    console.log("LAWL", updatedFriendDocs);
+
     setChats(updatedFriendDocs);
   };
 
@@ -142,6 +171,7 @@ const ChatScreenList = ({ navigation }) => {
       fetchChatDocsbyID(userId);
     }, [userId])
   );
+  console.log("YEH LO FINAL chats", chats);
 
   return (
     <View style={styles.container}>
@@ -154,21 +184,85 @@ const ChatScreenList = ({ navigation }) => {
           renderItem={({ item }) => (
             <View style={styles.chatlistbg}>
               <View style={styles.chatRow}>
-                <InitialIcon
-                  ascended={item.ascended}
-                  photo={item.photos[0]}
-                  initials={item.displayName?.[0]}
-                />
-                <Pressable
-                  onPress={() =>
-                    navigation.navigate("ChatDisplay", { allData: item })
-                  }
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexShrink: 1,
+                    flexGrow: 1,
+                    alignItems: "center",
+                  }}
                 >
-                  <Text style={styles.chatText}>
-                    {item.ascended ? item.name : item.displayName}
-                  </Text>
-                </Pressable>
-                <AscendIcon value={item.ascended} />
+                  <InitialIcon
+                    ascended={item.ascended}
+                    photo={item.photos[0]}
+                    initials={item.displayName?.[0]}
+                  />
+
+                  <Pressable
+                    style={{ paddingLeft: 10, flexShrink: 1, flexGrow: 1 }}
+                    onPress={() =>
+                      navigation.navigate("ChatDisplay", { allData: item })
+                    }
+                  >
+                    <View style={{ flexShrink: 1, flexGrow: 1, gap: 5 }}>
+                      <Text style={styles.chatText}>
+                        {item.ascended ? item.name : item.displayName}
+                      </Text>
+                      {item.latestMessage ? (
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            color: "gray",
+                            fontWeight: "bold",
+                            flexShrink: 1,
+                            flexGrow: 1,
+                            overflow: "hidden",
+                            paddingLeft: 10,
+                          }}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {item.latestMessage}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                </View>
+
+                {/* RIGHT SIDE */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginLeft: 10,
+                  }}
+                >
+                  {item.unreadCount > 0 && (
+                    <View
+                      style={{
+                        backgroundColor: "green",
+                        borderRadius: 10,
+                        minWidth: 20,
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: 5,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "white",
+                          fontWeight: "bold",
+                          fontSize: 12,
+                        }}
+                      >
+                        {item.unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                  <AscendIcon value={item.ascended} />
+                </View>
               </View>
             </View>
           )}
@@ -212,11 +306,13 @@ const styles = StyleSheet.create({
   chatRow: {
     flexDirection: "row", // Aligns icon & text horizontally
     alignItems: "center", // Keeps them centered
+    flex: 1,
+    justifyContent: "space-between",
   },
 
   chatText: {
     color: "black", // White text for better contrast
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     paddingLeft: 10,
   },
