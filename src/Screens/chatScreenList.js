@@ -30,8 +30,46 @@ import Header from "../components/Header";
 import Feather from "@expo/vector-icons/Feather";
 import Container from "../components/Container";
 import { fetchChatsByQuery } from "../components/FirestoreHelpers";
+import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
+import { Platform } from "react-native";
+import { getVersion, getApiLevel } from "react-native-device-info";
 
 const ChatScreenList = ({ navigation }) => {
+  useEffect(() => {
+    const checkNotificationPermission = async () => {
+      if (Platform.OS === "android") {
+        const apiLevel = await getApiLevel(); // e.g., returns 33 for Android 13
+        console.log(apiLevel);
+
+        if (apiLevel >= 33) {
+          const permission = PERMISSIONS.ANDROID.POST_NOTIFICATIONS;
+
+          if (!permission) {
+            console.warn(
+              "POST_NOTIFICATIONS permission constant is undefined."
+            );
+            return;
+          }
+
+          const status = await check(permission);
+
+          if (status === RESULTS.DENIED) {
+            const newStatus = await request(permission);
+            console.log("Permission after request:", newStatus);
+          } else {
+            console.log("Permission status:", status);
+          }
+        } else {
+          console.log(
+            "Android version < 13 — notification permission not required."
+          );
+        }
+      }
+    };
+
+    checkNotificationPermission();
+  }, []);
+
   const userId = auth().currentUser.uid;
 
   const [chats, setChats] = useState([]);
@@ -171,7 +209,6 @@ const ChatScreenList = ({ navigation }) => {
       fetchChatDocsbyID(userId);
     }, [userId])
   );
-  console.log("YEH LO FINAL chats", chats);
 
   return (
     <View style={styles.container}>
