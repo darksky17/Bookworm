@@ -24,6 +24,7 @@ import AddAuthorsScreen from "./Screens/AddAuthorsScreen";
 import AddGenresScreen from "./Screens/AddGenresScreen";
 import AccountSettings from "./Screens/AccountSettings";
 import Logo from "./assets/BookWorm_logo.png";
+import messaging from "@react-native-firebase/messaging";
 
 function HomeScreen({ navigation }) {
   return (
@@ -73,6 +74,29 @@ const AppNavigator = () => {
   const [initializing, setInitializing] = useState(true);
   const [initialRoute, setInitialRoute] = useState("Home");
   const [user, setUser] = useState();
+  useEffect(() => {
+    const getFCMToken = async () => {
+      try {
+        const currentUser = auth().currentUser;
+        if (!currentUser) {
+          console.log("No user is logged in, skipping FCM token registration.");
+          return;
+        }
+
+        const token = await messaging().getToken();
+        console.log("FCM Token:", token);
+
+        // Optionally save to Firestore under the user's doc
+        await firestore().collection("Users").doc(currentUser.uid).update({
+          fcmToken: token,
+        });
+      } catch (error) {
+        console.error("Error getting FCM token:", error);
+      }
+    };
+
+    getFCMToken();
+  }, []);
 
   useEffect(() => {
     auth().onAuthStateChanged(async (user) => {

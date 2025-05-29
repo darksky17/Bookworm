@@ -38,18 +38,11 @@ const ChatScreenList = ({ navigation }) => {
   useEffect(() => {
     const checkNotificationPermission = async () => {
       if (Platform.OS === "android") {
-        const apiLevel = await getApiLevel(); // e.g., returns 33 for Android 13
-        console.log(apiLevel);
+        const apiLevel = await getApiLevel(); // e.g., 33 for Android 13+
 
         if (apiLevel >= 33) {
-          const permission = PERMISSIONS.ANDROID.POST_NOTIFICATIONS;
-
-          if (!permission) {
-            console.warn(
-              "POST_NOTIFICATIONS permission constant is undefined."
-            );
-            return;
-          }
+          const permission = "android.permission.POST_NOTIFICATIONS";
+          console.log("Notification permission string:", permission);
 
           const status = await check(permission);
 
@@ -155,7 +148,6 @@ const ChatScreenList = ({ navigation }) => {
         unreadCount,
       };
     });
-    console.log("LAWL", updatedFriendDocs);
 
     setChats(updatedFriendDocs);
   };
