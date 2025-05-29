@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.bookworm.demo",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"],
       "googleServicesFile": "./src/google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/BookWorm_logo.png",
