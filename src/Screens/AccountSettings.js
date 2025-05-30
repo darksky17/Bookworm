@@ -50,47 +50,49 @@ const AccountSettings = ({ navigation }) => {
     setLocalMin(min);
     setLocalMax(max);
   };
-  useEffect(() => {
-    // Get the current user's phone number
-    const userPhoneNumber = auth().currentUser?.phoneNumber;
-    const userId = auth().currentUser.uid;
+  // useEffect(() => {
+  //   // Get the current user's phone number
+  //   const userPhoneNumber = auth().currentUser?.phoneNumber;
+  //   const userId = auth().currentUser.uid;
 
-    // Check if the phone number is valid
-    if (!userPhoneNumber) return;
+  //   // Check if the phone number is valid
+  //   if (!userPhoneNumber) return;
 
-    userDocRef = doc(db, "Users", userId);
+  //   userDocRef = doc(db, "Users", userId);
 
-    // Set up a Firestore listener for real-time updates
-    const unsubscribe = onSnapshot(
-      userDocRef,
-      (docSnap) => {
-        if (docSnap.exists) {
-          setUserData(docSnap.data()); // Update local state with real-time data
-          //console.log('Real-time user data:', doc.data());
-          const { lastUpdated, ...updatedData } = docSnap.data();
-          dispatch(setUserState(updatedData));
-        } else {
-          Alert.alert("Error", "No user data found for this phone number.");
-        }
-      },
-      (error) => {
-        console.error("Error fetching real-time updates:", error);
-        Alert.alert(
-          "Error",
-          "Failed to fetch real-time updates from Firestore."
-        );
-      }
-    );
+  // Set up a Firestore listener for real-time updates
+  //   const unsubscribe = onSnapshot(
+  //     userDocRef,
+  //     (docSnap) => {
+  //       if (docSnap.exists()) {
+  //         setUserData(docSnap.data()); // Update local state with real-time data
+  //         //console.log('Real-time user data:', doc.data());
+  //         const { lastUpdated, ...updatedData } = docSnap.data();
+  //         dispatch(setUserState(updatedData));
+  //       } else {
+  //         console.warn("No user data found for this phone number.");
+  //         setUserData(null);
+  //         dispatch(setUserState({}));
+  //       }
+  //     },
+  //     (error) => {
+  //       console.error("Error fetching real-time updates:", error);
+  //       Alert.alert(
+  //         "Error",
+  //         "Failed to fetch real-time updates from Firestore."
+  //       );
+  //     }
+  //   );
 
-    unsubscribeRef.current = unsubscribe;
+  //   unsubscribeRef.current = unsubscribe;
 
-    // Cleanup listener on unmount
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
-    };
-  }, []);
+  //   // Cleanup listener on unmount
+  //   return () => {
+  //     if (unsubscribeRef.current) {
+  //       unsubscribeRef.current();
+  //     }
+  //   };
+  // }, []);
 
   const Myuser = useSelector((state) => state.user);
 

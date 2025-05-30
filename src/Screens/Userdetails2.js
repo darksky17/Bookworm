@@ -11,7 +11,12 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import * as ImagePicker from "expo-image-picker";
-import { setFavGenres, setFavAuthors, setPhotos } from "../redux/userSlice";
+import {
+  setFavGenres,
+  setFavAuthors,
+  setPhotos,
+  setDistance,
+} from "../redux/userSlice";
 import auth from "@react-native-firebase/auth";
 import { setDoc, updateDoc, doc } from "@react-native-firebase/firestore";
 import { SERVER_URL } from "../constants/api";
@@ -101,11 +106,16 @@ const Userdetails2 = ({ navigation }) => {
       );
       console.log(`Image URI: ${imageUri.substring(0, 50)}...`);
 
+      const idToken = await auth().currentUser.getIdToken();
+
       // Step 1: Get signature from our server
       console.log("Step 1: Requesting signature from server...");
       const response = await fetch(`${SERVER_URL}/generate-signature`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ folder: folderName }),
         timeout: 10000, // 10 second timeout
       });
@@ -226,6 +236,7 @@ const Userdetails2 = ({ navigation }) => {
       dispatch(setFavGenres(selectedGenres));
       dispatch(setFavAuthors(selectedAuthors));
       dispatch(setPhotos(photoUrls));
+      dispatch(setDistance(10));
 
       await updateDoc(userDocRef, { step2Completed: true });
       navigation.replace("MainTabs");

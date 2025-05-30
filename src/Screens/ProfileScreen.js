@@ -14,7 +14,7 @@ import { db } from "../Firebaseconfig";
 import moment from "moment";
 import auth from "@react-native-firebase/auth";
 import { useSelector, useDispatch } from "react-redux";
-import { setUserState } from "../redux/userSlice";
+import { setUserState, clearUserState } from "../redux/userSlice";
 import axios from "axios"; // Add axios for API calls
 import { onSnapshot, doc, deleteDoc } from "@react-native-firebase/firestore";
 import { SERVER_URL } from "../constants/api";
@@ -36,7 +36,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 const ProfileScreen = ({ navigation }) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false); // Delete confirmation modal
   const [deleteConfirmation, setDeleteConfirmation] = useState(""); // Confirmation text input
-
+  dispatch = useDispatch();
   const [logoutModal, setLogoutModal] = useState(false);
 
   const unsubscribeRef = useRef(null);
@@ -50,11 +50,18 @@ const ProfileScreen = ({ navigation }) => {
 
     try {
       const userId = auth().currentUser.uid;
+      const idToken = await auth().currentUser.getIdToken();
 
       const folderName = userId; // Assuming folder name follows a user-specific naming convention
-      const response = await axios.post(`${SERVER_URL}/delete-profile`, {
-        folderName: folderName,
-      });
+      const response = await axios.post(
+        `${SERVER_URL}/delete-profile`,
+        { folderName: folderName },
+        {
+          headers: {
+            Authorization: `Bearer ${idToken}`, // ✅ Add Bearer token here
+          },
+        }
+      );
 
       console.log("Cloudinary folder deletion response:", response.data);
 
@@ -63,7 +70,7 @@ const ProfileScreen = ({ navigation }) => {
       // Delete the user document from Firestore
       await deleteDoc(doc(db, "Users", userId));
       console.log("User profile deleted successfully.");
-
+      dispatch(clearUserState());
       // Sign the user out
       await auth().signOut();
       console.log(

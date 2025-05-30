@@ -54,11 +54,14 @@ const PhoneauthScreen = ({ navigation }) => {
     console.log("Attempting to verify OTP...");
     try {
       const credential = auth.PhoneAuthProvider.credential(verificationId, otp); // Create credential
+
       console.log("Credential created:", credential);
 
       // Sign in with credential
       await auth().signInWithCredential(credential);
+      const idToken = await auth().currentUser.getIdToken();
       console.log("OTP verified successfully");
+      console.log("Token created:", idToken);
       const userId = auth().currentUser.uid;
 
       // After OTP is verified, check if the phone number is registered in Firestore
@@ -69,18 +72,20 @@ const PhoneauthScreen = ({ navigation }) => {
         "Users",
         where("phoneNumber", "==", fullPhoneNumber)
       );
-
-      if (!querySnapshot.empty) {
+      console.log(querySnapshot.docs.length);
+      if (!querySnapshot.empty && querySnapshot.docs.length > 0) {
         // Existing user
+        console.log("How the fuck did I jump in heree??");
         const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data();
-
-        if (!userData.step1Completed) {
-          navigation.navigate("Userdeet1");
-        } else if (!userData.step2Completed) {
-          navigation.navigate("Userdeet2");
-        } else {
-          navigation.replace("MainTabs");
+        if (userData) {
+          if (!userData.step1Completed) {
+            navigation.navigate("Userdeet1");
+          } else if (!userData.step2Completed) {
+            navigation.navigate("Userdeet2");
+          } else {
+            navigation.replace("MainTabs");
+          }
         }
       } else {
         // New user, create a document

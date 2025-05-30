@@ -7,13 +7,13 @@ import Userdetails1 from "./Screens/Userdetails1";
 import Userdetails2 from "./Screens/Userdetails2";
 import ChatDisplay from "./Screens/chatScreen";
 import Tabnav from "./Tabnav";
-import { Text, View, StatusBar, Image } from "react-native";
+import { Text, View, StatusBar, Image, Platform } from "react-native";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
 import SignupScreen from "./Screens/SignupScreen";
 import EditProfileScreen from "./Screens/EditProfileScreen";
 import { db } from "./Firebaseconfig";
-import { doc, getDoc } from "@react-native-firebase/firestore";
+import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 import { PaperProvider, Button } from "react-native-paper";
@@ -75,6 +75,13 @@ const AppNavigator = () => {
   const [initialRoute, setInitialRoute] = useState("Home");
   const [user, setUser] = useState();
   useEffect(() => {
+    if (Platform.OS === "android") {
+      messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+        console.log("Message handled in the background!", remoteMessage);
+      });
+    }
+  }, []);
+  useEffect(() => {
     const getFCMToken = async () => {
       try {
         const currentUser = auth().currentUser;
@@ -87,7 +94,7 @@ const AppNavigator = () => {
         console.log("FCM Token:", token);
 
         // Optionally save to Firestore under the user's doc
-        await firestore().collection("Users").doc(currentUser.uid).update({
+        await updateDoc(doc(db, "Users", currentUser.uid), {
           fcmToken: token,
         });
       } catch (error) {
@@ -108,14 +115,17 @@ const AppNavigator = () => {
         try {
           const userDocRef = doc(db, "Users", uid);
           const userDocSnap = await getDoc(userDocRef);
-          const userData = userDocSnap.data();
-
-          if (!userDocSnap.exists || !userData.step1Completed) {
-            setInitialRoute("Userdeet1"); // Step 1 of the signup process
-          } else if (!userData.step2Completed) {
-            setInitialRoute("Userdeet2"); // Step 2 of the signup process
+          if (!userDocSnap.exists()) {
+            setInitialRoute("Userdeet1");
           } else {
-            setInitialRoute("MainTabs"); // Completed signup
+            const userData = userDocSnap.data();
+            if (!userData.step1Completed) {
+              setInitialRoute("Userdeet1");
+            } else if (!userData.step2Completed) {
+              setInitialRoute("Userdeet2");
+            } else {
+              setInitialRoute("MainTabs");
+            }
           }
         } catch (error) {
           console.error("Error fetching user data:", error);

@@ -12,7 +12,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import auth from "@react-native-firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
-import { setFavGenres, setFavAuthors, setPhotos } from "../redux/userSlice";
+import { setPhotos } from "../redux/userSlice";
 import { setDoc, updateDoc } from "@react-native-firebase/firestore";
 import { SERVER_URL } from "../constants/api";
 import { fetchUserDataById } from "../components/FirestoreHelpers";
@@ -36,6 +36,7 @@ const AddPhotosScreen = ({ navigation }) => {
     updatedImages[index] = "";
     console.log("Im new updated image list", updatedImages);
     setSelectedPhotos(updatedImages);
+    console.log("Im newest updated image list", updatedImages);
   };
 
   const handleImagePicker = async () => {
@@ -78,10 +79,14 @@ const AddPhotosScreen = ({ navigation }) => {
   };
 
   const uploadImageToCloudinary = async (imageUri, folderName) => {
+    const idToken = await auth().currentUser.getIdToken();
     try {
       const response = await fetch(`${SERVER_URL}/generate-signature`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ folder: folderName }),
       });
 
@@ -119,15 +124,8 @@ const AddPhotosScreen = ({ navigation }) => {
   };
 
   const handleSave = async () => {
-    if (
-      selectedGenres.length < 3 ||
-      selectedAuthors.length < 3 ||
-      selectedPhotos.length < 3
-    ) {
-      Alert.alert(
-        "Error",
-        "Please select 3 genres, 3 authors, and upload 3 photos."
-      );
+    if (selectedPhotos.length < 3) {
+      Alert.alert("Error", "Please select 3 photos.");
       return;
     }
 
@@ -148,15 +146,11 @@ const AddPhotosScreen = ({ navigation }) => {
       await setDoc(
         userDocRef,
         {
-          favGenres: selectedGenres,
-          favAuthors: selectedAuthors,
           photos: photoUrls,
         },
         { merge: true }
       );
 
-      dispatch(setFavGenres(selectedGenres));
-      dispatch(setFavAuthors(selectedAuthors));
       dispatch(setPhotos(photoUrls));
 
       await updateDoc(userDocRef, { step2Completed: true });

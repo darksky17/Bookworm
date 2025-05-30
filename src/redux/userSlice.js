@@ -11,6 +11,7 @@ const initialState = {
   photos: [],
   ageMin: 18,
   ageMax: 100,
+  unsubscribeUserListener: null,
 };
 
 const userSlice = createSlice({
@@ -63,6 +64,20 @@ const userSlice = createSlice({
     setLocation: (state, action) => {
       state.location = action.payload; // Update location in state
     },
+
+    setUnsubscribeUserListener: (state, action) => {
+      state.unsubscribeUserListener = action.payload;
+    },
+
+    // ✅ Clear state and unsubscribe safely
+    clearUserState: (state) => {
+      if (state.unsubscribeUserListener) {
+        state.unsubscribeUserListener();
+        state.unsubscribeUserListener = null;
+      }
+
+      // Reset all user state
+    },
   },
 });
 
@@ -79,6 +94,8 @@ export const {
   setLocation,
   setAgeRange,
   setDistance,
+  setUnsubscribeUserListener,
+  clearUserState,
 } = userSlice.actions;
 
 export default userSlice.reducer;
