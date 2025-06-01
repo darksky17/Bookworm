@@ -14,9 +14,19 @@ import { db } from "../Firebaseconfig";
 import moment from "moment";
 import auth from "@react-native-firebase/auth";
 import { useSelector, useDispatch } from "react-redux";
-import { setUserState, clearUserState } from "../redux/userSlice";
+import {
+  setUserState,
+  clearUserState,
+  setNotificationPref,
+} from "../redux/userSlice";
 import axios from "axios"; // Add axios for API calls
-import { onSnapshot, doc, deleteDoc } from "@react-native-firebase/firestore";
+import {
+  onSnapshot,
+  doc,
+  deleteDoc,
+  updateDoc,
+  deleteField,
+} from "@react-native-firebase/firestore";
 import { SERVER_URL } from "../constants/api";
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
@@ -33,13 +43,32 @@ import {
   PaperProvider,
 } from "react-native-paper";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const ProfileScreen = ({ navigation }) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false); // Delete confirmation modal
   const [deleteConfirmation, setDeleteConfirmation] = useState(""); // Confirmation text input
   dispatch = useDispatch();
   const [logoutModal, setLogoutModal] = useState(false);
 
-  const unsubscribeRef = useRef(null);
+  const notificationPref = useSelector((state) => state.user.notificationpref);
+
+  const onToggleSwitch = async () => {
+    const NOTIF_PREF_KEY = "notificationPref";
+    const newValue = !notificationPref; // Flip the current value
+    dispatch(setNotificationPref(newValue)); // Update Redux state
+
+    // Ensure key is a string (key can't be boolean)
+    await AsyncStorage.setItem(NOTIF_PREF_KEY, String(newValue)); // Store as string "true" or "false"
+    const userId = auth().currentUser.uid;
+
+    const userDocRef = doc(db, "Users", userId);
+    await updateDoc(userDocRef, {
+      fcmToken: deleteField(),
+    });
+
+    console.log("I reached here");
+    console.log("Updated notif pref:", newValue); // Log the new value
+  };
 
   const handleDeleteProfile = async () => {
     if (deleteConfirmation.toLowerCase() !== "delete") {
@@ -121,6 +150,25 @@ const ProfileScreen = ({ navigation }) => {
     </View>
   );
 
+  const handleLogout = async () => {
+    const userId = auth().currentUser.uid;
+    try {
+      const userDocRef = doc(db, "Users", userId);
+      await updateDoc(userDocRef, {
+        fcmToken: deleteField(),
+      });
+      auth()
+        .signOut()
+        .then(() => {
+          console.log("User signed out!");
+          setLogoutModal(false);
+          navigation.replace("Home");
+        });
+    } catch (error) {
+      console.error("❌ Error deleting field:", error);
+      throw error;
+    }
+  };
   return (
     <Container>
       <View style={styles.container}>
@@ -162,7 +210,9 @@ const ProfileScreen = ({ navigation }) => {
             icon="notifications-outline"
             iconLibrary={Ionicons}
             label="Get notifications"
-            rightComponent={<Switch value={true} />}
+            rightComponent={
+              <Switch value={notificationPref} onValueChange={onToggleSwitch} />
+            }
           />
           <TouchableOpacity
             onPress={() => navigation.navigate("AccountSettings")}
@@ -226,15 +276,17 @@ const ProfileScreen = ({ navigation }) => {
               <View style={{ flexDirection: "row", gap: 30 }}>
                 <Button
                   mode="contained"
-                  onPress={() => {
-                    auth()
-                      .signOut()
-                      .then(() => {
-                        console.log("User signed out!");
-                        setLogoutModal(false);
-                        navigation.replace("Home");
-                      });
-                  }}
+                  //   onPress={() => {
+                  //     auth()
+                  //       .signOut()
+                  //       .then(() => {
+                  //         console.log("User signed out!");
+                  //         setLogoutModal(false);
+                  //         navigation.replace("Home");
+                  //       });
+                  //   }
+                  // }
+                  onPress={handleLogout}
                 >
                   <Text>Yes</Text>
                 </Button>

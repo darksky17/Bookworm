@@ -37,6 +37,7 @@ import {
 } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import { fetchChatsByQuery } from "../components/FirestoreHelpers";
+import { SERVER_URL } from "../constants/api";
 
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
@@ -134,7 +135,7 @@ const ChatDisplay = ({ route, navigation }) => {
         return;
       }
       const messagesRef = collection(db, "Chats", chatId, "messages");
-      const messagesDocRef = doc(db, "Chats", chatId);
+
       const message = newMessages[0];
 
       const firestoreMessage = {
@@ -150,6 +151,19 @@ const ChatDisplay = ({ route, navigation }) => {
         timestamp: serverTimestamp(),
         [`unreadCounts.${allData.id}`]: increment(1),
         lastSenderId: userId,
+      });
+      const idToken = await auth().currentUser.getIdToken();
+
+      await fetch(`${SERVER_URL}/send-message-notification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          receiverId: allData.id,
+          message: message.text,
+        }),
       });
     },
     [chatId]

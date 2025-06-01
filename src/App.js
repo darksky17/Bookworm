@@ -7,8 +7,9 @@ import Userdetails1 from "./Screens/Userdetails1";
 import Userdetails2 from "./Screens/Userdetails2";
 import ChatDisplay from "./Screens/chatScreen";
 import Tabnav from "./Tabnav";
+import { useDispatch } from "react-redux";
 import { Text, View, StatusBar, Image, Platform } from "react-native";
-import { Provider } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import { store } from "./redux/store";
 import SignupScreen from "./Screens/SignupScreen";
 import EditProfileScreen from "./Screens/EditProfileScreen";
@@ -25,6 +26,8 @@ import AddGenresScreen from "./Screens/AddGenresScreen";
 import AccountSettings from "./Screens/AccountSettings";
 import Logo from "./assets/BookWorm_logo.png";
 import messaging from "@react-native-firebase/messaging";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setNotificationPref } from "./redux/userSlice";
 
 function HomeScreen({ navigation }) {
   return (
@@ -71,47 +74,52 @@ function HomeScreen({ navigation }) {
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
+  const notificationPref = useSelector((state) => state.user.notificationpref);
+  console.log("WALAAALLALALAAL", notificationPref);
+  const dispatch = useDispatch();
   const [initializing, setInitializing] = useState(true);
   const [initialRoute, setInitialRoute] = useState("Home");
   const [user, setUser] = useState();
+  const [notificationPrefReady, setNotificationPrefReady] = useState(false);
   useEffect(() => {
+    if (notificationPref !== true) {
+      console.log("🚫 Notification disabled or not loaded yet");
+      return;
+    }
+
     if (Platform.OS === "android") {
+      console.log("✅ Setting background message handler");
       messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-        console.log("Message handled in the background!", remoteMessage);
+        console.log("📩 Background message:", remoteMessage);
       });
     }
-  }, []);
-  useEffect(() => {
-    const getFCMToken = async () => {
-      try {
-        const currentUser = auth().currentUser;
-        if (!currentUser) {
-          console.log("No user is logged in, skipping FCM token registration.");
-          return;
-        }
-
-        const token = await messaging().getToken();
-        console.log("FCM Token:", token);
-
-        // Optionally save to Firestore under the user's doc
-        await updateDoc(doc(db, "Users", currentUser.uid), {
-          fcmToken: token,
-        });
-      } catch (error) {
-        console.error("Error getting FCM token:", error);
-      }
-    };
-
-    getFCMToken();
-  }, []);
+  }, [notificationPref]);
 
   useEffect(() => {
-    auth().onAuthStateChanged(async (user) => {
+    if (!notificationPrefReady) return;
+
+    const unsubscribe = auth().onAuthStateChanged(async (user) => {
       setUser(user);
       console.log("USER:", user);
 
       if (user) {
         const uid = user.uid;
+
+        // ✅ STEP 1: Register fresh FCM token
+        if (notificationPref === true) {
+          try {
+            const token = await messaging().getToken(true); // force refresh
+            console.log("Refreshed FCM Token:", token);
+
+            await updateDoc(doc(db, "Users", uid), {
+              fcmToken: token,
+            });
+          } catch (tokenError) {
+            console.error("Error refreshing FCM token:", tokenError);
+          }
+        }
+
+        // ✅ STEP 2: Routing logic
         try {
           const userDocRef = doc(db, "Users", uid);
           const userDocSnap = await getDoc(userDocRef);
@@ -129,7 +137,7 @@ const AppNavigator = () => {
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
-          setInitialRoute("Home"); // Fallback to home on error
+          setInitialRoute("Home");
         }
       } else {
         setInitialRoute("Home");
@@ -138,7 +146,31 @@ const AppNavigator = () => {
       setInitializing(false);
     });
 
-    // return () => unsubscribe();
+    return () => unsubscribe(); // 🔁 Always unsubscribe listeners
+  }, [notificationPrefReady, notificationPref]);
+
+  const NOTIF_PREF_KEY = "notificationPref";
+  const DEFAULT_PREF = false;
+
+  const initializeNotificationPref = async () => {
+    try {
+      const storedPref = await AsyncStorage.getItem(NOTIF_PREF_KEY);
+      console.log("LAWELWLWLWL", storedPref);
+      const pref = storedPref === null ? DEFAULT_PREF : storedPref === "true";
+      console.log("pref becomes ", pref);
+      await AsyncStorage.setItem(NOTIF_PREF_KEY, String(pref));
+
+      dispatch(setNotificationPref(pref));
+    } catch (error) {
+      console.error("Error loading notification preference", error);
+      dispatch(setNotificationPref(DEFAULT_PREF));
+    } finally {
+      setNotificationPrefReady(true); // ✅ mark ready
+    }
+  };
+
+  useEffect(() => {
+    initializeNotificationPref();
   }, []);
 
   if (initializing) {

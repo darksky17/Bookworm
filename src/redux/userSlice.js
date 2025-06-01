@@ -12,6 +12,7 @@ const initialState = {
   ageMin: 18,
   ageMax: 100,
   unsubscribeUserListener: null,
+  notificationpref: true,
 };
 
 const userSlice = createSlice({
@@ -68,6 +69,9 @@ const userSlice = createSlice({
     setUnsubscribeUserListener: (state, action) => {
       state.unsubscribeUserListener = action.payload;
     },
+    setNotificationPref: (state, action) => {
+      state.notificationpref = action.payload;
+    },
 
     // ✅ Clear state and unsubscribe safely
     clearUserState: (state) => {
@@ -96,6 +100,7 @@ export const {
   setDistance,
   setUnsubscribeUserListener,
   clearUserState,
+  setNotificationPref,
 } = userSlice.actions;
 
 export default userSlice.reducer;

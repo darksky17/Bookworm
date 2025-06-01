@@ -96,13 +96,13 @@ const AccountSettings = ({ navigation }) => {
 
   const Myuser = useSelector((state) => state.user);
 
-  if (!userData) {
-    return (
-      <View style={styles.loaderContainer}>
-        <Text style={styles.loaderText}>Loading your profile...</Text>
-      </View>
-    );
-  }
+  // if (!userData) {
+  //   return (
+  //     <View style={styles.loaderContainer}>
+  //       <Text style={styles.loaderText}>Loading your profile...</Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <View>
