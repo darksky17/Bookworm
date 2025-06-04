@@ -8,9 +8,12 @@ const initialState = {
   gender: "",
   favGenres: [],
   favAuthors: [],
+  currentlyReading: "",
+  bookSummary: "",
   photos: [],
   ageMin: 18,
   ageMax: 100,
+  distance: 10,
   unsubscribeUserListener: null,
   notificationpref: true,
 };
@@ -39,6 +42,12 @@ const userSlice = createSlice({
     },
     setFavAuthors: (state, action) => {
       state.favAuthors = action.payload;
+    },
+    setCurrentlyReading: (state, action) => {
+      state.currentlyReading = action.payload;
+    },
+    setBookSummary: (state, action) => {
+      state.bookSummary = action.payload;
     },
     setPhotos: (state, action) => {
       state.photos = action.payload;
@@ -93,6 +102,8 @@ export const {
   setGender,
   setFavGenres,
   setFavAuthors,
+  setCurrentlyReading,
+  setBookSummary,
   setPhotos,
   setUserState,
   setLocation,
