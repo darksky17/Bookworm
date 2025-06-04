@@ -14,8 +14,6 @@ import { MultiSelect } from "react-native-element-dropdown";
 
 import { Button } from "react-native-paper";
 
-const genres = ["Fiction", "Fantasy", "Science Fiction", "Romance", "Horror"];
-
 const AddAuthorsScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();

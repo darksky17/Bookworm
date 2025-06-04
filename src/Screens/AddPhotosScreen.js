@@ -2,9 +2,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  Button,
   Image,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -19,24 +17,32 @@ import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
 import Header from "../components/Header";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import DraggableFlatList from "react-native-draggable-flatlist";
+import { Button } from "react-native-paper";
 
 const AddPhotosScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();
+  const userId = auth().currentUser.uid;
 
-  const [selectedPhotos, setSelectedPhotos] = useState([
-    ...globalSelected.photos,
-  ]);
-  const tempphotos = [...globalSelected.photos];
-  userId = auth().currentUser.uid;
+  const initialPhotos = globalSelected.photos
+    .slice(0, 6)
+    .map((uri, index) => ({ key: `${index}`, uri }));
 
-  const removeImage = (index) => {
+  // Fill remaining slots with empty entries up to MAX_PHOTOS
+  while (initialPhotos.length < 6) {
+    initialPhotos.push({ key: `${initialPhotos.length}`, uri: "" });
+  }
+
+  const [selectedPhotos, setSelectedPhotos] = useState(initialPhotos);
+
+  const removeImage = (keyToRemove) => {
+    const index = selectedPhotos.findIndex((item) => item.key === keyToRemove);
+    if (index === -1) return; // safety
+
     const updatedImages = [...selectedPhotos];
-    console.log("Im old updated image list", updatedImages);
-    updatedImages[index] = "";
-    console.log("Im new updated image list", updatedImages);
+    updatedImages[index] = { ...updatedImages[index], uri: "" };
     setSelectedPhotos(updatedImages);
-    console.log("Im newest updated image list", updatedImages);
   };
 
   const handleImagePicker = async () => {
@@ -58,19 +64,20 @@ const AddPhotosScreen = ({ navigation }) => {
       });
 
       if (!result.canceled) {
-        if (selectedPhotos.length < 4) {
-          updatedImages = [...selectedPhotos];
-          const empyIndex = updatedImages.indexOf("");
-          if (empyIndex !== -1) {
-            updatedImages[empyIndex] = result.assets[0].uri;
-            // setSelectedPhotos([...selectedPhotos, result.assets[0].uri]);
-          } else {
-            updatedImages.push(result.assets[0].uri);
-          }
-          setSelectedPhotos(updatedImages);
+        const updated = [...selectedPhotos];
+        const emptyIndex = updated.findIndex((item) => item.uri === "");
+        if (emptyIndex !== -1) {
+          updated[emptyIndex].uri = result.assets[0].uri;
+        } else if (updated.length < 4) {
+          updated.push({
+            key: `${Date.now()}`,
+            uri: result.assets[0].uri,
+          });
         } else {
           Alert.alert("Error", "You can upload only 3 photos.");
+          return;
         }
+        setSelectedPhotos(updated);
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -124,22 +131,24 @@ const AddPhotosScreen = ({ navigation }) => {
   };
 
   const handleSave = async () => {
-    if (selectedPhotos.length < 3) {
-      Alert.alert("Error", "Please select 3 photos.");
+    const photoUris = selectedPhotos
+      .map((item) => item.uri)
+      .filter((uri) => uri !== "");
+    const tempphotos = [...globalSelected.photos];
+
+    if (photoUris.filter((uri) => uri !== "").length < 3) {
+      Alert.alert("Error", "Please select at least 3 photos.");
       return;
     }
 
     try {
-      const photoUrls = [...tempphotos];
-      console.log("These are selected photos final", selectedPhotos);
-      const newPhotos = selectedPhotos.filter(
-        (image) => !tempphotos.includes(image)
-      );
-      console.log("These are the photos that will get to firebase", newPhotos);
-      for (const image of newPhotos) {
-        const url = await uploadImageToCloudinary(image, userId); // Upload the disputed photo
-        const index = selectedPhotos.indexOf(image); // Find the position of the new photo
-        photoUrls[index] = url; // Replace the disputed photo in the final array with its URL
+      const newPhotos = photoUris.filter((uri) => !tempphotos.includes(uri));
+      const photoUrls = [...photoUris];
+
+      for (const uri of newPhotos) {
+        const index = photoUris.indexOf(uri);
+        const url = await uploadImageToCloudinary(uri, userId);
+        photoUrls[index] = url;
       }
 
       const { userDocRef } = await fetchUserDataById(userId);
@@ -147,14 +156,14 @@ const AddPhotosScreen = ({ navigation }) => {
         userDocRef,
         {
           photos: photoUrls,
+          step3Completed: true,
         },
         { merge: true }
       );
 
       dispatch(setPhotos(photoUrls));
-
       await updateDoc(userDocRef, { step2Completed: true });
-      navigation.navigate("MainTabs");
+      navigation.replace("MainTabs");
     } catch (error) {
       console.error("Error saving user data to Firestore:", error);
       Alert.alert(
@@ -165,207 +174,114 @@ const AddPhotosScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <Header title={"Add Photos"} />
-      <Container>
-        <View style={{ flex: 1 }}>
-          <FlatList
-            data={selectedPhotos}
-            horizontal
-            scrollEnabled={false}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item, index }) => {
-              if (item != "") {
-                return (
-                  <View
-                    style={{
-                      flex: 1,
-                      justifyContent: "center",
-                      alignContent: "center",
-                    }}
-                  >
-                    <Image source={{ uri: item }} style={styles.photo} />
-                    <TouchableOpacity onPress={() => removeImage(index)}>
-                      <Ionicons
-                        name="close-circle-sharp"
-                        size={34}
-                        color="green"
-                        style={{
-                          marginTop: -30,
-                          marginLeft: 70,
-                          backgroundColor: "white",
-                          borderRadius: 1000,
-                        }}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                );
-              } else {
-                return (
-                  <View
-                    style={{
-                      flex: 1,
-                      justifyContent: "center",
-                      alignContent: "center",
-                    }}
-                  >
-                    <Image source={{ uri: item }} style={styles.photo} />
-                    <TouchableOpacity onPress={handleImagePicker}>
-                      <Ionicons
-                        name="add-circle-sharp"
-                        size={34}
-                        color="green"
-                        style={{
-                          marginTop: -30,
-                          marginLeft: 70,
-                          backgroundColor: "white",
-                          borderRadius: 1000,
-                        }}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                );
-              }
-            }}
-            ItemSeparatorComponent={<View style={{ width: 30 }} />}
-          />
+    <View style={{ flex: 1, paddingBottom: 50 }}>
+      <Header title="Add Photos" />
 
-          <View style={styles.buttonContainer}>
-            <Button title="Save Changes" onPress={handleSave} />
-            <Button
-              title="Cancel"
-              onPress={() => navigation.goBack()}
-              color="red"
-            />
-          </View>
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: 10,
+          paddingTop: 30,
+
+          justifyContent: "space-between",
+        }}
+      >
+        <View style={{ gap: 30 }}>
+          <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+            Pick your photos now. We won't show them to people whom you do not
+            approve.
+          </Text>
+          <DraggableFlatList
+            scrollEnabled={false}
+            contentContainerStyle={{
+              flexGrow: 1, // allow content to expand
+              gap: 20,
+            }}
+            data={selectedPhotos}
+            numColumns={3}
+            keyExtractor={(item) => item.key}
+            onDragEnd={({ data }) => setSelectedPhotos(data)}
+            renderItem={({ item, index, drag }) => (
+              <TouchableOpacity
+                onLongPress={drag}
+                activeOpacity={1}
+                style={{ padding: 10 }}
+              >
+                <View>
+                  {item.uri ? (
+                    <Image source={{ uri: item.uri }} style={styles.photo} />
+                  ) : (
+                    <View style={styles.photoBox}>
+                      <Text style={styles.photoText}>+</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    onPress={
+                      item.uri ? () => removeImage(item.key) : handleImagePicker
+                    }
+                    style={{
+                      position: "absolute",
+                      top: -10,
+                      right: -10,
+                      backgroundColor: "white",
+                      borderRadius: 100,
+                    }}
+                  >
+                    <Ionicons
+                      name={
+                        item.uri ? "close-circle-sharp" : "add-circle-sharp"
+                      }
+                      size={34}
+                      color="green"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+          <Text style={{ color: "grey" }}>
+            Long press and drag to reorder the images.{"\n"}
+            Minimum 3 required
+          </Text>
         </View>
-      </Container>
+      </View>
+      <View style={styles.buttonContainer}>
+        <Button mode="contained" onPress={handleSave}>
+          Save Changes
+        </Button>
+        <Button mode="contained" onPress={() => navigation.goBack()}>
+          Cancel
+        </Button>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: "column",
-    gap: 60,
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: "white",
-  },
-
-  photoText: {
-    fontSize: 30,
-    color: "black",
-  },
-
-  photoBox: {
-    width: 100,
-    height: 100,
-    backgroundColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-    margin: 5,
-    borderRadius: 10,
-  },
-
-  subHeader: {
-    fontSize: 16,
-    marginVertical: 10,
-  },
-  optionsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  optionBox: {
-    borderWidth: 1,
-    borderColor: "gray",
-    padding: 10,
-    margin: 5,
-    borderRadius: 5,
-  },
-  selectedBox: {
-    backgroundColor: "lightgreen",
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 20,
-    backgroundColor: "#fff",
-  },
-  imageWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  placeholderImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageButton: {
-    marginLeft: 10,
-    backgroundColor: "#007BFF",
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-  },
-  imageButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  imageContainer: {
-    position: "relative",
-    marginRight: 10,
-  },
   photo: {
-    width: 100,
-    height: 150,
+    width: 110,
+    height: 110,
     borderWidth: 2,
     borderRadius: 10,
+    borderStyle: "dotted",
   },
-  removeButton: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    backgroundColor: "red",
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 15,
+  photoBox: {
+    width: 110,
+    height: 110,
+    backgroundColor: "#ccc",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+    borderStyle: "dotted",
+    borderWidth: 2,
   },
-  removeButtonText: {
-    color: "#fff",
-    fontSize: 12,
-  },
-  emptyText: {
-    color: "#666",
-    fontStyle: "italic",
-    marginVertical: 20,
+  photoText: {
+    fontSize: 40,
+    color: "#888",
   },
   buttonContainer: {
-    marginTop: 20,
+    gap: 10,
+    paddingHorizontal: 10,
   },
 });
 

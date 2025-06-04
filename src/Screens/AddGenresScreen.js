@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert, ScrollView } from "react-native";
+import { View, StyleSheet, Alert, ScrollView, Text } from "react-native";
 
 import auth from "@react-native-firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
@@ -40,7 +40,6 @@ const genres = [
   "Drama",
   "Satire",
   "Classics",
-  "LGBTQ+",
   "Spirituality",
   "Science",
   "Psychology",
@@ -151,17 +150,55 @@ const AddGenresScreen = ({ navigation }) => {
               search
               value={selectedGenres}
               onChange={handleGenreChange}
-              onChangeText={filterGenres} // Key line: fetch authors as user types
+              onChangeText={filterGenres}
               maxSelect={5}
               selectedTextStyle={styles.selectedText}
-              dropdownStyle={styles.dropdownList}
+              containerStyle={{
+                backgroundColor: "white",
+                flex: 1,
+
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: "#ddd",
+                padding: 5,
+                marginTop: 5,
+              }}
+              renderItem={(item, selected) => (
+                <View
+                  style={[
+                    styles.itemContainer,
+                    selected && styles.selectedItemList,
+                  ]}
+                >
+                  <Text
+                    style={[styles.itemText, selected && styles.selectedText]}
+                  >
+                    {item.label}
+                  </Text>
+                </View>
+              )}
               selectedStyle={styles.selectedItem}
+              flatListProps={{
+                ItemSeparatorComponent: () => <View style={{ height: 15 }} />,
+              }}
             />
-            <View style={{ gap: 10 }}>
-              <Button mode="contained" onPress={() => handleSave()}>
+
+            <View style={styles.buttonContainer}>
+              <Button
+                mode="contained"
+                style={styles.buttonSave}
+                onPress={handleSave}
+                labelStyle={{ fontWeight: "700" }}
+              >
                 Save Changes
               </Button>
-              <Button mode="contained" onPress={() => navigation.goBack()}>
+
+              <Button
+                mode="contained"
+                style={styles.buttonCancel}
+                onPress={() => navigation.goBack()}
+                labelStyle={{ color: "#333", fontWeight: "700" }}
+              >
                 Cancel
               </Button>
             </View>
@@ -173,184 +210,92 @@ const AddGenresScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  dropdown: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: "#f9f9f9",
-  },
-  selectedItem: {
-    backgroundColor: "#d1e7dd", // Background color of selected items
-    borderRadius: 20,
-  },
-  dropdownList: {
-    backgroundColor: "white", // Background color of the dropdown
-    borderRadius: 10,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    marginTop: 10,
-  },
-  chipContainer: {
-    flexDirection: "column",
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 20,
-    gap: 20,
-  },
-  selectedText: {
-    color: "#0f5132", // Text color of selected items
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  chip: {
-    backgroundColor: "#d1e7dd",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  chipText: {
-    color: "#0f5132",
-    fontSize: 14,
-  },
   container: {
     flex: 1,
-    flexDirection: "column",
-    gap: 60,
-    borderRadius: 10,
-    marginTop: 0,
-    padding: 10,
-    backgroundColor: "white",
-  },
-
-  rowContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignContent: "centre",
-    paddingBottom: 10,
-    borderBottomColor: "grey",
-    borderBottomWidth: 1,
-  },
-
-  flatListContent: {
-    alignItems: "center",
-  },
-  photoText: {
-    fontSize: 30,
-    color: "black",
-  },
-
-  photoBox: {
-    width: 100,
-    height: 100,
-    backgroundColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-    margin: 5,
-    borderRadius: 10,
-  },
-
-  subHeader: {
-    fontSize: 16,
-    marginVertical: 10,
-  },
-  optionsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  optionBox: {
-    borderWidth: 1,
-    borderColor: "gray",
-    padding: 10,
-    margin: 5,
-    borderRadius: 5,
-  },
-  selectedBox: {
-    backgroundColor: "lightgreen",
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 20,
+    padding: 20,
     backgroundColor: "#fff",
   },
-  imageWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
+  itemContainer: {
+    flex: 1,
+    gap: 20,
+    padding: 15,
+    backgroundColor: "white",
+
+    borderRadius: 8,
+
+    borderWidth: 1,
+    borderColor: "#eee",
   },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  placeholderImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageButton: {
-    marginLeft: 10,
-    backgroundColor: "#007BFF",
-    paddingVertical: 5,
+
+  dropdown: {
+    height: 55,
+    borderColor: "#888",
+    borderWidth: 1,
+    borderRadius: 12,
     paddingHorizontal: 15,
-    borderRadius: 5,
+    backgroundColor: "#fafafa",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
-  imageButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+
+  dropdownList: {
+    backgroundColor: "green",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    maxHeight: 250,
+    paddingVertical: 5,
+    marginTop: 5,
   },
-  imageContainer: {
-    position: "relative",
-    marginRight: 10,
-  },
-  photo: {
-    width: 120,
-    aspectRatio: 1,
-    borderRadius: 100,
-    marginTop: -70,
-    borderWidth: 3,
-    borderColor: "brown",
-  },
-  removeButton: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    backgroundColor: "red",
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 15,
-  },
-  removeButtonText: {
-    color: "#fff",
-    fontSize: 12,
-  },
-  emptyText: {
-    color: "#666",
-    fontStyle: "italic",
-    marginVertical: 20,
-  },
-  buttonContainer: {
+
+  selectedItem: {
+    backgroundColor: "#4caf50",
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
     marginTop: 20,
+  },
+  selectedItemList: {
+    flex: 1,
+    gap: 20,
+    padding: 15,
+    backgroundColor: "green",
+
+    borderRadius: 8,
+
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+
+  selectedText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  buttonContainer: {
+    marginTop: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  buttonSave: {
+    flex: 1,
+    marginRight: 10,
+    backgroundColor: "#4caf50",
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+
+  buttonCancel: {
+    flex: 1,
+    marginLeft: 10,
+    backgroundColor: "#ccc",
+    borderRadius: 12,
+    paddingVertical: 10,
   },
 });
 

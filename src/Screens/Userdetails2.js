@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { firestore, db } from "../Firebaseconfig";
 import {
   View,
@@ -8,24 +8,75 @@ import {
   StyleSheet,
   Image,
   ScrollView,
+  TextInput,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import * as ImagePicker from "expo-image-picker";
+
 import {
   setFavGenres,
   setFavAuthors,
-  setPhotos,
-  setDistance,
+  setCurrentlyReading,
+  setBookSummary,
 } from "../redux/userSlice";
 import auth from "@react-native-firebase/auth";
 import { setDoc, updateDoc, doc } from "@react-native-firebase/firestore";
-import { SERVER_URL } from "../constants/api";
 import {
   fetchUserDataByQuery,
   fetchUserDataById,
 } from "../components/FirestoreHelpers";
+import { MultiSelect } from "react-native-element-dropdown";
+import { GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../constants/api";
+import { Button } from "react-native-paper";
 
-const genres = ["Fiction", "Fantasy", "Science Fiction", "Romance", "Horror"];
+const genres = [
+  "Fiction",
+  "Fantasy",
+  "Science Fiction",
+  "Romance",
+  "Horror",
+  "Mystery",
+  "Thriller",
+  "Historical Fiction",
+  "Young Adult",
+  "Children's",
+  "Adventure",
+  "Dystopian",
+  "Literary Fiction",
+  "Contemporary",
+  "Paranormal",
+  "Graphic Novels",
+  "Crime",
+  "Memoir",
+  "Biography",
+  "Autobiography",
+  "Self-Help",
+  "Poetry",
+  "Drama",
+  "Satire",
+  "Classics",
+  "Spirituality",
+  "Science",
+  "Psychology",
+  "Philosophy",
+  "Health & Wellness",
+  "Cookbooks",
+  "True Crime",
+  "Politics",
+  "Travel",
+  "Art & Photography",
+  "Business",
+  "Economics",
+  "Religion",
+  "Mythology",
+  "Western",
+  "Anthology",
+  "Short Stories",
+  "Education",
+  "Parenting",
+  "Technology",
+  "Environment",
+  "War & Military",
+];
 const authors = [
   "J.K. Rowling",
   "George Orwell",
@@ -37,209 +88,72 @@ const authors = [
 const Userdetails2 = ({ navigation }) => {
   const userId = auth().currentUser.uid;
   const dispatch = useDispatch();
-  const { phoneNumber, name, email } = useSelector((state) => state.user);
+  const globalSelected = useSelector((state) => state.user);
 
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [selectedAuthors, setSelectedAuthors] = useState([]);
-  const [selectedImages, setSelectedImages] = useState([]);
+  const [genreOptions, setGenreOptions] = useState([]);
+  const [authorOptions, setAuthorOptions] = useState([]);
+  const [currentread, setCurrentRead] = useState("");
+  const [bookSummary, setBooksummary] = useState("");
 
-  const handleGenreSelect = (genre) => {
-    if (selectedGenres.includes(genre)) {
-      setSelectedGenres(selectedGenres.filter((item) => item !== genre));
-    } else if (selectedGenres.length < 3) {
-      setSelectedGenres([...selectedGenres, genre]);
-    } else {
-      Alert.alert("Error", "You can select only 3 genres.");
+  const handleGenreChange = (selected) => {
+    if (selected.length > 5) {
+      Alert.alert("Limit reached", "You can select up to 5 genres.");
+      return setSelectedGenres([...selectedGenres]);
     }
+    setSelectedGenres(selected);
   };
-
-  const handleAuthorSelect = (author) => {
-    if (selectedAuthors.includes(author)) {
-      setSelectedAuthors(selectedAuthors.filter((item) => item !== author));
-    } else if (selectedAuthors.length < 3) {
-      setSelectedAuthors([...selectedAuthors, author]);
-    } else {
-      Alert.alert("Error", "You can select only 3 authors.");
+  const filterGenres = (query) => {
+    if (!query || query.length < 1) {
+      setGenreOptions([]); // or reset to full list if you prefer
+      return;
     }
-  };
 
-  const handleImagePicker = async () => {
-    try {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "You need to grant permission to access the gallery."
-        );
-        return;
-      }
+    const filtered = genres
+      .filter((genre) => genre.toLowerCase().includes(query.toLowerCase()))
+      .map((genre) => ({
+        label: genre,
+        value: genre,
+      }));
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        if (selectedImages.length < 3) {
-          setSelectedImages([...selectedImages, result.assets[0].uri]);
-        } else {
-          Alert.alert("Error", "You can upload only 3 photos.");
-        }
-      }
-    } catch (error) {
-      console.error("Error picking image:", error);
-      Alert.alert("Error", "An error occurred while selecting an image.");
-    }
-  };
-
-  const removeImage = (index) => {
-    const updatedImages = selectedImages.filter((_, i) => i !== index);
-    setSelectedImages(updatedImages);
-  };
-
-  const uploadImageToCloudinary = async (imageUri, folderName) => {
-    try {
-      console.log(
-        `Attempting to upload image to Cloudinary. Server URL: ${SERVER_URL}`
-      );
-      console.log(`Image URI: ${imageUri.substring(0, 50)}...`);
-
-      const idToken = await auth().currentUser.getIdToken();
-
-      // Step 1: Get signature from our server
-      console.log("Step 1: Requesting signature from server...");
-      const response = await fetch(`${SERVER_URL}/generate-signature`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ folder: folderName }),
-        timeout: 10000, // 10 second timeout
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Server response error (${response.status}):`, errorText);
-        throw new Error(
-          `Failed to get upload signature. Status: ${response.status}`
-        );
-      }
-
-      console.log("Signature response received. Parsing response...");
-      const signatureData = await response.json();
-      console.log(
-        "Signature data:",
-        JSON.stringify(signatureData).substring(0, 100) + "..."
-      );
-
-      const { cloud_name, api_key, signature, params } = signatureData;
-
-      // Step 2: Upload to Cloudinary
-      console.log("Step 2: Preparing Cloudinary upload...");
-      const formData = new FormData();
-
-      // Create file object
-      const fileObj = {
-        uri: imageUri,
-        name: `${Date.now()}.jpg`,
-        type: "image/jpeg",
-      };
-      console.log("File object created:", JSON.stringify(fileObj));
-
-      formData.append("file", fileObj);
-      formData.append("folder", folderName);
-      formData.append("timestamp", params.timestamp);
-      formData.append("api_key", api_key);
-      formData.append("signature", signature);
-
-      console.log("Starting Cloudinary upload...");
-      console.log(
-        `Upload URL: https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`
-      );
-
-      const uploadResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-          timeout: 30000, // 30 second timeout
-        }
-      );
-
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error(
-          `Cloudinary upload error (${uploadResponse.status}):`,
-          errorText
-        );
-        throw new Error(
-          `Failed to upload image to Cloudinary. Status: ${uploadResponse.status}`
-        );
-      }
-
-      console.log("Upload successful! Parsing response...");
-      const uploadResult = await uploadResponse.json();
-      console.log("Upload complete. Secure URL:", uploadResult.secure_url);
-
-      return uploadResult.secure_url;
-    } catch (error) {
-      console.error("Error uploading image to Cloudinary:", error);
-      console.error("Error details:", error.message);
-
-      // Network error specific logging
-      if (error.message.includes("Network request failed")) {
-        console.error(
-          "NETWORK ERROR: Please check your internet connection and server availability"
-        );
-        console.error(`Current SERVER_URL: ${SERVER_URL}`);
-      }
-
-      throw error;
-    }
+    setGenreOptions(filtered);
   };
 
   const handleFinish = async () => {
     if (
       selectedGenres.length < 3 ||
       selectedAuthors.length < 3 ||
-      selectedImages.length < 3
+      currentread.length < 1
     ) {
       Alert.alert(
         "Error",
-        "Please select 3 genres, 3 authors, and upload 3 photos."
+        "Please select 3 genres, 3 authors, and fill the remaining fields."
       );
       return;
     }
 
     try {
-      const photoUrls = [];
-      for (const image of selectedImages) {
-        const url = await uploadImageToCloudinary(image, userId);
-
-        photoUrls.push(url);
-      }
-
       const { userDocRef } = await fetchUserDataById(userId);
       await setDoc(
         userDocRef,
         {
           favGenres: selectedGenres,
           favAuthors: selectedAuthors,
-          photos: photoUrls,
+          distance: 10,
+          currentRead: currentread,
+          bookSummary: bookSummary,
         },
         { merge: true }
       );
 
       dispatch(setFavGenres(selectedGenres));
       dispatch(setFavAuthors(selectedAuthors));
-      dispatch(setPhotos(photoUrls));
-      dispatch(setDistance(10));
+      dispatch(setCurrentlyReading(currentread));
+      dispatch(setBookSummary(bookSummary));
 
       await updateDoc(userDocRef, { step2Completed: true });
-      navigation.replace("MainTabs");
+      navigation.navigate("AddPhotos");
     } catch (error) {
       console.error("Error saving user data to Firestore:", error);
       Alert.alert(
@@ -248,67 +162,206 @@ const Userdetails2 = ({ navigation }) => {
       );
     }
   };
+  const fetchAuthors = async (query) => {
+    if (!query || query.length < 3) return;
+
+    try {
+      const response = await fetch(
+        `${GOOGLE_BOOKS_API_URL}?q=inauthor:${query}&key=${BOOKS_API_KEY}`
+      );
+      const data = await response.json();
+
+      const authorsSet = new Set(selectedAuthors); // preserve current selection
+
+      if (data.items) {
+        data.items.forEach((item) => {
+          const authors = item.volumeInfo.authors || [];
+          authors.forEach((author) => authorsSet.add(author));
+        });
+      }
+
+      const formatted = Array.from(authorsSet).map((author) => ({
+        label: author,
+        value: author,
+      }));
+
+      setAuthorOptions(formatted);
+    } catch (error) {
+      console.error("Error fetching authors:", error);
+    }
+  };
+
+  const handleAuthorChange = (selected) => {
+    if (selected.length > 5) {
+      Alert.alert("Limit reached", "You can select up to 5 authors.");
+      return setSelectedAuthors([...selectedAuthors]);
+    }
+    setSelectedAuthors(selected);
+    console.log("I rann", selectedAuthors);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Other UI elements */}
       <Text style={styles.header}>Complete Your Details</Text>
+      <View
+        style={{
+          flexDirection: "column",
+          flex: 1,
+          justifyContent: "space-between",
+        }}
+      >
+        <View style={{ gap: 10 }}>
+          <Text style={styles.subHeader}>
+            Select Your Favorite Genres (max 5):
+          </Text>
+          <MultiSelect
+            style={styles.dropdown}
+            data={genres.map((g) => ({ label: g, value: g }))}
+            labelField="label"
+            valueField="value"
+            placeholder="Search and select Genres"
+            search
+            value={selectedGenres}
+            onChange={handleGenreChange}
+            onChangeText={filterGenres}
+            maxSelect={5}
+            selectedTextStyle={styles.selectedText}
+            containerStyle={{
+              backgroundColor: "white",
+              flex: 1,
 
-      <Text style={styles.subHeader}>Select Your Favorite Genres (max 3):</Text>
-      <View style={styles.optionsContainer}>
-        {genres.map((genre) => (
-          <TouchableOpacity
-            key={genre}
-            onPress={() => handleGenreSelect(genre)}
-            style={[
-              styles.optionBox,
-              selectedGenres.includes(genre) && styles.selectedBox,
-            ]}
-          >
-            <Text style={styles.optionText}>{genre}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#ddd",
+              padding: 5,
+              marginTop: 5,
+            }}
+            renderItem={(item, selected) => (
+              <View
+                style={[
+                  styles.itemContainer,
+                  selected && styles.selectedItemList,
+                ]}
+              >
+                <Text
+                  style={[styles.itemText, selected && styles.selectedText]}
+                >
+                  {item.label}
+                </Text>
+              </View>
+            )}
+            selectedStyle={styles.selectedItem}
+            flatListProps={{
+              ItemSeparatorComponent: () => <View style={{ height: 15 }} />,
+            }}
+          />
+        </View>
+        <View style={{ gap: 15 }}>
+          <Text style={styles.subHeader}>
+            Select Your Favorite Authors (max 5):
+          </Text>
 
-      <Text style={styles.subHeader}>
-        Select Your Favorite Authors (max 3):
-      </Text>
-      <View style={styles.optionsContainer}>
-        {authors.map((author) => (
-          <TouchableOpacity
-            key={author}
-            onPress={() => handleAuthorSelect(author)}
-            style={[
-              styles.optionBox,
-              selectedAuthors.includes(author) && styles.selectedBox,
-            ]}
-          >
-            <Text style={styles.optionText}>{author}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <Text style={styles.subHeader}>Upload photos (max 3):</Text>
-      <View style={styles.photoContainer}>
-        {selectedImages.map((image, index) => (
-          <View key={index} style={styles.imageWrapper}>
-            <Image source={{ uri: image }} style={styles.photo} />
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => removeImage(index)}
+          <MultiSelect
+            style={styles.dropdown}
+            data={authorOptions}
+            labelField="label"
+            valueField="value"
+            placeholder="Search and select authors"
+            search
+            value={selectedAuthors}
+            onChange={handleAuthorChange}
+            onChangeText={fetchAuthors} // Key line: fetch authors as user types
+            maxSelect={5}
+            selectedTextStyle={styles.selectedText}
+            dropdownStyle={styles.dropdownList}
+            selectedStyle={styles.selectedItem}
+            containerStyle={{
+              backgroundColor: "white",
+              flex: 1,
+
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#ddd",
+              padding: 5,
+              marginTop: 5,
+            }}
+            renderItem={(item, selected) => (
+              <View
+                style={[
+                  styles.itemContainer,
+                  selected && styles.selectedItemList,
+                ]}
+              >
+                <Text
+                  style={[styles.itemText, selected && styles.selectedText]}
+                >
+                  {item.label}
+                </Text>
+              </View>
+            )}
+            flatListProps={{
+              ItemSeparatorComponent: () => <View style={{ height: 15 }} />,
+            }}
+          />
+        </View>
+        <View style={{ gap: 15 }}>
+          <Text style={styles.subHeader}>
+            Enter the book that has your attention currently:
+          </Text>
+          <TextInput
+            placeholder="Please only mention the name of the Book!"
+            editable
+            backgroundColor="snow"
+            numberOfLines={3}
+            maxLength={50}
+            style={{
+              borderColor: "grey",
+              borderWidth: 2,
+              borderRadius: 10,
+              paddingHorizontal: 10,
+            }}
+            onChangeText={(text) => setCurrentRead(text)}
+          />
+        </View>
+        <View style={{ gap: 15 }}>
+          <Text style={styles.subHeader}>Summarize your favorite book:</Text>
+          <View style={{ gap: 2 }}>
+            <TextInput
+              placeholder="It would be fun if you let your matches guess what book it is ;)"
+              editable
+              backgroundColor="snow"
+              numberOfLines={5}
+              multiline={true}
+              textAlignVertical="top"
+              maxLength={200}
+              style={{
+                borderColor: "grey",
+                borderWidth: 2,
+                borderRadius: 10,
+                paddingHorizontal: 10,
+                paddingTop: 10,
+              }}
+              value={bookSummary}
+              onChangeText={setBooksummary}
+            />
+            <Text
+              style={{
+                flexDirection: "row",
+                alignSelf: "flex-end",
+                fontWeight: "bold",
+                color: "grey",
+              }}
             >
-              <Text style={styles.removeButtonText}>X</Text>
-            </TouchableOpacity>
+              {200 - bookSummary.length}/200
+            </Text>
           </View>
-        ))}
-        {selectedImages.length < 3 && (
-          <TouchableOpacity style={styles.photoBox} onPress={handleImagePicker}>
-            <Text style={styles.photoText}>+</Text>
-          </TouchableOpacity>
-        )}
+        </View>
+
+        <Button mode="contained" onPress={handleFinish} textColor="green">
+          Continue
+        </Button>
       </View>
-      <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-        <Text style={styles.finishButtonText}>Finish</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -318,7 +371,7 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
     backgroundColor: "snow",
-    flex: 1,
+    flexGrow: 1,
   },
   header: {
     fontSize: 32,
@@ -329,7 +382,6 @@ const styles = StyleSheet.create({
   subHeader: {
     fontSize: 20,
     fontWeight: "bold",
-    marginVertical: 10,
   },
   optionsContainer: {
     flexDirection: "row",
@@ -356,7 +408,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    marginBottom: 20,
   },
   photoBox: {
     width: 100,
@@ -408,6 +459,65 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     fontWeight: "bold",
+  },
+  itemContainer: {
+    flex: 1,
+    gap: 20,
+    padding: 15,
+    backgroundColor: "white",
+
+    borderRadius: 8,
+
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+
+  dropdown: {
+    height: 55,
+    borderColor: "#888",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    backgroundColor: "#fafafa",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+
+  dropdownList: {
+    backgroundColor: "green",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    maxHeight: 250,
+    paddingVertical: 5,
+    marginTop: 5,
+  },
+
+  selectedItem: {
+    backgroundColor: "#4caf50",
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+  },
+  selectedItemList: {
+    flex: 1,
+    gap: 20,
+    padding: 15,
+    backgroundColor: "green",
+
+    borderRadius: 8,
+
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+
+  selectedText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 14,
   },
 });
 

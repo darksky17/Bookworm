@@ -28,6 +28,7 @@ import Logo from "./assets/BookWorm_logo.png";
 import messaging from "@react-native-firebase/messaging";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setNotificationPref } from "./redux/userSlice";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 function HomeScreen({ navigation }) {
   return (
@@ -106,7 +107,7 @@ const AppNavigator = () => {
         const uid = user.uid;
 
         // ✅ STEP 1: Register fresh FCM token
-        if (notificationPref === true) {
+        if (notificationPref === true && user) {
           try {
             const token = await messaging().getToken(true); // force refresh
             console.log("Refreshed FCM Token:", token);
@@ -124,13 +125,15 @@ const AppNavigator = () => {
           const userDocRef = doc(db, "Users", uid);
           const userDocSnap = await getDoc(userDocRef);
           if (!userDocSnap.exists()) {
-            setInitialRoute("Userdeet1");
+            setInitialRoute("Phoneauth");
           } else {
             const userData = userDocSnap.data();
             if (!userData.step1Completed) {
               setInitialRoute("Userdeet1");
             } else if (!userData.step2Completed) {
               setInitialRoute("Userdeet2");
+            } else if (!userData.step3Completed) {
+              setInitialRoute("AddPhotos");
             } else {
               setInitialRoute("MainTabs");
             }
@@ -208,11 +211,13 @@ const AppNavigator = () => {
 };
 
 const App = () => (
-  <Provider store={store}>
-    <PaperProvider>
-      <AppNavigator />
-    </PaperProvider>
-  </Provider>
+  <GestureHandlerRootView style={{ flex: 1 }}>
+    <Provider store={store}>
+      <PaperProvider>
+        <AppNavigator />
+      </PaperProvider>
+    </Provider>
+  </GestureHandlerRootView>
 );
 
 export default App;
