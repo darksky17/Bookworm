@@ -74,7 +74,7 @@ const MatchScreen = ({ navigation }) => {
         if (docSnap.exists()) {
           setUserDataa(docSnap.data()); // Update local state with real-time data
           //console.log('Real-time user data:', doc.data());
-          const { lastUpdated, ...updatedData } = docSnap.data();
+          const { lastUpdated, deletedAt, ...updatedData } = docSnap.data();
           dispatch(setUserState(updatedData));
         } else {
           console.warn("No user data found for this phone number.");
