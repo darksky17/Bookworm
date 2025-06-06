@@ -141,6 +141,8 @@ const Userdetails2 = ({ navigation }) => {
           favGenres: selectedGenres,
           favAuthors: selectedAuthors,
           distance: 10,
+          ageMax: 100,
+          ageMin: 18,
           currentRead: currentread,
           bookSummary: bookSummary,
         },

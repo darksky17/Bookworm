@@ -97,7 +97,7 @@ const ProfileScreen = ({ navigation }) => {
       // unsubscribeRef.current();
       console.log("Now my listner should stop listening");
       // Delete the user document from Firestore
-      await deleteDoc(doc(db, "Users", userId));
+      // await deleteDoc(doc(db, "Users", userId));
       console.log("User profile deleted successfully.");
       dispatch(clearUserState());
       // Sign the user out
@@ -157,6 +157,7 @@ const ProfileScreen = ({ navigation }) => {
       await updateDoc(userDocRef, {
         fcmToken: deleteField(),
       });
+      dispatch(clearUserState());
       auth()
         .signOut()
         .then(() => {

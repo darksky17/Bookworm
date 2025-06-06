@@ -64,7 +64,7 @@ const userSlice = createSlice({
 
     setUserState: (state, action) => {
       // Destructure the payload to exclude lastUpdated
-      const { lastUpdated, ...updatedData } = action.payload;
+      const { lastUpdated, deletedAt, ...updatedData } = action.payload;
 
       // Log the updatedData to verify it's excluding lastUpdated
 
@@ -84,12 +84,17 @@ const userSlice = createSlice({
 
     // ✅ Clear state and unsubscribe safely
     clearUserState: (state) => {
-      if (state.unsubscribeUserListener) {
-        state.unsubscribeUserListener();
-        state.unsubscribeUserListener = null;
+      const unsubscribe = state.unsubscribeUserListener;
+
+      // ✅ Call outside Immer draft mutation
+      if (unsubscribe) {
+        unsubscribe(); // Stop the listener
       }
 
-      // Reset all user state
+      // ✅ Return fresh state — no draft mutation done above
+      return {
+        ...initialState,
+      };
     },
   },
 });

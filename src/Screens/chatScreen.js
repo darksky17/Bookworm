@@ -322,6 +322,7 @@ const ChatDisplay = ({ route, navigation }) => {
         <GestureDetector gesture={swipeGesture}>
           <GiftedChat
             //key={messages.length}
+            disableComposer={allData.isDeleted}
             keyboardShouldPersistTaps="handled"
             renderAvatar={null}
             messages={messages}
@@ -330,7 +331,11 @@ const ChatDisplay = ({ route, navigation }) => {
               _id: userId,
               name: "You",
             }}
-            placeholder="Type a message..."
+            placeholder={
+              allData.isDeleted
+                ? "You cant reply to this chat becuase the user deleted their account"
+                : "Type a message..."
+            }
             isAnimated={false}
             renderBubble={(props) => (
               <Bubble
