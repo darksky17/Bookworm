@@ -16,6 +16,7 @@ const initialState = {
   distance: 10,
   unsubscribeUserListener: null,
   notificationpref: true,
+  pauseMatch: false,
 };
 
 const userSlice = createSlice({
@@ -56,6 +57,9 @@ const userSlice = createSlice({
       const { min, max } = action.payload;
       state.ageMin = min;
       state.ageMax = max;
+    },
+    setPauseMatch: (state, action) => {
+      state.pauseMatch = action.payload;
     },
 
     setDistance: (state, action) => {
@@ -117,6 +121,7 @@ export const {
   setUnsubscribeUserListener,
   clearUserState,
   setNotificationPref,
+  setPauseMatch,
 } = userSlice.actions;
 
 export default userSlice.reducer;

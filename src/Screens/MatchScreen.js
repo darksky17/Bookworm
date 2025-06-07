@@ -34,6 +34,7 @@ import {
   setLocation,
   setUserState,
   setUnsubscribeUserListener,
+  setPauseMatch,
 } from "../redux/userSlice";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
@@ -42,6 +43,7 @@ import { getDistance } from "geolib";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { db } from "../Firebaseconfig";
 import moment from "moment";
+import stringSimilarity from "string-similarity";
 
 const MatchScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -54,6 +56,19 @@ const MatchScreen = ({ navigation }) => {
   const [userDataa, setUserDataa] = useState(null);
   const Myuser = useSelector((state) => state.user);
   const unsubscribeRef = useRef(null);
+  const pause = useSelector((state) => state.user.pauseMatch);
+
+  const onToggleSwitch = async () => {
+    const newValue = !pause; // Flip the current value
+    if (pause) setScanning(false);
+    dispatch(setPauseMatch(newValue)); // Update Redux state
+    const userId = auth().currentUser.uid;
+
+    const userDocRef = doc(db, "Users", userId);
+    await updateDoc(userDocRef, {
+      pauseMatch: newValue,
+    });
+  };
 
   useEffect(() => {
     // Get the current user's phone number
@@ -116,6 +131,14 @@ const MatchScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (scanning) {
+      if (pause) {
+        setScanning(!scanning);
+        Alert.alert(
+          "You have paused matching, please turn on matching to find new friends"
+        );
+
+        return;
+      }
       startScaleAnimation(); // Start book animation
       findNearbyUsers();
       matchInterval = setInterval(findNearbyUsers, 60 * 60 * 1000);
@@ -208,6 +231,7 @@ const MatchScreen = ({ navigation }) => {
       snapshot.forEach((doc) => {
         const userData = doc.data();
         const userId = doc.id;
+        if (userData.isDeleted || userData.pauseMatch) return;
         const age = calculateAge(userData.dateOfBirth);
 
         if (userId !== auth().currentUser?.uid) {
@@ -234,24 +258,46 @@ const MatchScreen = ({ navigation }) => {
           }
         }
       });
-      const temp = [];
+      const scoredUsers = [];
 
       nearbyUsers.forEach((user) => {
+        let score = 0;
         const commonAuthors = user.favAuthors?.filter((author) =>
           mainData.favAuthors?.includes(author)
         );
-
         const commonGenres = user.favGenres?.filter((genre) =>
           mainData.favGenres?.includes(genre)
         );
 
-        // Modify condition as per your matching preference
-        if (commonAuthors?.length > 0 || commonGenres?.length > 1) {
-          temp.push(user); // push user, not nearbyUsers
+        score += (commonAuthors?.length || 0) * 5; // max 15
+        score += (commonGenres?.length || 0) * 5; // max 15
+
+        if (user.favBook && user.favBook === mainData.favBook) score += 10;
+
+        const summarySimilarity = stringSimilarity.compareTwoStrings(
+          user.favBookSummary?.toLowerCase() || "",
+          mainData.favBookSummary?.toLowerCase() || ""
+        );
+        score += Math.round(summarySimilarity * 10); // max 10
+
+        const distanceKm = user.distance_user / 1000;
+        if (distanceKm <= 5) score += 5;
+        else if (distanceKm <= 15) score += 3;
+        else if (distanceKm <= 30) score += 1;
+
+        const maxScore = 55;
+        const matchPercentage = Math.round((score / maxScore) * 100);
+
+        if (score >= 20) {
+          scoredUsers.push({
+            ...user,
+            matchScore: score,
+            matchPercentage,
+          });
         }
       });
 
-      nearbyUsers = temp;
+      nearbyUsers = scoredUsers.sort((a, b) => b.matchScore - a.matchScore);
 
       nearbyUsers.sort((a, b) => a.distance_user - b.distance_user);
 
@@ -337,21 +383,25 @@ const MatchScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Find Bookworms</Text>
+      <View style={{ alignItems: "center" }}>
+        <Text style={styles.title}>Find Bookworms</Text>
 
-      <View style={styles.switchContainer}>
-        <Text style={styles.switchText}>
-          {scanning
-            ? "Searching for matches..."
-            : "Tap to start finding matches"}
-        </Text>
-        <Switch
-          value={scanning}
-          onValueChange={(value) => {
-            setScanning(value);
-            if (!value) setMatches([]); // Clear matches when turning off
-          }}
-        />
+        <View>
+          <View style={styles.switchContainer}>
+            <Text style={styles.switchText}>
+              {scanning
+                ? "Searching for matches..."
+                : "Tap to start finding matches"}
+            </Text>
+            <Switch
+              value={scanning}
+              onValueChange={(value) => {
+                setScanning(value);
+                if (!value) setMatches([]); // Clear matches when turning off
+              }}
+            />
+          </View>
+        </View>
       </View>
 
       {/* Animated Book */}
@@ -387,7 +437,8 @@ const MatchScreen = ({ navigation }) => {
               >
                 <Icon name="user-circle" size={50} color="lightgreen" />
                 <Text style={styles.matchDistance}>
-                  {(item.distance_user / 1000).toFixed(1)} km
+                  {(item.distance_user / 1000).toFixed(1)} km |{" "}
+                  {item.matchPercentage}% match
                 </Text>
               </Animated.View>
             </Pressable>
@@ -428,6 +479,12 @@ const MatchScreen = ({ navigation }) => {
           </TouchableWithoutFeedback>
         </Modal>
       )}
+      <View style={styles.switchContainer}>
+        <Text style={styles.switchText}>
+          Want to take a break? Go off the book here
+        </Text>
+        <Switch value={pause} onValueChange={onToggleSwitch} />
+      </View>
     </View>
   );
 };
@@ -435,6 +492,7 @@ const MatchScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "space-between",
     paddingTop: 50,
     backgroundColor: "#f8f9fa",
     alignItems: "center",

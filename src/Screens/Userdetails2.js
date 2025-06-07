@@ -124,7 +124,8 @@ const Userdetails2 = ({ navigation }) => {
     if (
       selectedGenres.length < 3 ||
       selectedAuthors.length < 3 ||
-      currentread.length < 1
+      currentread.length < 1 ||
+      bookSummary.length < 20
     ) {
       Alert.alert(
         "Error",

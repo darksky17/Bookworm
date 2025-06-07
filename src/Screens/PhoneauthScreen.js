@@ -94,6 +94,8 @@ const PhoneauthScreen = ({ navigation }) => {
           phoneNumber: fullPhoneNumber,
           step1Completed: false,
           step2Completed: false,
+          step3Completed: false,
+          pauseMatch: false,
           currentMatches: [],
         });
 
