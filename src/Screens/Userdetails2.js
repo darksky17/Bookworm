@@ -144,7 +144,7 @@ const Userdetails2 = ({ navigation }) => {
           distance: 10,
           ageMax: 100,
           ageMin: 18,
-          currentRead: currentread,
+          currentlyReading: currentread,
           bookSummary: bookSummary,
         },
         { merge: true }

@@ -38,6 +38,7 @@ const ViewProfile = ({ route, navigation }) => {
   };
 
   const { allData } = route.params;
+  console.log("This is all data", allData);
   const [modalState, setModalState] = useState(false);
   let clickedYes = [];
   const [isdisabled, setIsDisabled] = useState(false);
@@ -46,21 +47,26 @@ const ViewProfile = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={navigation.goBack}>
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            color="black"
-            style={{ left: 5 }}
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>
-          {allData.ascended ? allData.name : allData.displayName}
-        </Text>
-        <TouchableOpacity onPress={toggleMenu}>
-          <Feather name="more-vertical" size={24} color="black" />
-        </TouchableOpacity>
-        {/* < Menu visible={isMenuVisible} onClose={toggleMenu}/> */}
+        {/* Left icon container */}
+        <View style={styles.sideContainer}>
+          <TouchableOpacity onPress={navigation.goBack}>
+            <Ionicons name="chevron-back" size={24} color="black" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Center text container */}
+        <View style={styles.centerContainer}>
+          <Text
+            style={styles.headerText}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {allData.ascended ? allData.name : allData.displayName}
+          </Text>
+        </View>
+
+        {/* Right spacer (same size as icon) */}
+        <View style={styles.sideContainer} />
       </View>
       <View
         style={{
@@ -82,6 +88,18 @@ const ViewProfile = ({ route, navigation }) => {
               {" "}
               {calculateAge(allData.dateOfBirth)} years old{" "}
             </Text>
+          </View>
+          <View style={styles.Card}>
+            <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+              Your friend is currently reading:
+            </Text>
+            <Text>{allData.currentlyReading}</Text>
+          </View>
+          <View style={styles.Card}>
+            <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+              Can you guess which book is this ?
+            </Text>
+            <Text>{allData.bookSummary}</Text>
           </View>
 
           {allData.ascended && (
@@ -112,6 +130,26 @@ const ViewProfile = ({ route, navigation }) => {
                 source={{ uri: allData.photos[2] }}
                 style={styles.displayImage}
               />
+              {allData.photos?.[3] && (
+                <Image
+                  source={{ uri: allData.photos[3] }}
+                  style={styles.displayImage}
+                />
+              )}
+
+              {allData.photos?.[4] && (
+                <Image
+                  source={{ uri: allData.photos[4] }}
+                  style={styles.displayImage}
+                />
+              )}
+
+              {allData.photos?.[5] && (
+                <Image
+                  source={{ uri: allData.photos[5] }}
+                  style={styles.displayImage}
+                />
+              )}
             </>
           )}
         </View>
@@ -157,13 +195,20 @@ const styles = StyleSheet.create({
     height: 60,
     width: "100%",
     elevation: 4,
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingHorizontal: 10,
+  },
+  sideContainer: {
+    width: 40, // Matches the icon area (24px icon + touch padding)
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerText: {
-    marginTop: "30",
     fontWeight: "500",
     fontSize: 25,
   },

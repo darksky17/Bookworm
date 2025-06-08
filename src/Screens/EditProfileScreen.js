@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  Button,
   TextInput,
   Image,
   FlatList,
@@ -11,31 +10,19 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
+
 import auth from "@react-native-firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
-import { setFavGenres, setFavAuthors, setPhotos } from "../redux/userSlice";
+import { setCurrentlyReading, setBookSummary } from "../redux/userSlice";
 import { setDoc, updateDoc } from "@react-native-firebase/firestore";
-import {
-  SERVER_URL,
-  GOOGLE_BOOKS_API_URL,
-  BOOKS_API_KEY,
-} from "../constants/api";
+
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
 import Header from "../components/Header";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { MultiSelect } from "react-native-element-dropdown";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 
-const genres = ["Fiction", "Fantasy", "Science Fiction", "Romance", "Horror"];
-const authors = [
-  "J.K. Rowling",
-  "George Orwell",
-  "Agatha Christie",
-  "J.R.R. Tolkien",
-  "Stephen King",
-];
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Button } from "react-native-paper";
 
 const EditProfileScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
@@ -50,164 +37,65 @@ const EditProfileScreen = ({ navigation }) => {
     ...globalSelected.photos,
   ]);
   const tempphotos = [...globalSelected.photos];
-
+  const currentread = useSelector((state) => state.user.currentlyReading);
+  const currentSummary = useSelector((state) => state.user.bookSummary);
+  const [currentreade, setCurrentRead] = useState("");
+  const [choicebook, setChoiceBook] = useState(false);
+  const [choicesummary, setChoiceSummary] = useState(false);
+  const [bookSummary, setBooksummary] = useState("");
   userId = auth().currentUser.uid;
 
-  const handleGenreSelect = (genres) => {
-    if (selectedGenres.includes(genres)) {
-      const updatedGenres = selectedGenres.filter((item) => item !== genres);
-      setSelectedGenres(updatedGenres);
-    } else if (selectedGenres.length < 3) {
-      const updatedGenres = [...selectedGenres, genres];
-      setSelectedGenres(updatedGenres);
-    } else {
-      Alert.alert("Error", "You can select only 3 genres.");
-    }
-  };
-
-  const handleAuthorSelect = (authors) => {
-    if (selectedAuthors.includes(authors)) {
-      const updatedAuthors = selectedAuthors.filter((item) => item !== authors);
-      setSelectedAuthors(updatedAuthors);
-    } else if (selectedAuthors.length < 3) {
-      const updatedAuthors = [...selectedAuthors, authors];
-      setSelectedAuthors(updatedAuthors);
-    } else {
-      Alert.alert("Error", "You can select only 3 authors.");
-    }
-  };
-
-  const removeImage = (index) => {
-    const updatedImages = [...selectedPhotos];
-    console.log("Im old updated image list", updatedImages);
-    updatedImages[index] = "";
-    console.log("Im new updated image list", updatedImages);
-    setSelectedPhotos(updatedImages);
-  };
-
-  const handleImagePicker = async () => {
-    try {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "You need to grant permission to access the gallery."
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        if (selectedPhotos.length < 4) {
-          updatedImages = [...selectedPhotos];
-          const empyIndex = updatedImages.indexOf("");
-          if (empyIndex !== -1) {
-            updatedImages[empyIndex] = result.assets[0].uri;
-            // setSelectedPhotos([...selectedPhotos, result.assets[0].uri]);
-          } else {
-            updatedImages.push(result.assets[0].uri);
-          }
-          setSelectedPhotos(updatedImages);
-        } else {
-          Alert.alert("Error", "You can upload only 3 photos.");
-        }
-      }
-    } catch (error) {
-      console.error("Error picking image:", error);
-      Alert.alert("Error", "An error occurred while selecting an image.");
-    }
-  };
-
-  const uploadImageToCloudinary = async (imageUri, folderName) => {
-    try {
-      const response = await fetch(`${SERVER_URL}/generate-signature`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder: folderName }),
-      });
-
-      if (!response.ok) throw new Error("Failed to get upload signature.");
-
-      const { cloud_name, api_key, signature, params } = await response.json();
-
-      const formData = new FormData();
-      formData.append("file", {
-        uri: imageUri,
-        name: `${Date.now()}.jpg`,
-        type: "image/jpeg",
-      });
-      formData.append("folder", folderName);
-      formData.append("timestamp", params.timestamp);
-      formData.append("api_key", api_key);
-      formData.append("signature", signature);
-
-      const uploadResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!uploadResponse.ok) throw new Error("Failed to upload image.");
-
-      const uploadResult = await uploadResponse.json();
-      return uploadResult.secure_url;
-    } catch (error) {
-      console.error("Error uploading image to Cloudinary:", error.message);
-      throw error;
-    }
-  };
-
-  const handleSave = async () => {
-    if (
-      selectedGenres.length < 3 ||
-      selectedAuthors.length < 3 ||
-      selectedPhotos.length < 3
-    ) {
+  const handleSaveBook = async () => {
+    if (currentreade.length > 20 || currentreade.length < 1) {
       Alert.alert(
         "Error",
-        "Please select 3 genres, 3 authors, and upload 3 photos."
+        "Please make sure that the book title is atleast 1 char long and at max 20."
       );
       return;
     }
 
     try {
-      const photoUrls = [...tempphotos];
-      console.log("These are selected photos final", selectedPhotos);
-      const newPhotos = selectedPhotos.filter(
-        (image) => !tempphotos.includes(image)
-      );
-      console.log("These are the photos that will get to firebase", newPhotos);
-      for (const image of newPhotos) {
-        const url = await uploadImageToCloudinary(image, userId); // Upload the disputed photo
-        const index = selectedPhotos.indexOf(image); // Find the position of the new photo
-        photoUrls[index] = url; // Replace the disputed photo in the final array with its URL
-      }
-
       const { userDocRef } = await fetchUserDataById(userId);
       await setDoc(
         userDocRef,
         {
-          favGenres: selectedGenres,
-          favAuthors: selectedAuthors,
-          photos: photoUrls,
+          currentlyReading: currentreade,
         },
         { merge: true }
       );
 
-      dispatch(setFavGenres(selectedGenres));
-      dispatch(setFavAuthors(selectedAuthors));
-      dispatch(setPhotos(photoUrls));
+      dispatch(setCurrentlyReading(currentreade));
+      setChoiceBook(false);
+    } catch (error) {
+      console.error("Error saving user data to Firestore:", error);
+      Alert.alert(
+        "Error",
+        "There was an error saving your data. Please try again."
+      );
+    }
+  };
+  const handleSaveSummary = async () => {
+    if (bookSummary.length < 50) {
+      Alert.alert(
+        "Error",
+        "Please make sure that the book summary is atleast 50 char long."
+      );
+      return;
+    }
 
-      await updateDoc(userDocRef, { step2Completed: true });
-      navigation.navigate("MainTabs");
+    try {
+      const { userDocRef } = await fetchUserDataById(userId);
+      await setDoc(
+        userDocRef,
+        {
+          bookSummary: bookSummary,
+        },
+        { merge: true }
+      );
+
+      dispatch(setBookSummary(bookSummary));
+
+      setChoiceSummary(false);
     } catch (error) {
       console.error("Error saving user data to Firestore:", error);
       Alert.alert(
@@ -225,47 +113,7 @@ const EditProfileScreen = ({ navigation }) => {
       </View>
     );
   };
-  const fetchAuthors = async (query) => {
-    if (!query || query.length < 3) {
-      console.log("Returned");
-      return;
-    }
 
-    try {
-      const response = await fetch(
-        `${GOOGLE_BOOKS_API_URL}?q=inauthor:${query}&key=${BOOKS_API_KEY}`
-      );
-      const data = await response.json();
-
-      console.log("This si sauthor data", data);
-
-      const authorsSet = new Set();
-
-      if (data.items) {
-        data.items.forEach((item) => {
-          const authors = item.volumeInfo.authors || [];
-          authors.forEach((author) => authorsSet.add(author));
-        });
-      }
-
-      const formatted = Array.from(authorsSet).map((author) => ({
-        label: author,
-        value: author,
-      }));
-
-      setAuthorOptions(formatted);
-    } catch (error) {
-      console.error("Error fetching authors:", error);
-    }
-  };
-
-  const handleAuthorChange = (selected) => {
-    if (selectedAuthors.length > 3) {
-      Alert.alert("Limit reached", "You can select up to 3 authors.");
-      return;
-    }
-    setSelectedAuthors(selected);
-  };
   return (
     <View style={{ flex: 1 }}>
       <Header title={"Edit Profile"} />
@@ -296,162 +144,216 @@ const EditProfileScreen = ({ navigation }) => {
             <InfoRow label="Gender" value={globalSelected.gender} />
             <InfoRow label="Date of Birth" value={globalSelected.dateOfBirth} />
 
-            {/* <MultiSelect
-            style={styles.dropdown}
-            data={authorOptions}
-            labelField="label"
-            valueField="value"
-            placeholder="Search and select authors"
-            search
-            value={selectedAuthors}
-            onChange={handleAuthorChange}
-            onChangeText={fetchAuthors} // Key line: fetch authors as user types
-            maxSelect={3}
-          /> */}
-
-            <View style={styles.chipContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingHorizontal: 10,
-                }}
-              >
-                <Text>Your favorite Authors:</Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("AddAuthors")}
+            <View style={{ gap: 30 }}>
+              <View style={styles.chipContainer}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 10,
+                  }}
                 >
-                  <FontAwesome name="caret-right" size={24} color="black" />
-                </TouchableOpacity>
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: 5,
-                  justifyContent: "flex-start",
-                  flexWrap: "wrap",
-                }}
-              >
-                {selectedAuthors.map((author, index) => (
-                  <View key={index} style={styles.chip}>
-                    <Text style={styles.chipText}>{author}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.chipContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingHorizontal: 10,
-                }}
-              >
-                <Text>Your favorite Genres:</Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("AddGenres")}
+                  <Text>Your favorite Authors:</Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("AddAuthors")}
+                  >
+                    <FontAwesome name="caret-right" size={24} color="black" />
+                  </TouchableOpacity>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 5,
+                    justifyContent: "flex-start",
+                    flexWrap: "wrap",
+                  }}
                 >
-                  <FontAwesome name="caret-right" size={24} color="black" />
-                </TouchableOpacity>
+                  {selectedAuthors.map((author, index) => (
+                    <View key={index} style={styles.chip}>
+                      <Text style={styles.chipText}>{author}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: 5,
-                  justifyContent: "flex-start",
-                  flexWrap: "wrap",
-                }}
-              >
-                {selectedGenres.map((genre, index) => (
-                  <View key={index} style={styles.chip}>
-                    <Text style={styles.chipText}>{genre}</Text>
-                  </View>
-                ))}
+              <View style={styles.chipContainer}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 10,
+                  }}
+                >
+                  <Text>Your favorite Genres:</Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("AddGenres")}
+                  >
+                    <FontAwesome name="caret-right" size={24} color="black" />
+                  </TouchableOpacity>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 5,
+                    justifyContent: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {selectedGenres.map((genre, index) => (
+                    <View key={index} style={styles.chip}>
+                      <Text style={styles.chipText}>{genre}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.chipContainer}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 10,
+                  }}
+                >
+                  <Text>Your Current/Recent Read:</Text>
+                  <TouchableOpacity onPress={() => setChoiceBook(true)}>
+                    <FontAwesome name="edit" size={24} color="black" />
+                  </TouchableOpacity>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 5,
+                    justifyContent: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {choicebook ? (
+                    <View style={{ gap: 20 }}>
+                      <TextInput
+                        placeholder="Please only mention the name of the Book!"
+                        editable
+                        backgroundColor="snow"
+                        numberOfLines={3}
+                        maxLength={50}
+                        style={{
+                          borderColor: "grey",
+                          borderWidth: 2,
+                          borderRadius: 10,
+                          paddingHorizontal: 10,
+                        }}
+                        value={currentreade}
+                        onChangeText={setCurrentRead}
+                      />
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          gap: 10,
+                          justifyContent: "space-evenly",
+                        }}
+                      >
+                        <Button mode="contained" onPress={handleSaveBook}>
+                          Save
+                        </Button>
+                        <Button
+                          mode="contained"
+                          onPress={() => setChoiceBook(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </View>
+                    </View>
+                  ) : (
+                    <View
+                      style={{
+                        width: "100%", // ensure full width
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                        {currentread}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <View style={styles.chipContainer}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 10,
+                  }}
+                >
+                  <Text>Summary of your favorite book:</Text>
+                  <TouchableOpacity onPress={() => setChoiceSummary(true)}>
+                    <FontAwesome name="edit" size={24} color="black" />
+                  </TouchableOpacity>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 5,
+                    justifyContent: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {choicesummary ? (
+                    <View style={{ gap: 20 }}>
+                      <TextInput
+                        placeholder="It would be fun if you let your matches guess what book it is ;)"
+                        editable
+                        backgroundColor="snow"
+                        numberOfLines={5}
+                        multiline={true}
+                        textAlignVertical="top"
+                        maxLength={200}
+                        style={{
+                          borderColor: "grey",
+                          borderWidth: 2,
+                          borderRadius: 10,
+                          paddingHorizontal: 10,
+                          paddingTop: 10,
+                        }}
+                        value={bookSummary}
+                        onChangeText={setBooksummary}
+                      />
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          gap: 10,
+                          justifyContent: "space-evenly",
+                        }}
+                      >
+                        <Button mode="contained" onPress={handleSaveSummary}>
+                          Save
+                        </Button>
+                        <Button
+                          mode="contained"
+                          onPress={() => setChoiceSummary(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </View>
+                    </View>
+                  ) : (
+                    <View
+                      style={{
+                        width: "100%", // ensure full width
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                        {currentSummary}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
           </View>
-
-          {/* <Text style={styles.header}>Edit Profile</Text> */}
-
-          {/* <Text style={styles.subHeader}>
-        Select your favorite authors (max 3):
-      </Text>
-      <View style={styles.optionsContainer}>
-        {authors.map((authors) => (
-          <TouchableOpacity
-            key={authors}
-            onPress={() => handleAuthorSelect(authors)}
-            style={[
-              styles.optionBox,
-              selectedAuthors.includes(authors) && styles.selectedBox,
-            ]}
-          >
-            <Text style={styles.optionText}>{authors}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.subHeader}>Select your favorite genres (max 3):</Text>
-      <View style={styles.optionsContainer}>
-        {genres.map((genres) => (
-          <TouchableOpacity
-            key={genres}
-            onPress={() => handleGenreSelect(genres)}
-            style={[
-              styles.optionBox,
-              selectedGenres.includes(genres) && styles.selectedBox,
-            ]}
-          >
-            <Text style={styles.optionText}>{genres}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.label}> Photos</Text>
-      <View style={styles.section}>
-        <FlatList
-          data={selectedPhotos}
-          horizontal
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item, index }) => {
-            if (item != "") {
-              return (
-                <View style={styles.imageWrapper}>
-                  <Image source={{ uri: item }} style={styles.photo} />
-
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => removeImage(index)}
-                  >
-                    <Text style={styles.removeButtonText}>X</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            } else {
-              return (
-                <TouchableOpacity
-                  style={styles.photoBox}
-                  onPress={handleImagePicker}
-                >
-                  <Text style={styles.photoText}>+</Text>
-                </TouchableOpacity>
-              );
-            }
-          }}
-          ItemSeparatorComponent={() => <View style={{ width: 10 }} />} // Adds spacing between images
-          contentContainerStyle={{ paddingHorizontal: 10 }} // Optional padding around the list
-          showsHorizontalScrollIndicator={false}
-        />
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <Button title="Save Changes" onPress={handleSave} />
-        <Button
-          title="Cancel"
-          onPress={() => navigation.goBack()}
-          color="red"
-        />
-      </View> */}
         </Container>
       </ScrollView>
     </View>
@@ -469,7 +371,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 20,
-    gap: 20,
+    gap: 10,
   },
   chip: {
     backgroundColor: "#d1e7dd",
