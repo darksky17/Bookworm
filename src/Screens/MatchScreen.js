@@ -231,7 +231,14 @@ const MatchScreen = ({ navigation }) => {
       snapshot.forEach((doc) => {
         const userData = doc.data();
         const userId = doc.id;
-        if (userData.isDeleted || userData.pauseMatch) return;
+        console.log("HERE IS BLOCKED USER LIST", mainData.blockedUsers);
+        if (
+          userData.isDeleted ||
+          userData.pauseMatch ||
+          mainData.blockedUsers?.includes(userId) ||
+          userData.blockedUsers?.includes(auth().currentUser.uid)
+        )
+          return;
         const age = calculateAge(userData.dateOfBirth);
 
         if (userId !== auth().currentUser?.uid) {

@@ -14,6 +14,10 @@ const BottomTabNavigator = () => {
           let iconName;
           if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline";
+          } else if (route.name === "Match") {
+            iconName = focused ? "book" : "book-outline";
+          } else {
+            iconName = focused ? "chatbubbles" : "chatbubbles-outline";
           }
           return (
             <Icon

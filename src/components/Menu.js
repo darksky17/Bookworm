@@ -23,6 +23,7 @@ import {
 
 const Menu = ({ visible, onClose, allData, chatId }) => {
   const [unmatchModal, setUnmatchModal] = useState(false);
+  const [blockModal, setBlockModal] = useState(false);
   const userId = auth().currentUser.uid;
   console.log(chatId);
 
@@ -74,6 +75,69 @@ const Menu = ({ visible, onClose, allData, chatId }) => {
     }
   };
 
+  const Blocked = async () => {
+    Unmatch(chatId);
+
+    const userDocRef = doc(db, "Users", userId);
+    await updateDoc(userDocRef, {
+      blockedUsers: arrayUnion(allData.id),
+    });
+  };
+
+  const ReusableModal = ({
+    visible,
+    title,
+    description,
+    onConfirm,
+    onCancel,
+  }) => {
+    return (
+      <Modal
+        transparent={true}
+        visible={visible}
+        animationType="slide"
+        onRequestClose={onCancel}
+      >
+        <View
+          style={{
+            padding: 20,
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <View style={styles.unmatchModal}>
+            <Text>{description}</Text>
+            <View style={{ flexDirection: "row", gap: 30 }}>
+              <Button mode="contained" onPress={onConfirm}>
+                <Text>Yes</Text>
+              </Button>
+              <Button mode="contained" onPress={onCancel}>
+                <Text>No</Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+
+        {/* 
+        <View style={styles.overlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.description}>{description}</Text>
+            <View style={styles.buttonContainer}>
+              <Button mode="contained" onPress={onConfirm}>
+                <Text>Yes</Text>
+              </Button>
+              <Button mode="contained" onPress={onCancel}>
+                <Text>No</Text>
+              </Button>
+            </View>
+          </View>
+        </View> */}
+      </Modal>
+    );
+  };
+
   return (
     <>
       <Modal transparent={true} visible={visible} animationType="fade">
@@ -86,13 +150,36 @@ const Menu = ({ visible, onClose, allData, chatId }) => {
             <TouchableOpacity onPress={() => setUnmatchModal(true)}>
               <Text>Unmatch</Text>
             </TouchableOpacity>
-            <Text>Block</Text>
+            <TouchableOpacity onPress={() => setBlockModal(true)}>
+              <Text>Block</Text>
+            </TouchableOpacity>
             <Text>Report</Text>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      <Modal
+      <ReusableModal
+        visible={unmatchModal}
+        title="Unmatch"
+        description="Are you sure you want to Unmatch? Note: You will lose all your text messages."
+        onConfirm={() => {
+          Unmatch(chatId);
+          setUnmatchModal(false);
+        }}
+        onCancel={() => setUnmatchModal(false)}
+      />
+      <ReusableModal
+        visible={blockModal}
+        title="Block"
+        description="Are you sure you want to Block this user? This action is not reversible."
+        onConfirm={() => {
+          Blocked(chatId);
+          setBlockModal(false);
+        }}
+        onCancel={() => setBlockModal(false)}
+      />
+
+      {/* <Modal
         transparent={true}
         visible={unmatchModal}
         animationType="slide"
@@ -127,7 +214,7 @@ const Menu = ({ visible, onClose, allData, chatId }) => {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </>
   );
 };

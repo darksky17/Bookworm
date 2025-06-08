@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 import {
   View,
   Modal,
@@ -24,7 +25,7 @@ import {
   limit,
   orderBy,
 } from "@react-native-firebase/firestore";
-import { firestore, db } from "../Firebaseconfig";
+import { db } from "../Firebaseconfig";
 
 import Header from "../components/Header";
 import Feather from "@expo/vector-icons/Feather";
@@ -35,6 +36,39 @@ import { Platform } from "react-native";
 import { getVersion, getApiLevel } from "react-native-device-info";
 
 const ChatScreenList = ({ navigation }) => {
+  const pause = useSelector((state) => state.user.pauseMatch);
+  const [activeFilters, setActiveFilters] = useState(new Set());
+
+  const toggleFilter = (filter) => {
+    setActiveFilters((prev) => {
+      const updated = new Set(prev);
+      if (filter === "All") return new Set(); // reset
+
+      if (updated.has(filter)) {
+        updated.delete(filter); // toggle off
+      } else {
+        updated.add(filter); // toggle on
+      }
+
+      return updated;
+    });
+  };
+
+  const getFilteredChats = () => {
+    if (activeFilters.size === 0) return chats; // "All"
+
+    return chats.filter((chat) => {
+      const isNormal = !chat.ascended;
+      const isAscended = !!chat.ascended;
+      const isUnread = chat.unreadCount > 0;
+
+      if (activeFilters.has("Normal") && !isNormal) return false;
+      if (activeFilters.has("Ascended") && !isAscended) return false;
+      if (activeFilters.has("Unread") && !isUnread) return false;
+
+      return true;
+    });
+  };
   useEffect(() => {
     const checkNotificationPermission = async () => {
       if (Platform.OS === "android") {
@@ -140,13 +174,20 @@ const ChatScreenList = ({ navigation }) => {
     const updatedFriendDocs = friendDocs.map((user) => {
       const chat = chatData.find((c) => c.participants.includes(user.id));
       const unreadCount = chat?.unreadCounts?.[userId] ?? 0;
+      const timestamp = chat?.timestamp;
 
       return {
         ...user,
         ascended: chat?.ascended ?? null,
         latestMessage: chat?.latestMessage || "",
         unreadCount,
+        timestamp,
       };
+    });
+    updatedFriendDocs.sort((a, b) => {
+      const timeA = a.timestamp?.toMillis?.() || 0;
+      const timeB = b.timestamp?.toMillis?.() || 0;
+      return timeB - timeA; // Newest first
     });
 
     setChats(updatedFriendDocs);
@@ -201,14 +242,50 @@ const ChatScreenList = ({ navigation }) => {
       fetchChatDocsbyID(userId);
     }, [userId])
   );
-
+  const filters = ["All", "Normal", "Ascended", "Unread"];
   return (
     <View style={styles.container}>
       <Header title={"Chats"} />
+      {pause && (
+        <View style={{ paddingTop: 10, paddingHorizontal: 10 }}>
+          <Text style={{ color: "red", fontWeight: 500 }}>
+            It looks like you have paused your matches, new users cant find you
+            unless you turn it back on
+          </Text>
+        </View>
+      )}
+
       <View style={{ flex: 1, paddingTop: 5, padding: 15 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 10,
+            paddingVertical: 20,
+            justifyContent: "space-evenly",
+          }}
+        >
+          {filters.map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              onPress={() => toggleFilter(filter)}
+              style={{
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 20,
+                backgroundColor:
+                  activeFilters.has(filter) ||
+                  (filter === "All" && activeFilters.size === 0)
+                    ? "limegreen"
+                    : "lightgray",
+              }}
+            >
+              <Text style={{ color: "black" }}>{filter}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <FlatList
           style={styles.chatListContainer}
-          data={chats}
+          data={getFilteredChats()}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.chatlistbg}>

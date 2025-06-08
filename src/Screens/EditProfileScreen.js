@@ -146,20 +146,21 @@ const EditProfileScreen = ({ navigation }) => {
 
             <View style={{ gap: 30 }}>
               <View style={styles.chipContainer}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    paddingHorizontal: 10,
-                  }}
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("AddAuthors")}
                 >
-                  <Text>Your favorite Authors:</Text>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate("AddAuthors")}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      paddingHorizontal: 10,
+                    }}
                   >
+                    <Text>Your favorite Authors:</Text>
+
                     <FontAwesome name="caret-right" size={24} color="black" />
-                  </TouchableOpacity>
-                </View>
+                  </View>
+                </TouchableOpacity>
                 <View
                   style={{
                     flexDirection: "row",
@@ -176,20 +177,21 @@ const EditProfileScreen = ({ navigation }) => {
                 </View>
               </View>
               <View style={styles.chipContainer}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    paddingHorizontal: 10,
-                  }}
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("AddGenres")}
                 >
-                  <Text>Your favorite Genres:</Text>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate("AddGenres")}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      paddingHorizontal: 10,
+                    }}
                   >
+                    <Text>Your favorite Genres:</Text>
+
                     <FontAwesome name="caret-right" size={24} color="black" />
-                  </TouchableOpacity>
-                </View>
+                  </View>
+                </TouchableOpacity>
                 <View
                   style={{
                     flexDirection: "row",

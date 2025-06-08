@@ -84,8 +84,8 @@ const AddGenresScreen = ({ navigation }) => {
   }, []);
 
   const handleSave = async () => {
-    if (selectedGenres.length < 5) {
-      Alert.alert("Error", "Please select 5 genres.");
+    if (selectedGenres.length < 3) {
+      Alert.alert("Error", "Please select 3 genres.");
       return;
     }
 

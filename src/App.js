@@ -29,6 +29,7 @@ import messaging from "@react-native-firebase/messaging";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setNotificationPref } from "./redux/userSlice";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 function HomeScreen({ navigation }) {
   return (
@@ -68,6 +69,11 @@ function HomeScreen({ navigation }) {
         >
           Logout
         </Button>
+      </View>
+      <View style={{ alignItems: "center", justifyContent: "flex-start" }}>
+        <Text style={{ fontWeight: "bold" }}>
+          Made with <Ionicons name="heart" size={16} color="red" /> by Soraaa
+        </Text>
       </View>
     </View>
   );

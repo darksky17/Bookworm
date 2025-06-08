@@ -8,19 +8,13 @@ import {
   ImageBackground,
   Image,
   ScrollView,
+  Linking,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Feather from "@expo/vector-icons/Feather";
 import Menu from "../components/Menu";
 
 const ViewProfile = ({ route, navigation }) => {
-  const fetchDetails = () => {
-    userDocRef = doc(db, "Users", mateId);
-  };
-  const toggleMenu = () => {
-    setMenuVisible((prev) => !prev); // ✅ This correctly toggles the modal
-  };
-
   const calculateAge = (dob) => {
     const birthDate = new Date(dob); // Convert string to Date object
     const today = new Date();
@@ -39,10 +33,7 @@ const ViewProfile = ({ route, navigation }) => {
 
   const { allData } = route.params;
   console.log("This is all data", allData);
-  const [modalState, setModalState] = useState(false);
-  let clickedYes = [];
-  const [isdisabled, setIsDisabled] = useState(false);
-  const [isMenuVisible, setMenuVisible] = useState(false);
+
   console.log("I ran");
   return (
     <View style={styles.container}>

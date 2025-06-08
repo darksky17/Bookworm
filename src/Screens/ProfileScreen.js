@@ -9,6 +9,7 @@ import {
   Modal,
   Alert,
   TextInput,
+  Linking,
 } from "react-native";
 import { db } from "../Firebaseconfig";
 import moment from "moment";
@@ -51,6 +52,16 @@ const ProfileScreen = ({ navigation }) => {
   const [logoutModal, setLogoutModal] = useState(false);
 
   const notificationPref = useSelector((state) => state.user.notificationpref);
+
+  const handleReportPress = () => {
+    const subject = encodeURIComponent("Bug Report - [Your App Name]");
+    const body = encodeURIComponent(
+      "Describe the issue here...\n\nDevice Info:"
+    );
+    const email = "jainakash530@gmail.com";
+
+    Linking.openURL(`mailto:${email}?subject=${subject}&body=${body}`);
+  };
 
   const onToggleSwitch = async () => {
     const NOTIF_PREF_KEY = "notificationPref";
@@ -248,14 +259,16 @@ const ProfileScreen = ({ navigation }) => {
             />
           </TouchableOpacity>
 
-          <SettingsRow
-            icon="report"
-            iconLibrary={Octicons}
-            label="Report"
-            rightComponent={
-              <FontAwesome name="caret-right" size={24} color="black" />
-            }
-          />
+          <TouchableOpacity onPress={handleReportPress}>
+            <SettingsRow
+              icon="report"
+              iconLibrary={Octicons}
+              label="Report A Bug"
+              rightComponent={
+                <FontAwesome name="caret-right" size={24} color="black" />
+              }
+            />
+          </TouchableOpacity>
         </View>
 
         <Modal

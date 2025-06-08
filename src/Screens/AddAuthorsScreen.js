@@ -34,8 +34,8 @@ const AddAuthorsScreen = ({ navigation }) => {
   }, []);
 
   const handleSave = async () => {
-    if (selectedAuthors.length < 5) {
-      Alert.alert("Error", "Please select 5 authors.");
+    if (selectedAuthors.length < 3) {
+      Alert.alert("Error", "Please select 3 authors.");
       return;
     }
 
