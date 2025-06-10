@@ -38,6 +38,7 @@ import { getVersion, getApiLevel } from "react-native-device-info";
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
   const [activeFilters, setActiveFilters] = useState(new Set());
+  const [initializing, setInitializing] = useState(true);
 
   const toggleFilter = (filter) => {
     setActiveFilters((prev) => {
@@ -191,6 +192,7 @@ const ChatScreenList = ({ navigation }) => {
     });
 
     setChats(updatedFriendDocs);
+    setInitializing(false);
   };
 
   const InitialIcon = ({ initials, ascended, photo }) => {
@@ -243,6 +245,15 @@ const ChatScreenList = ({ navigation }) => {
     }, [userId])
   );
   const filters = ["All", "Normal", "Ascended", "Unread"];
+
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Header title={"Chats"} />

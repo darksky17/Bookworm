@@ -38,3 +38,4 @@ yarn-error.*
 cloudinary-server
 
 src/constants/api.js
+.env
