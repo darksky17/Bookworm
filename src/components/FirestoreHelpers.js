@@ -43,9 +43,5 @@ export const fetchChatsByQuery = async (...queryConstraints) => {
   const q = query(chatsRef, ...queryConstraints);
   const chatsSnap = await getDocs(q);
 
-  if (chatsSnap.empty) {
-    throw new Error("User not found");
-  }
-
   return chatsSnap;
 }; // This function returns all the data within a user document.

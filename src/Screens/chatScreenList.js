@@ -134,6 +134,7 @@ const ChatScreenList = ({ navigation }) => {
 
     if (chatRefDocs.empty) {
       console.log("No chats found.");
+      setInitializing(false);
       return;
     }
 
