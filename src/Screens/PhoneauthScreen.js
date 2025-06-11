@@ -55,8 +55,6 @@ const PhoneauthScreen = ({ navigation }) => {
     try {
       const credential = auth.PhoneAuthProvider.credential(verificationId, otp); // Create credential
 
-      console.log("Credential created:", credential);
-
       // Sign in with credential
       await auth().signInWithCredential(credential);
       const idToken = await auth().currentUser.getIdToken();
@@ -133,7 +131,6 @@ const PhoneauthScreen = ({ navigation }) => {
                 placeholder="+91"
                 value={countryCode}
                 onChangeText={(text) => {
-                  console.log("Country code entered:", text);
                   setCountryCode(text);
                 }}
                 keyboardType="phone-pad"
@@ -144,7 +141,6 @@ const PhoneauthScreen = ({ navigation }) => {
                 placeholder="Enter phone number"
                 value={phoneNumber}
                 onChangeText={(text) => {
-                  console.log("Phone number entered:", text);
                   setPhoneNumberState(text);
                 }}
                 keyboardType="phone-pad"
@@ -158,7 +154,6 @@ const PhoneauthScreen = ({ navigation }) => {
                   placeholder="Enter OTP"
                   value={otp}
                   onChangeText={(text) => {
-                    console.log("OTP entered:", text);
                     setOtp(text);
                   }}
                   keyboardType="number-pad"

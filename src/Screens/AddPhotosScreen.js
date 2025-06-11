@@ -66,17 +66,23 @@ const AddPhotosScreen = ({ navigation }) => {
       if (!result.canceled) {
         const updated = [...selectedPhotos];
         const emptyIndex = updated.findIndex((item) => item.uri === "");
+
+        const filledSlots = updated.filter((item) => item.uri !== "").length;
+
+        if (filledSlots >= 6) {
+          Alert.alert("Limit Reached", "You can upload up to 6 photos.");
+          return;
+        }
+
         if (emptyIndex !== -1) {
           updated[emptyIndex].uri = result.assets[0].uri;
-        } else if (updated.length < 4) {
+        } else {
           updated.push({
             key: `${Date.now()}`,
             uri: result.assets[0].uri,
           });
-        } else {
-          Alert.alert("Error", "You can upload only 3 photos.");
-          return;
         }
+
         setSelectedPhotos(updated);
       }
     } catch (error) {

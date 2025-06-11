@@ -95,6 +95,12 @@ const Screen1 = ({ navigation }) => {
 
     const dateOfBirth = `${day}/${month}/${year}`;
     const formattedDOB = `${year}-${month}-${day}`;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      Alert.alert("Invalid email format");
+      return;
+    }
 
     if (!moment(formattedDOB, "YYYY-MM-DD", true).isValid()) {
       Alert.alert("Error", "Invalid date. Please enter a valid date.");

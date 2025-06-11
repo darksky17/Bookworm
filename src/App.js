@@ -107,7 +107,6 @@ const AppNavigator = () => {
 
     const unsubscribe = auth().onAuthStateChanged(async (user) => {
       setUser(user);
-      console.log("USER:", user);
 
       if (user) {
         const uid = user.uid;
