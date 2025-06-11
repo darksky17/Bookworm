@@ -35,7 +35,7 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-cloudinary-server
+backend
 
 src/constants/api.js
 .env

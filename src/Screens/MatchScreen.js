@@ -61,6 +61,11 @@ const MatchScreen = ({ navigation }) => {
   const onToggleSwitch = async () => {
     const newValue = !pause; // Flip the current value
     if (pause) setScanning(false);
+    if (newValue) {
+      setScanning(false);
+      setMatches([]);
+      setShowMatches(false);
+    }
     dispatch(setPauseMatch(newValue)); // Update Redux state
     const userId = auth().currentUser.uid;
 
