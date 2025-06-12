@@ -108,7 +108,7 @@ const AppNavigator = () => {
     const unsubscribe = auth().onAuthStateChanged(async (user) => {
       setUser(user);
 
-      if (user) {
+      if (user != null) {
         const uid = user.uid;
 
         // ✅ STEP 1: Register fresh FCM token

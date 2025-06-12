@@ -104,21 +104,22 @@ const ProfileScreen = ({ navigation }) => {
       );
 
       console.log("Cloudinary folder deletion response:", response.data);
+      if (response) {
+        // unsubscribeRef.current();
+        console.log("Now my listner should stop listening");
+        // Delete the user document from Firestore
+        // await deleteDoc(doc(db, "Users", userId));
+        console.log("User profile deleted successfully.");
+        dispatch(clearUserState());
+        // Sign the user out
+        await auth().signOut();
+        console.log(
+          "Sign out was also conducted smoothly, now its time to show the alert"
+        );
 
-      // unsubscribeRef.current();
-      console.log("Now my listner should stop listening");
-      // Delete the user document from Firestore
-      // await deleteDoc(doc(db, "Users", userId));
-      console.log("User profile deleted successfully.");
-      dispatch(clearUserState());
-      // Sign the user out
-      await auth().signOut();
-      console.log(
-        "Sign out was also conducted smoothly, now its time to show the alert"
-      );
-
-      Alert.alert("Success", "Your profile has been deleted.");
-      navigation.navigate("Home");
+        Alert.alert("Success", "Your profile has been deleted.");
+        navigation.navigate("Home");
+      }
     } catch (error) {
       console.error("Error deleting profile:", error);
       Alert.alert("Error", "Failed to delete profile. Please try again later.");
