@@ -9,25 +9,18 @@ import {
   setGender,
 } from "../redux/userSlice";
 import { Picker } from "@react-native-picker/picker";
-import auth from "@react-native-firebase/auth";
+
 import moment from "moment";
 
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-  setDoc,
-} from "@react-native-firebase/firestore";
+import { auth, updateDoc, where, setDoc } from "../Firebaseconfig.js";
 import {
   fetchUserDataByQuery,
   fetchUserDataById,
 } from "../components/FirestoreHelpers";
+import { SERVER_URL } from "../constants/api";
 
 const Screen1 = ({ navigation }) => {
+  console.log("first log");
   const dispatch = useDispatch();
 
   const [name, setNameState] = useState("");
@@ -37,8 +30,8 @@ const Screen1 = ({ navigation }) => {
   const [year, setYear] = useState("");
   const [gender, setGenderState] = useState("");
 
-  const phoneNumber = auth().currentUser?.phoneNumber;
-  const userId = auth().currentUser.uid;
+  const phoneNumber = auth.currentUser?.phoneNumber;
+  const userId = auth.currentUser.uid;
 
   const generateRandomDisplayName = async () => {
     const adjectives = [
@@ -67,12 +60,27 @@ const Screen1 = ({ navigation }) => {
     // Ensure uniqueness in Firestore
     let nameExists = true;
     while (nameExists) {
-      querySnapshot = await fetchUserDataByQuery(
-        "Users",
-        where("displayname", "==", displayName)
-      );
-
-      if (querySnapshot.empty) {
+      // querySnapshot = await fetchUserDataByQuery(
+      //   "Users",
+      //   where("displayname", "==", displayName)
+      // );
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch(`${SERVER_URL}/check-user-exists`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          displayName: displayName,
+          includeData: false,
+        }),
+      });
+      const data = await response.json();
+      console.log(data);
+      console.log("data.exists:", data.exists, typeof data.exists);
+      // if (querySnapshot.empty) {
+      if (data.exists === false || data.exists === "false") {
         nameExists = false;
       } else {
         // Generate a new one if duplicate exists

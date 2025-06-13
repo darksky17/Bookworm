@@ -4,17 +4,11 @@ import { setPhoneNumber } from "../redux/userSlice";
 import { Text, View, Alert, TextInput, StyleSheet } from "react-native";
 import { Button } from "react-native-paper";
 import auth from "@react-native-firebase/auth"; // Import Firebase auth
-import { firestore, db } from "../Firebaseconfig"; // Import Firestore
-import {
-  collection,
-  getDocs,
-  query,
-  setDoc,
-  doc,
-  where,
-} from "@react-native-firebase/firestore";
-import { fetchUserDataByQuery } from "../components/FirestoreHelpers";
+
+import { setDoc, collection, doc, db } from "../Firebaseconfig.js";
+
 import Container from "../components/Container";
+import { SERVER_URL } from "../constants/api";
 
 const PhoneauthScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -64,23 +58,43 @@ const PhoneauthScreen = ({ navigation }) => {
 
       // After OTP is verified, check if the phone number is registered in Firestore
       const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+
+      const response = await fetch(`${SERVER_URL}/check-user-exists`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          phoneNumber: fullPhoneNumber,
+        }),
+      });
+      const data = await response.json();
+
       const usersRef = collection(db, "Users");
 
-      const querySnapshot = await fetchUserDataByQuery(
-        "Users",
-        where("phoneNumber", "==", fullPhoneNumber)
-      );
-      console.log(querySnapshot.docs.length);
-      if (!querySnapshot.empty && querySnapshot.docs.length > 0) {
+      // const querySnapshot = await fetchUserDataByQuery(
+      //   "Users",
+      //   where("phoneNumber", "==", fullPhoneNumber)
+      // );
+      // console.log(querySnapshot.docs.length);
+
+      // if (!querySnapshot.empty && querySnapshot.docs.length > 0){
+
+      if (data.exists) {
         // Existing user
         console.log("How the fuck did I jump in heree??");
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data();
+        // const userDoc = querySnapshot.docs[0];
+        const userData = data.userData;
+        console.log(userData);
+
         if (userData) {
           if (!userData.step1Completed) {
             navigation.navigate("Userdeet1");
           } else if (!userData.step2Completed) {
             navigation.navigate("Userdeet2");
+          } else if (!userData.step3Completed) {
+            navigation.navigate("AddPhotos");
           } else {
             navigation.replace("MainTabs");
           }

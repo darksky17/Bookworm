@@ -13,27 +13,16 @@ import {
   Pressable,
   Image,
 } from "react-native";
-import auth from "@react-native-firebase/auth";
-import {
-  doc,
-  collection,
-  query,
-  where,
-  getDocs,
-  setDoc,
-  getDoc,
-  limit,
-  orderBy,
-} from "@react-native-firebase/firestore";
-import { db } from "../Firebaseconfig";
 
+import { auth } from "../Firebaseconfig";
 import Header from "../components/Header";
 import Feather from "@expo/vector-icons/Feather";
 import Container from "../components/Container";
-import { fetchChatsByQuery } from "../components/FirestoreHelpers";
+
 import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import { Platform } from "react-native";
 import { getVersion, getApiLevel } from "react-native-device-info";
+import { SERVER_URL } from "../constants/api";
 
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
@@ -98,103 +87,103 @@ const ChatScreenList = ({ navigation }) => {
     checkNotificationPermission();
   }, []);
 
-  const userId = auth().currentUser.uid;
+  const userId = auth.currentUser.uid;
 
   const [chats, setChats] = useState([]);
-  let otherUserId = [];
-  let p = 0;
+  // let otherUserId = [];
+  // let p = 0;
 
-  const fetchFriends = async (uids) => {
-    const userDocs = [];
-    let batchSize = 10;
+  // const fetchFriends = async (uids) => {
+  //   const userDocs = [];
+  //   let batchSize = 10;
 
-    for (let i = 0; i < uids.length; i = +batchSize) {
-      const batch = uids.slice(i, i + batchSize);
+  //   for (let i = 0; i < uids.length; i = +batchSize) {
+  //     const batch = uids.slice(i, i + batchSize);
 
-      const promises = batch.map((uid) => getDoc(doc(db, "Users", uid)));
+  //     const promises = batch.map((uid) => getDoc(doc(db, "Users", uid)));
 
-      const batchResults = await Promise.all(promises);
+  //     const batchResults = await Promise.all(promises);
 
-      batchResults.forEach((snapshot) => {
-        if (snapshot._exists) {
-          userDocs.push({ id: snapshot.id, ...snapshot.data() });
-        }
-      });
-    }
+  //     batchResults.forEach((snapshot) => {
+  //       if (snapshot._exists) {
+  //         userDocs.push({ id: snapshot.id, ...snapshot.data() });
+  //       }
+  //     });
+  //   }
 
-    return userDocs;
-  };
+  //   return userDocs;
+  // };
 
-  const fetchChatDocsbyID = async (userId) => {
-    let chatData = [];
+  // const fetchChatDocsbyID = async (userId) => {
+  //   let chatData = [];
 
-    const chatRefDocs = await fetchChatsByQuery(
-      where("participants", "array-contains", userId)
-    );
+  //   const chatRefDocs = await fetchChatsByQuery(
+  //     where("participants", "array-contains", userId)
+  //   );
 
-    if (chatRefDocs.empty) {
-      console.log("No chats found.");
-      setInitializing(false);
-      return;
-    }
+  //   if (chatRefDocs.empty) {
+  //     console.log("No chats found.");
+  //     setInitializing(false);
+  //     return;
+  //   }
 
-    // Extract all chat data
-    chatData = await Promise.all(
-      chatRefDocs.docs.map(async (docSnap) => {
-        const chatInfo = { id: docSnap.id, ...docSnap.data() };
+  //   // Extract all chat data
+  //   chatData = await Promise.all(
+  //     chatRefDocs.docs.map(async (docSnap) => {
+  //       const chatInfo = { id: docSnap.id, ...docSnap.data() };
 
-        // Fetch latest message from "messages" subcollection
-        const messagesQuery = query(
-          collection(db, "Chats", docSnap.id, "messages"),
-          orderBy("timestamp", "desc"),
-          limit(1)
-        );
+  //       // Fetch latest message from "messages" subcollection
+  //       const messagesQuery = query(
+  //         collection(db, "Chats", docSnap.id, "messages"),
+  //         orderBy("timestamp", "desc"),
+  //         limit(1)
+  //       );
 
-        const latestMessageSnapshot = await getDocs(messagesQuery);
+  //       const latestMessageSnapshot = await getDocs(messagesQuery);
 
-        let latestMessage = null;
+  //       let latestMessage = null;
 
-        if (!latestMessageSnapshot.empty) {
-          latestMessage = latestMessageSnapshot.docs[0].data();
-        }
+  //       if (!latestMessageSnapshot.empty) {
+  //         latestMessage = latestMessageSnapshot.docs[0].data();
+  //       }
 
-        return {
-          ...chatInfo,
-          latestMessage: latestMessage?.content || "", // Add only the text
-        };
-      })
-    );
+  //       return {
+  //         ...chatInfo,
+  //         latestMessage: latestMessage?.content || "", // Add only the text
+  //       };
+  //     })
+  //   );
 
-    // Get IDs of the other participants
-    const otherUserIds = chatData
-      .map((chat) => chat.participants.find((id) => id !== userId))
-      .filter(Boolean);
+  //   // Get IDs of the other participants
+  //   const otherUserIds = chatData
+  //     .map((chat) => chat.participants.find((id) => id !== userId))
+  //     .filter(Boolean);
 
-    const friendDocs = await fetchFriends(otherUserIds);
+  //   const friendDocs = await fetchFriends(otherUserIds);
 
-    // Merge friend data with chat & latest message
-    const updatedFriendDocs = friendDocs.map((user) => {
-      const chat = chatData.find((c) => c.participants.includes(user.id));
-      const unreadCount = chat?.unreadCounts?.[userId] ?? 0;
-      const timestamp = chat?.timestamp;
+  //   // Merge friend data with chat & latest message
+  //   const updatedFriendDocs = friendDocs.map((user) => {
+  //     const chat = chatData.find((c) => c.participants.includes(user.id));
+  //     const unreadCount = chat?.unreadCounts?.[userId] ?? 0;
+  //     const timestamp = chat?.timestamp;
 
-      return {
-        ...user,
-        ascended: chat?.ascended ?? null,
-        latestMessage: chat?.latestMessage || "",
-        unreadCount,
-        timestamp,
-      };
-    });
-    updatedFriendDocs.sort((a, b) => {
-      const timeA = a.timestamp?.toMillis?.() || 0;
-      const timeB = b.timestamp?.toMillis?.() || 0;
-      return timeB - timeA; // Newest first
-    });
+  //     return {
+  //       ...user,
+  //       ascended: chat?.ascended ?? null,
+  //       latestMessage: chat?.latestMessage || "",
+  //       unreadCount,
+  //       timestamp,
+  //     };
+  //   });
+  //   updatedFriendDocs.sort((a, b) => {
+  //     const timeA = a.timestamp?.toMillis?.() || 0;
+  //     const timeB = b.timestamp?.toMillis?.() || 0;
+  //     return timeB - timeA; // Newest first
+  //   });
 
-    setChats(updatedFriendDocs);
-    setInitializing(false);
-  };
+  //   setChats(updatedFriendDocs);
+  //   setInitializing(false);
+  // };
 
   const InitialIcon = ({ initials, ascended, photo }) => {
     return (
@@ -242,9 +231,53 @@ const ChatScreenList = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchChatDocsbyID(userId);
-    }, [userId])
+      let isActive = true;
+
+      const fetchChatsFromServer = async () => {
+        try {
+          const userId = auth.currentUser.uid;
+          const idToken = await auth.currentUser.getIdToken();
+
+          const response = await fetch(
+            `${SERVER_URL}/chat-list/${userId}/chats`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch chat data");
+          }
+
+          const data = await response.json();
+
+          if (isActive) {
+            setChats(data);
+            setInitializing(false);
+          }
+        } catch (error) {
+          console.error("Error fetching chat data:", error);
+        }
+      };
+
+      fetchChatsFromServer();
+
+      // Cleanup function to avoid setting state if component is unmounted
+      return () => {
+        isActive = false;
+      };
+    }, [])
   );
+
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     fetchChatDocsbyID(userId);
+  //   }, [userId])
+  // );
   const filters = ["All", "Normal", "Ascended", "Unread"];
 
   if (initializing) {
@@ -312,7 +345,7 @@ const ChatScreenList = ({ navigation }) => {
                 >
                   <InitialIcon
                     ascended={item.ascended}
-                    photo={item.photos[0]}
+                    photo={item.photos?.[0]}
                     initials={item.displayName?.[0]}
                   />
 

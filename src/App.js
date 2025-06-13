@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { auth } from "./Firebaseconfig";
+
 import PhoneauthScreen from "./Screens/PhoneauthScreen";
 import Userdetails1 from "./Screens/Userdetails1";
 import Userdetails2 from "./Screens/Userdetails2";
@@ -13,8 +13,8 @@ import { Provider, useSelector } from "react-redux";
 import { store } from "./redux/store";
 import SignupScreen from "./Screens/SignupScreen";
 import EditProfileScreen from "./Screens/EditProfileScreen";
-import { db } from "./Firebaseconfig";
-import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
+import { db, auth, doc, getDoc, updateDoc } from "./Firebaseconfig";
+// import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 import { PaperProvider, Button } from "react-native-paper";
@@ -30,6 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setNotificationPref } from "./redux/userSlice";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { signOut, onAuthStateChanged } from "@react-native-firebase/auth";
 
 function HomeScreen({ navigation }) {
   return (
@@ -60,9 +61,7 @@ function HomeScreen({ navigation }) {
         <Button
           mode="contained"
           onPress={() =>
-            auth()
-              .signOut()
-              .then(() => console.log("User signed out!"))
+            signOut(auth).then(() => console.log("User signed out!"))
           }
           style={{ backgroundColor: "snow" }}
           textColor="brown"
@@ -105,7 +104,7 @@ const AppNavigator = () => {
   useEffect(() => {
     if (!notificationPrefReady) return;
 
-    const unsubscribe = auth().onAuthStateChanged(async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
 
       if (user != null) {

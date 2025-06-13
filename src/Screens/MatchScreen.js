@@ -18,18 +18,13 @@ import {
 import Geolocation from "react-native-geolocation-service";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  collection,
-  setDoc,
   updateDoc,
   doc,
-  query,
-  where,
-  getDocs,
   serverTimestamp,
-  addDoc,
-  getDoc,
   onSnapshot,
-} from "@react-native-firebase/firestore";
+  db,
+  auth,
+} from "../Firebaseconfig.js";
 import {
   setLocation,
   setUserState,
@@ -38,12 +33,7 @@ import {
 } from "../redux/userSlice";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
-import auth from "@react-native-firebase/auth";
-import { getDistance } from "geolib";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { db } from "../Firebaseconfig";
-import moment from "moment";
-import stringSimilarity from "string-similarity";
 import { SERVER_URL } from "../constants/api";
 
 const MatchScreen = ({ navigation }) => {
@@ -68,7 +58,7 @@ const MatchScreen = ({ navigation }) => {
       setShowMatches(false);
     }
     dispatch(setPauseMatch(newValue)); // Update Redux state
-    const userId = auth().currentUser.uid;
+    const userId = auth.currentUser.uid;
 
     const userDocRef = doc(db, "Users", userId);
     await updateDoc(userDocRef, {
@@ -78,10 +68,10 @@ const MatchScreen = ({ navigation }) => {
 
   useEffect(() => {
     // Get the current user's phone number
-    const user = auth().currentUser;
+    const user = auth.currentUser;
     if (!user) return; // No user — don’t continue
-    const userPhoneNumber = auth().currentUser?.phoneNumber;
-    const userId = auth().currentUser.uid;
+    const userPhoneNumber = auth.currentUser?.phoneNumber;
+    const userId = auth.currentUser.uid;
 
     // Check if the phone number is valid
     if (!userPhoneNumber) return;
@@ -173,7 +163,7 @@ const MatchScreen = ({ navigation }) => {
         dispatch(setLocation({ latitude, longitude }));
 
         const geoHash = geohash.encode(latitude, longitude, 10);
-        const userId = auth().currentUser?.uid;
+        const userId = auth.currentUser?.uid;
 
         if (userId) {
           const userRef = doc(db, "Users", userId);
@@ -195,7 +185,7 @@ const MatchScreen = ({ navigation }) => {
     matchAnim.setValue(0); // Reset match animation
 
     try {
-      const idToken = await auth().currentUser.getIdToken();
+      const idToken = await auth.currentUser.getIdToken();
       console.log(SERVER_URL);
       const response = await fetch(`${SERVER_URL}/nearby-users`, {
         method: "POST",
@@ -254,7 +244,7 @@ const MatchScreen = ({ navigation }) => {
   const newChat = async (friendId) => {
     console.log("This is friend Id", friendId);
 
-    const idToken = await auth().currentUser.getIdToken();
+    const idToken = await auth.currentUser.getIdToken();
 
     const response = await fetch(`${SERVER_URL}/new-chat`, {
       method: "POST",
