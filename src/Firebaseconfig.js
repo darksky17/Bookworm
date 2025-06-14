@@ -11,6 +11,11 @@ import {
   serverTimestamp,
   onSnapshot,
   deleteField,
+  orderBy,
+  increment,
+  addDoc,
+  arrayUnion,
+  arrayRemove,
 } from "@react-native-firebase/firestore";
 
 import { getAuth } from "@react-native-firebase/auth";
@@ -36,4 +41,9 @@ export {
   serverTimestamp,
   onSnapshot,
   deleteField,
+  orderBy,
+  increment,
+  addDoc,
+  arrayRemove,
+  arrayUnion,
 };

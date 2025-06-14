@@ -90,100 +90,6 @@ const ChatScreenList = ({ navigation }) => {
   const userId = auth.currentUser.uid;
 
   const [chats, setChats] = useState([]);
-  // let otherUserId = [];
-  // let p = 0;
-
-  // const fetchFriends = async (uids) => {
-  //   const userDocs = [];
-  //   let batchSize = 10;
-
-  //   for (let i = 0; i < uids.length; i = +batchSize) {
-  //     const batch = uids.slice(i, i + batchSize);
-
-  //     const promises = batch.map((uid) => getDoc(doc(db, "Users", uid)));
-
-  //     const batchResults = await Promise.all(promises);
-
-  //     batchResults.forEach((snapshot) => {
-  //       if (snapshot._exists) {
-  //         userDocs.push({ id: snapshot.id, ...snapshot.data() });
-  //       }
-  //     });
-  //   }
-
-  //   return userDocs;
-  // };
-
-  // const fetchChatDocsbyID = async (userId) => {
-  //   let chatData = [];
-
-  //   const chatRefDocs = await fetchChatsByQuery(
-  //     where("participants", "array-contains", userId)
-  //   );
-
-  //   if (chatRefDocs.empty) {
-  //     console.log("No chats found.");
-  //     setInitializing(false);
-  //     return;
-  //   }
-
-  //   // Extract all chat data
-  //   chatData = await Promise.all(
-  //     chatRefDocs.docs.map(async (docSnap) => {
-  //       const chatInfo = { id: docSnap.id, ...docSnap.data() };
-
-  //       // Fetch latest message from "messages" subcollection
-  //       const messagesQuery = query(
-  //         collection(db, "Chats", docSnap.id, "messages"),
-  //         orderBy("timestamp", "desc"),
-  //         limit(1)
-  //       );
-
-  //       const latestMessageSnapshot = await getDocs(messagesQuery);
-
-  //       let latestMessage = null;
-
-  //       if (!latestMessageSnapshot.empty) {
-  //         latestMessage = latestMessageSnapshot.docs[0].data();
-  //       }
-
-  //       return {
-  //         ...chatInfo,
-  //         latestMessage: latestMessage?.content || "", // Add only the text
-  //       };
-  //     })
-  //   );
-
-  //   // Get IDs of the other participants
-  //   const otherUserIds = chatData
-  //     .map((chat) => chat.participants.find((id) => id !== userId))
-  //     .filter(Boolean);
-
-  //   const friendDocs = await fetchFriends(otherUserIds);
-
-  //   // Merge friend data with chat & latest message
-  //   const updatedFriendDocs = friendDocs.map((user) => {
-  //     const chat = chatData.find((c) => c.participants.includes(user.id));
-  //     const unreadCount = chat?.unreadCounts?.[userId] ?? 0;
-  //     const timestamp = chat?.timestamp;
-
-  //     return {
-  //       ...user,
-  //       ascended: chat?.ascended ?? null,
-  //       latestMessage: chat?.latestMessage || "",
-  //       unreadCount,
-  //       timestamp,
-  //     };
-  //   });
-  //   updatedFriendDocs.sort((a, b) => {
-  //     const timeA = a.timestamp?.toMillis?.() || 0;
-  //     const timeB = b.timestamp?.toMillis?.() || 0;
-  //     return timeB - timeA; // Newest first
-  //   });
-
-  //   setChats(updatedFriendDocs);
-  //   setInitializing(false);
-  // };
 
   const InitialIcon = ({ initials, ascended, photo }) => {
     return (
@@ -273,11 +179,6 @@ const ChatScreenList = ({ navigation }) => {
     }, [])
   );
 
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     fetchChatDocsbyID(userId);
-  //   }, [userId])
-  // );
   const filters = ["All", "Normal", "Ascended", "Unread"];
 
   if (initializing) {

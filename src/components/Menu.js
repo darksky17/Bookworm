@@ -7,72 +7,54 @@ import {
   Button,
   PaperProvider,
 } from "react-native-paper";
-import { db } from "../Firebaseconfig";
-import auth from "@react-native-firebase/auth";
-import {
-  collection,
-  getDocs,
-  writeBatch,
-  deleteDoc,
-  doc,
-  getDoc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-} from "@react-native-firebase/firestore";
 
-const Menu = ({ visible, onClose, allData, chatId }) => {
+import { doc, updateDoc, arrayUnion, auth, db } from "../Firebaseconfig";
+import { SERVER_URL } from "../constants/api";
+
+const Menu = ({
+  visible,
+  setvisible,
+  onClose,
+  allData,
+  chatId,
+  stopload,
+  setstopload,
+  navigation,
+  unsubscribeRef,
+}) => {
   const [unmatchModal, setUnmatchModal] = useState(false);
   const [blockModal, setBlockModal] = useState(false);
-  const userId = auth().currentUser.uid;
+  const userId = auth.currentUser.uid;
   console.log(chatId);
 
   const Unmatch = async (chatId) => {
-    console.log("Unmatching chat:", chatId);
-    const batchSize = 500;
-    const messagesRef = collection(db, `Chats/${chatId}/messages`);
-
-    try {
-      const snapshot = await getDocs(messagesRef);
-
-      if (snapshot.empty) {
-        console.log("No messages to delete.");
-      } else {
-        let batch = writeBatch(db);
-        let batchCount = 0;
-
-        for (let i = 0; i < snapshot.docs.length; i++) {
-          batch.delete(snapshot.docs[i].ref);
-          batchCount++;
-
-          if (batchCount === batchSize || i === snapshot.docs.length - 1) {
-            await batch.commit();
-            console.log(`Committed batch of ${batchCount}`);
-            batch = writeBatch(db);
-            batchCount = 0;
-          }
-        }
-      }
-
-      const chatDocRef = doc(db, `Chats/${chatId}`);
-      await deleteDoc(chatDocRef);
-      console.log("Chat document deleted.");
-
-      const userDocRef = doc(db, "Users", userId);
-      const friendDocRef = doc(db, "Users", allData.id);
-      const userSnap = await getDoc(userDocRef);
-
-      const data = userSnap.data();
-
-      await updateDoc(userDocRef, {
-        currentMatches: arrayRemove(allData.id),
-      });
-      await updateDoc(friendDocRef, {
-        currentMatches: arrayRemove(userId),
-      });
-    } catch (error) {
-      console.error("Unmatch error:", error);
+    if (unsubscribeRef.current) {
+      console.log("Unsubscribing before unmatch...");
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
     }
+    setstopload(!stopload);
+    setvisible(!visible);
+    const idToken = await auth.currentUser.getIdToken();
+    fetch(`${SERVER_URL}/unmatch`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        friendId: allData.id,
+      }),
+    })
+      .then((response) => response.json()) // Parse JSON directly
+      .then((data) => {
+        console.log("Response data:", data); // Log the response data
+
+        navigation.goBack();
+      })
+      .catch((error) => {
+        console.error("Error:", error); // Log any error
+      });
   };
 
   const Blocked = async () => {
@@ -118,22 +100,6 @@ const Menu = ({ visible, onClose, allData, chatId }) => {
             </View>
           </View>
         </View>
-
-        {/* 
-        <View style={styles.overlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.description}>{description}</Text>
-            <View style={styles.buttonContainer}>
-              <Button mode="contained" onPress={onConfirm}>
-                <Text>Yes</Text>
-              </Button>
-              <Button mode="contained" onPress={onCancel}>
-                <Text>No</Text>
-              </Button>
-            </View>
-          </View>
-        </View> */}
       </Modal>
     );
   };
