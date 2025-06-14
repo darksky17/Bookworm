@@ -8,13 +8,11 @@ import {
   Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import auth from "@react-native-firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { setPhotos } from "../redux/userSlice";
-import { setDoc, updateDoc } from "@react-native-firebase/firestore";
+import { auth, updateDoc, setDoc } from "../Firebaseconfig.js";
 import { SERVER_URL } from "../constants/api";
 import { fetchUserDataById } from "../components/FirestoreHelpers";
-import Container from "../components/Container";
 import Header from "../components/Header";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import DraggableFlatList from "react-native-draggable-flatlist";
@@ -23,7 +21,7 @@ import { Button } from "react-native-paper";
 const AddPhotosScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();
-  const userId = auth().currentUser.uid;
+  const userId = auth.currentUser.uid;
 
   const initialPhotos = globalSelected.photos
     .slice(0, 6)
@@ -92,7 +90,7 @@ const AddPhotosScreen = ({ navigation }) => {
   };
 
   const uploadImageToCloudinary = async (imageUri, folderName) => {
-    const idToken = await auth().currentUser.getIdToken();
+    const idToken = await auth.currentUser.getIdToken();
     try {
       const response = await fetch(`${SERVER_URL}/generate-signature`, {
         method: "POST",

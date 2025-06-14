@@ -11,9 +11,9 @@ import {
   TextInput,
   Linking,
 } from "react-native";
-import { db } from "../Firebaseconfig";
+
 import moment from "moment";
-import auth from "@react-native-firebase/auth";
+
 import { useSelector, useDispatch } from "react-redux";
 import {
   setUserState,
@@ -21,15 +21,9 @@ import {
   setNotificationPref,
 } from "../redux/userSlice";
 import axios from "axios"; // Add axios for API calls
-import {
-  onSnapshot,
-  doc,
-  deleteDoc,
-  updateDoc,
-  deleteField,
-} from "@react-native-firebase/firestore";
+import { doc, updateDoc, deleteField, db, auth } from "../Firebaseconfig";
 import { SERVER_URL } from "../constants/api";
-import { fetchUserDataById } from "../components/FirestoreHelpers";
+import { signOut } from "@react-native-firebase/auth";
 import Container from "../components/Container";
 import { Button } from "react-native-paper";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -70,7 +64,7 @@ const ProfileScreen = ({ navigation }) => {
 
     // Ensure key is a string (key can't be boolean)
     await AsyncStorage.setItem(NOTIF_PREF_KEY, String(newValue)); // Store as string "true" or "false"
-    const userId = auth().currentUser.uid;
+    const userId = auth.currentUser.uid;
 
     const userDocRef = doc(db, "Users", userId);
     await updateDoc(userDocRef, {
@@ -89,8 +83,8 @@ const ProfileScreen = ({ navigation }) => {
     }
 
     try {
-      const userId = auth().currentUser.uid;
-      const idToken = await auth().currentUser.getIdToken();
+      const userId = auth.currentUser.uid;
+      const idToken = await auth.currentUser.getIdToken();
 
       const folderName = userId; // Assuming folder name follows a user-specific naming convention
       const response = await axios.post(
@@ -104,21 +98,22 @@ const ProfileScreen = ({ navigation }) => {
       );
 
       console.log("Cloudinary folder deletion response:", response.data);
+      if (response) {
+        // unsubscribeRef.current();
+        console.log("Now my listner should stop listening");
+        // Delete the user document from Firestore
+        // await deleteDoc(doc(db, "Users", userId));
+        console.log("User profile deleted successfully.");
+        dispatch(clearUserState());
+        // Sign the user out
+        await signOut(auth);
+        console.log(
+          "Sign out was also conducted smoothly, now its time to show the alert"
+        );
 
-      // unsubscribeRef.current();
-      console.log("Now my listner should stop listening");
-      // Delete the user document from Firestore
-      // await deleteDoc(doc(db, "Users", userId));
-      console.log("User profile deleted successfully.");
-      dispatch(clearUserState());
-      // Sign the user out
-      await auth().signOut();
-      console.log(
-        "Sign out was also conducted smoothly, now its time to show the alert"
-      );
-
-      Alert.alert("Success", "Your profile has been deleted.");
-      navigation.navigate("Home");
+        Alert.alert("Success", "Your profile has been deleted.");
+        navigation.navigate("Home");
+      }
     } catch (error) {
       console.error("Error deleting profile:", error);
       Alert.alert("Error", "Failed to delete profile. Please try again later.");
@@ -162,20 +157,19 @@ const ProfileScreen = ({ navigation }) => {
   );
 
   const handleLogout = async () => {
-    const userId = auth().currentUser.uid;
+    const userId = auth.currentUser.uid;
     try {
       const userDocRef = doc(db, "Users", userId);
       await updateDoc(userDocRef, {
         fcmToken: deleteField(),
       });
       dispatch(clearUserState());
-      auth()
-        .signOut()
-        .then(() => {
-          console.log("User signed out!");
-          setLogoutModal(false);
-          navigation.replace("Home");
-        });
+
+      signOut(auth).then(() => {
+        console.log("User signed out!");
+        setLogoutModal(false);
+        navigation.replace("Home");
+      });
     } catch (error) {
       console.error("❌ Error deleting field:", error);
       throw error;

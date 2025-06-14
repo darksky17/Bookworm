@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { GiftedChat } from "react-native-gifted-chat";
-import auth from "@react-native-firebase/auth";
 import Menu from "../components/Menu";
 import {
   collection,
@@ -25,8 +24,9 @@ import {
   getDoc,
   updateDoc,
   increment,
-} from "@react-native-firebase/firestore";
-import { db } from "../Firebaseconfig";
+  db,
+  auth,
+} from "../Firebaseconfig";
 import { Bubble } from "react-native-gifted-chat";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Feather from "@expo/vector-icons/Feather";
@@ -36,12 +36,12 @@ import {
   GestureDetector,
 } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
-import { fetchChatsByQuery } from "../components/FirestoreHelpers";
+
 import { SERVER_URL } from "../constants/api";
 
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
-  const userId = auth().currentUser?.uid;
+  const userId = auth.currentUser?.uid;
   const [messages, setMessages] = useState([]);
   const [chatId, setChatId] = useState(null);
   const chatsRef = collection(db, "Chats");
@@ -50,28 +50,22 @@ const ChatDisplay = ({ route, navigation }) => {
   const [isdisabled, setIsDisabled] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [hasHandledChoice, setHasHandledChoice] = useState(false);
-
+  const [stopLoad, setStopLoad] = useState(false);
+  const unsubscribeRef = useRef(null);
   console.log("THIS IS WHAT I GOT as ALL DATA", allData);
   const toggleMenu = () => {
     setMenuVisible((prev) => !prev); // ✅ This correctly toggles the modal
   };
   // Fetch or create chat between users
   const getChatId = async () => {
-    const chatSnapshot = await fetchChatsByQuery(
-      where("participants", "array-contains", userId)
-    );
+    console.log("Fetching chat ID...");
 
-    let chatId = null;
+    console.log(allData.chatid);
+    let chatId = allData.chatid;
+    console.log(chatId);
 
-    chatSnapshot.forEach((doc) => {
-      const chatData = doc.data();
-      if (chatData.participants.includes(allData.id)) {
-        chatId = doc.id;
-      }
-    });
-
-    // If chat does not exist, create a new one
     if (!chatId) {
+      console.log("No existing chat found. Creating a new chat...");
       const newChat = await addDoc(chatsRef, {
         participants: [userId, allData.id],
         ascended: false,
@@ -84,11 +78,11 @@ const ChatDisplay = ({ route, navigation }) => {
         },
       });
       chatId = newChat.id;
+      console.log("New chat created with ID:", chatId);
     }
 
     return chatId;
   };
-
   useEffect(() => {
     const fetchChatId = async () => {
       const id = await getChatId();
@@ -97,36 +91,6 @@ const ChatDisplay = ({ route, navigation }) => {
     };
     fetchChatId();
   }, []);
-
-  // Load messages in real-time
-  useEffect(() => {
-    if (!chatId) return;
-    let unsubscribe;
-    const loadMessages = async () => {
-      const messagesRef = collection(db, "Chats", chatId, "messages");
-
-      const messagesQuery = query(messagesRef, orderBy("timestamp", "desc"));
-
-      unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-        const loadedMessages = snapshot.docs.map((doc) => {
-          const datas = { ...doc.data() };
-          return {
-            _id: doc.id,
-            text: datas.content,
-            createdAt: datas.timestamp?.toDate() || new Date(),
-            user: {
-              _id: datas.senderID,
-            },
-          };
-        });
-
-        setMessages([...loadedMessages]);
-      });
-    };
-
-    loadMessages();
-    return () => unsubscribe && unsubscribe(); // Unsubscribe on unmount
-  }, [chatId]);
 
   // Handle sending messages
   const onSend = useCallback(
@@ -151,8 +115,9 @@ const ChatDisplay = ({ route, navigation }) => {
         timestamp: serverTimestamp(),
         [`unreadCounts.${allData.id}`]: increment(1),
         lastSenderId: userId,
+        messageCount: increment(1),
       });
-      const idToken = await auth().currentUser.getIdToken();
+      const idToken = await auth.currentUser.getIdToken();
 
       await fetch(`${SERVER_URL}/send-message-notification`, {
         method: "POST",
@@ -170,26 +135,181 @@ const ChatDisplay = ({ route, navigation }) => {
   );
 
   useEffect(() => {
+    if (stopLoad) return;
+    console.log("useEffect triggered with chatId:", chatId);
+
+    if (!chatId) {
+      console.log("No chatId yet, returning...");
+      return;
+    }
+
+    const loadMessages = async () => {
+      try {
+        const chatDocRef = doc(db, "Chats", chatId);
+        const chatSnap = await getDoc(chatDocRef);
+        if (!chatSnap.exists()) {
+          console.warn("Chat document no longer exists.");
+          return;
+        }
+        const messagesRef = collection(db, "Chats", chatId, "messages");
+        const messagesQuery = query(messagesRef, orderBy("timestamp", "desc"));
+
+        console.log("Setting up onSnapshot for messages...");
+        if (stopLoad) return;
+        unsubscribeRef.current = onSnapshot(
+          messagesQuery,
+          (snapshot) => {
+            console.log(
+              "onSnapshot triggered. Docs count:",
+              snapshot.docs.length
+            );
+
+            const loadedMessages = snapshot.docs.map((doc) => {
+              const datas = doc.data();
+
+              return {
+                _id: doc.id,
+                text: datas.content,
+                createdAt: datas.timestamp?.toDate() || new Date(),
+                user: {
+                  _id: datas.senderID,
+                },
+              };
+            });
+
+            setMessages([...loadedMessages]);
+          },
+          (error) => {
+            console.error("Error in onSnapshot for messages:", error);
+          }
+        );
+      } catch (err) {
+        console.error("loadMessages() failed:", err);
+      }
+    };
+
+    loadMessages();
+
+    return () => {
+      if (unsubscribeRef.current) {
+        console.log("Cleaning up Firestore listener...");
+        unsubscribeRef.current(); // unsubscribe
+        unsubscribeRef.current = null; // reset ref
+      }
+    };
+  }, [chatId]);
+
+  // useEffect(() => {
+  //   if (!chatId || stopLoad) return;
+
+  //   const chatDocRef = doc(db, "Chats", chatId);
+  //   const messagesRef = collection(db, "Chats", chatId, "messages");
+  //   const messagesQuery = query(messagesRef, orderBy("timestamp", "desc"));
+
+  //   // 1. Listen to messages collection
+  //   unsubscribeRef.current = onSnapshot(
+  //     messagesQuery,
+  //     (snapshot) => {
+  //       const loadedMessages = snapshot.docs.map((doc) => {
+  //         const datas = doc.data();
+  //         return {
+  //           _id: doc.id,
+  //           text: datas.content,
+  //           createdAt: datas.timestamp?.toDate() || new Date(),
+  //           user: {
+  //             _id: datas.senderID,
+  //           },
+  //         };
+  //       });
+  //       setMessages(loadedMessages);
+  //     },
+  //     (error) => {
+  //       console.error("Error in messages onSnapshot:", error);
+  //     }
+  //   );
+
+  //   // 2. Listen to Chats document separately for ascension logic
+  //   const unsubscribeChatDoc = onSnapshot(
+  //     chatDocRef,
+  //     async (docSnap) => {
+  //       if (!docSnap.exists()) return;
+
+  //       const chatData = docSnap.data();
+  //       const choice = Array.isArray(chatData.choices) ? chatData.choices : [];
+  //       const messageCount = chatData.messageCount;
+
+  //       console.log("Live message count:", messageCount);
+
+  //       if (
+  //         messageCount != 0 &&
+  //         !chatData.ascended &&
+  //         messageCount % 10 === 0
+  //       ) {
+  //         setModalState(true);
+  //       }
+
+  //       if (choice.some((c) => c.startsWith(userId))) {
+  //         setModalState(true);
+  //         setIsDisabled(true);
+  //       }
+
+  //       if (choice.length === 2 && !hasHandledChoice) {
+  //         setHasHandledChoice(true);
+
+  //         if (!choice.some((c) => c.endsWith(":No"))) {
+  //           if (!chatData.ascended) {
+  //             await updateDoc(chatDocRef, { ascended: true });
+  //             setModalState(false);
+  //           }
+  //         } else {
+  //           if (chatData.choices.length !== 0) {
+  //             await updateDoc(chatDocRef, { choices: [] });
+  //           }
+  //           Alert.alert(
+  //             "Looks like one of you chose not to Ascend. We will ask again later."
+  //           );
+  //           await updateDoc(chatDocRef, { messageCount: increment(1) });
+  //           setModalState(false);
+  //           setIsDisabled(false);
+  //         }
+
+  //         setModalState(false);
+  //       }
+  //     },
+  //     (error) => {
+  //       console.error("Error in chat doc onSnapshot:", error);
+  //     }
+  //   );
+
+  //   return () => {
+  //     // Clean up both listeners
+  //     if (unsubscribeRef.current) {
+  //       unsubscribeRef.current();
+  //       unsubscribeRef.current = null;
+  //     }
+  //     unsubscribeChatDoc();
+  //   };
+  // }, [chatId, stopLoad, userId, hasHandledChoice]);
+
+  useEffect(() => {
     if (!chatId) return;
 
     const messagesDocRef = doc(db, "Chats", chatId);
     const messagesRef = collection(db, "Chats", chatId, "messages");
     let chatData = {};
+    const unsubscribeMessages = onSnapshot(messagesRef, (snapshot) => {
+      const messageCount = snapshot.size; // ✅ Count messages dynamically
+      console.log("Message count:", messageCount);
+
+      if (messageCount > 0 && messageCount % 50 === 0 && !chatData.ascended) {
+        setModalState(true);
+      }
+    });
     const unsubscribe = onSnapshot(messagesDocRef, async (docSnap) => {
       chatData = docSnap.data();
       const choice = Array.isArray(docSnap.data().choices)
         ? docSnap.data().choices
         : [];
-
-      const messageCount = docSnap.data().messageCount || 0;
-
-      if (
-        messageCount % 50 == 0 &&
-        !docSnap.data().ascended &&
-        messageCount != 0
-      ) {
-        setModalState(true); // Only show if not ascended yet
-      }
 
       // Hide modal if the user already made a choice
       if (choice.some((c) => c.startsWith(userId))) {
@@ -202,6 +322,7 @@ const ChatDisplay = ({ route, navigation }) => {
         if (!choice.some((c) => c.endsWith(":No"))) {
           if (!chatData.ascended) {
             await updateDoc(messagesDocRef, { ascended: true });
+            Alert.alert("WOOHOO, this chat is not ascended!");
           }
         } else {
           if (chatData.choices.length !== 0) {
@@ -215,15 +336,6 @@ const ChatDisplay = ({ route, navigation }) => {
           setIsDisabled(false);
         }
         setModalState(false); // Ensures the modal closes for both users
-      }
-    });
-
-    const unsubscribeMessages = onSnapshot(messagesRef, (snapshot) => {
-      const messageCount = snapshot.size; // ✅ Count messages dynamically
-      console.log("Message count:", messageCount);
-
-      if (messageCount > 0 && messageCount % 10 === 0 && !chatData.ascended) {
-        setModalState(true);
       }
     });
 
@@ -270,6 +382,8 @@ const ChatDisplay = ({ route, navigation }) => {
       if (!chatId || !userId) return;
 
       const chatDocRef = doc(db, "Chats", chatId);
+      const chatDocSnap = await getDoc(chatDocRef);
+      console.log("Chat participants:", chatDocSnap.data().participants);
       try {
         await updateDoc(chatDocRef, {
           [`unreadCounts.${userId}`]: 0,
@@ -301,9 +415,14 @@ const ChatDisplay = ({ route, navigation }) => {
         </TouchableOpacity>
         <Menu
           visible={isMenuVisible}
+          setvisible={setMenuVisible}
           onClose={toggleMenu}
           allData={allData}
           chatId={chatId}
+          stopload={stopLoad}
+          setstopload={setStopLoad}
+          navigation={navigation}
+          unsubscribeRef={unsubscribeRef}
         />
       </View>
       <View

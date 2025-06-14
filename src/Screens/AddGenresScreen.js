@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Alert, ScrollView, Text } from "react-native";
 
-import auth from "@react-native-firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
-import { setFavGenres, setFavAuthors, setPhotos } from "../redux/userSlice";
-import { setDoc, updateDoc } from "@react-native-firebase/firestore";
-import { GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../constants/api";
+import { setFavGenres } from "../redux/userSlice";
+import { setDoc, updateDoc, auth } from "../Firebaseconfig";
+
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
 import Header from "../components/Header";
@@ -73,7 +72,7 @@ const AddGenresScreen = ({ navigation }) => {
 
   const [genreOptions, setGenreOptions] = useState([]);
 
-  userId = auth().currentUser.uid;
+  userId = auth.currentUser.uid;
 
   useEffect(() => {
     const initialOptions = globalSelected.favGenres.map((genre) => ({

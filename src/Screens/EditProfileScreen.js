@@ -11,10 +11,9 @@ import {
   ScrollView,
 } from "react-native";
 
-import auth from "@react-native-firebase/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { setCurrentlyReading, setBookSummary } from "../redux/userSlice";
-import { setDoc, updateDoc } from "@react-native-firebase/firestore";
+import { setDoc, updateDoc, auth } from "../Firebaseconfig";
 
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
@@ -43,7 +42,7 @@ const EditProfileScreen = ({ navigation }) => {
   const [choicebook, setChoiceBook] = useState(false);
   const [choicesummary, setChoiceSummary] = useState(false);
   const [bookSummary, setBooksummary] = useState("");
-  userId = auth().currentUser.uid;
+  userId = auth.currentUser.uid;
 
   const handleSaveBook = async () => {
     if (currentreade.length > 20 || currentreade.length < 1) {

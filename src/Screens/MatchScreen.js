@@ -18,18 +18,13 @@ import {
 import Geolocation from "react-native-geolocation-service";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  collection,
-  setDoc,
   updateDoc,
   doc,
-  query,
-  where,
-  getDocs,
   serverTimestamp,
-  addDoc,
-  getDoc,
   onSnapshot,
-} from "@react-native-firebase/firestore";
+  db,
+  auth,
+} from "../Firebaseconfig.js";
 import {
   setLocation,
   setUserState,
@@ -38,12 +33,8 @@ import {
 } from "../redux/userSlice";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
-import auth from "@react-native-firebase/auth";
-import { getDistance } from "geolib";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { db } from "../Firebaseconfig";
-import moment from "moment";
-import stringSimilarity from "string-similarity";
+import { SERVER_URL } from "../constants/api";
 
 const MatchScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -67,7 +58,7 @@ const MatchScreen = ({ navigation }) => {
       setShowMatches(false);
     }
     dispatch(setPauseMatch(newValue)); // Update Redux state
-    const userId = auth().currentUser.uid;
+    const userId = auth.currentUser.uid;
 
     const userDocRef = doc(db, "Users", userId);
     await updateDoc(userDocRef, {
@@ -77,10 +68,10 @@ const MatchScreen = ({ navigation }) => {
 
   useEffect(() => {
     // Get the current user's phone number
-    const user = auth().currentUser;
+    const user = auth.currentUser;
     if (!user) return; // No user — don’t continue
-    const userPhoneNumber = auth().currentUser?.phoneNumber;
-    const userId = auth().currentUser.uid;
+    const userPhoneNumber = auth.currentUser?.phoneNumber;
+    const userId = auth.currentUser.uid;
 
     // Check if the phone number is valid
     if (!userPhoneNumber) return;
@@ -121,14 +112,6 @@ const MatchScreen = ({ navigation }) => {
   const scaleAnim = useState(new Animated.Value(1))[0];
   const matchAnim = useState(new Animated.Value(0))[0]; // For match pop effect
   let matchInterval = null;
-
-  const calculateAge = (birthdate) => {
-    if (!birthdate) return "N/A";
-    const birthMoment = moment(birthdate, "DD/MM/YYYY");
-    if (!birthMoment.isValid()) return "N/A";
-    const age = moment().diff(birthMoment, "years");
-    return age;
-  };
 
   useEffect(() => {
     getCurrentLocation();
@@ -180,7 +163,7 @@ const MatchScreen = ({ navigation }) => {
         dispatch(setLocation({ latitude, longitude }));
 
         const geoHash = geohash.encode(latitude, longitude, 10);
-        const userId = auth().currentUser?.uid;
+        const userId = auth.currentUser?.uid;
 
         if (userId) {
           const userRef = doc(db, "Users", userId);
@@ -194,129 +177,37 @@ const MatchScreen = ({ navigation }) => {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
-  function getGeohashPrefixLength(kilometers) {
-    if (kilometers <= 0.5) return 9; // ~0.004 km
-    if (kilometers <= 1) return 8; // ~0.019 km
-    if (kilometers <= 5) return 7; // ~0.076 km
-    if (kilometers <= 20) return 6; // ~0.61 km
-    if (kilometers <= 80) return 5; // ~2.4 km
-    if (kilometers <= 300) return 4; // ~20 km
-    if (kilometers <= 1000) return 3; // ~78 km
-    return 2; // ~630 km (for huge ranges)
-  }
+
   const findNearbyUsers = async () => {
     if (!location) return;
 
     setShowMatches(false);
     matchAnim.setValue(0); // Reset match animation
 
-    const { latitude, longitude } = location;
-    const userGeohash = geohash.encode(latitude, longitude, 10);
-    const kilometers = getGeohashPrefixLength(Myuser.distance);
-
-    const geohashPrefix = userGeohash.substring(0, kilometers);
-
     try {
-      const matchesRef = collection(db, "Users");
-      const mainUserDocs = doc(db, "Users", auth().currentUser.uid);
-      mainDocSnap = await getDoc(mainUserDocs);
-      mainData = mainDocSnap.data();
-      mainUserMatches = mainData.currentMatches;
-
-      // Query users based on geohash range
-      const q = query(
-        matchesRef,
-        where("location.geoHash", ">=", geohashPrefix),
-        where("location.geoHash", "<=", geohashPrefix + "\uf8ff")
-      );
-
-      // Fetch the data
-      const snapshot = await getDocs(q);
-      let nearbyUsers = [];
-      snapshot.forEach((doc) => {
-        const userData = doc.data();
-        const userId = doc.id;
-        console.log("HERE IS BLOCKED USER LIST", mainData.blockedUsers);
-        if (
-          userData.isDeleted ||
-          userData.pauseMatch ||
-          mainData.blockedUsers?.includes(userId) ||
-          userData.blockedUsers?.includes(auth().currentUser.uid)
-        )
-          return;
-        const age = calculateAge(userData.dateOfBirth);
-
-        if (userId !== auth().currentUser?.uid) {
-          const userLat = userData.location?.latitude;
-          const userLng = userData.location?.longitude;
-
-          if (userLat && userLng) {
-            const distance_user = getDistance(
-              { latitude, longitude },
-              { latitude: userLat, longitude: userLng }
-            );
-
-            console.log(age);
-            console.log(mainData.ageMax);
-            console.log(mainData.ageMin);
-            if (
-              distance_user <= Myuser.distance * 1000 &&
-              !mainUserMatches.includes(userId) &&
-              age >= mainData.ageMin &&
-              age <= mainData.ageMax
-            ) {
-              nearbyUsers.push({ id: userId, ...userData, distance_user });
-            }
-          }
-        }
+      const idToken = await auth.currentUser.getIdToken();
+      console.log(SERVER_URL);
+      const response = await fetch(`${SERVER_URL}/nearby-users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          location: Myuser.location,
+          distance: Myuser.distance,
+          ageMin: Myuser.ageMin,
+          ageMax: Myuser.ageMax,
+        }),
       });
-      const scoredUsers = [];
-
-      nearbyUsers.forEach((user) => {
-        let score = 0;
-        const commonAuthors = user.favAuthors?.filter((author) =>
-          mainData.favAuthors?.includes(author)
-        );
-        const commonGenres = user.favGenres?.filter((genre) =>
-          mainData.favGenres?.includes(genre)
-        );
-
-        score += (commonAuthors?.length || 0) * 5; // max 15
-        score += (commonGenres?.length || 0) * 5; // max 15
-
-        if (user.favBook && user.favBook === mainData.favBook) score += 10;
-
-        const summarySimilarity = stringSimilarity.compareTwoStrings(
-          user.favBookSummary?.toLowerCase() || "",
-          mainData.favBookSummary?.toLowerCase() || ""
-        );
-        score += Math.round(summarySimilarity * 10); // max 10
-
-        const distanceKm = user.distance_user / 1000;
-        if (distanceKm <= 5) score += 5;
-        else if (distanceKm <= 15) score += 3;
-        else if (distanceKm <= 30) score += 1;
-
-        const maxScore = 55;
-        const matchPercentage = Math.round((score / maxScore) * 100);
-
-        if (score >= 20) {
-          scoredUsers.push({
-            ...user,
-            matchScore: score,
-            matchPercentage,
-          });
-        }
-      });
-
-      nearbyUsers = scoredUsers.sort((a, b) => b.matchScore - a.matchScore);
-
-      nearbyUsers.sort((a, b) => a.distance_user - b.distance_user);
+      const data = await response.json();
+      console.log("Atleast we got the data back", data);
 
       setTimeout(() => {
-        setMatches(nearbyUsers);
-        setShowMatches(true);
+        setMatches(data);
 
+        setShowMatches(true);
+        console.log("Is this data allowed to be exposed??", matches);
         // Start pop-out animation for matches
         Animated.timing(matchAnim, {
           toValue: 1,
@@ -350,46 +241,20 @@ const MatchScreen = ({ navigation }) => {
     setSelectedMatch(null);
   };
 
-  const newChat = async (userId, friendId) => {
+  const newChat = async (friendId) => {
     console.log("This is friend Id", friendId);
 
-    const userDocRef = doc(db, "Users", userId);
-    const friendDocRef = doc(db, "Users", friendId);
-    const userSnap = await getDoc(userDocRef);
-    const friendSnap = await getDoc(friendDocRef);
+    const idToken = await auth.currentUser.getIdToken();
 
-    const data = userSnap.data();
-    const friend_data = friendSnap.data();
-
-    const currentMatches = data.currentMatches || [];
-    const friendCurrentMatches = friend_data.currentMatches || [];
-
-    // Step 2: Avoid duplicates
-    if (!currentMatches.includes(friendId)) {
-      const updatedMatches = [...currentMatches, friendId];
-      const friendUpdatedMatches = [...friendCurrentMatches, userId];
-
-      // Step 3: Update Firestore
-      await updateDoc(userDocRef, {
-        currentMatches: updatedMatches,
-      });
-
-      await updateDoc(friendDocRef, {
-        currentMatches: friendUpdatedMatches,
-      });
-    }
-
-    const chatsRef = collection(db, "Chats");
-    await addDoc(chatsRef, {
-      participants: [userId, friendId],
-      ascended: false,
-      lastMessage: "",
-      timestamp: serverTimestamp(),
-      choices: [],
-      unreadCounts: {
-        [userId]: 0,
-        [friendId]: 0,
+    const response = await fetch(`${SERVER_URL}/new-chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
       },
+      body: JSON.stringify({
+        friendId: friendId,
+      }),
     });
   };
 
@@ -430,7 +295,7 @@ const MatchScreen = ({ navigation }) => {
       {showMatches && (
         <FlatList
           data={matches}
-          keyExtractor={(item) => item.displayName}
+          keyExtractor={(item) => item.uid}
           numColumns={3}
           contentContainerStyle={styles.matchList}
           renderItem={({ item }) => (
@@ -449,7 +314,7 @@ const MatchScreen = ({ navigation }) => {
               >
                 <Icon name="user-circle" size={50} color="lightgreen" />
                 <Text style={styles.matchDistance}>
-                  {(item.distance_user / 1000).toFixed(1)} km |{" "}
+                  {(item.distance / 1000).toFixed(1)} km |{" "}
                   {item.matchPercentage}% match
                 </Text>
               </Animated.View>
@@ -477,7 +342,7 @@ const MatchScreen = ({ navigation }) => {
                 </Text>
                 <Pressable
                   onPress={() => {
-                    newChat(auth().currentUser?.uid, selectedMatch.id);
+                    newChat(selectedMatch.uid);
                     setScanning(false);
                     setTimeout(() => {
                       navigation.navigate("Chats");
