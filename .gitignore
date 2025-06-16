@@ -37,5 +37,5 @@ yarn-error.*
 
 backend
 
-src/constants/api.js
+
 .env
