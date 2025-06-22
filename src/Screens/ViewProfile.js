@@ -13,7 +13,8 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Feather from "@expo/vector-icons/Feather";
 import Menu from "../components/Menu";
-
+import theme from "../design-system/theme/theme";
+import { scale } from "../design-system/theme/scaleUtils";
 const ViewProfile = ({ route, navigation }) => {
   const calculateAge = (dob) => {
     const birthDate = new Date(dob); // Convert string to Date object
@@ -65,11 +66,19 @@ const ViewProfile = ({ route, navigation }) => {
           justifyContent: "space-evenly",
           alignItems: "flex-end",
           height: 30,
-          backgroundColor: "lawngreen",
+          backgroundColor: theme.colors.background,
         }}
       >
         <Text>Chat</Text>
-        <Text style={{ fontWeight: "bold" }}>Profile</Text>
+        <Text
+          style={{
+            fontWeight: "bold",
+            color: theme.colors.text,
+            fontSize: scale(14),
+          }}
+        >
+          Profile
+        </Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -182,7 +191,7 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row",
-    backgroundColor: "lawngreen",
+    backgroundColor: theme.colors.background,
     height: 60,
     width: "100%",
     elevation: 4,

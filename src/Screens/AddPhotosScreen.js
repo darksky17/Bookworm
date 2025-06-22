@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Dimensions,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +18,8 @@ import Header from "../components/Header";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { Button } from "react-native-paper";
+import theme from "../design-system/theme/theme.js";
+import { scale } from "../design-system/theme/scaleUtils.js";
 
 const AddPhotosScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
@@ -33,6 +36,17 @@ const AddPhotosScreen = ({ navigation }) => {
   }
 
   const [selectedPhotos, setSelectedPhotos] = useState(initialPhotos);
+
+  // Universal photo sizing calculation
+  const screenWidth = Dimensions.get("window").width;
+  const containerPadding = 20; // 10 left + 10 right from paddingHorizontal
+  const itemSpacing = 10; // Space between items
+  const numColumns = 3;
+
+  // Calculate available width for photos
+  const availableWidth =
+    screenWidth - containerPadding - itemSpacing * (numColumns - 1);
+  const photoSize = Math.floor(availableWidth / numColumns);
 
   const removeImage = (keyToRemove) => {
     const index = selectedPhotos.findIndex((item) => item.key === keyToRemove);
@@ -177,8 +191,20 @@ const AddPhotosScreen = ({ navigation }) => {
     }
   };
 
+  const getItemStyle = (index) => ({
+    width: photoSize,
+    marginRight: (index + 1) % numColumns === 0 ? 0 : itemSpacing,
+    marginBottom: 15,
+  });
+
   return (
-    <View style={{ flex: 1, paddingBottom: 50 }}>
+    <View
+      style={{
+        flex: 1,
+        paddingBottom: 50,
+        backgroundColor: theme.colors.background,
+      }}
+    >
       <Header title="Add Photos" />
 
       <View
@@ -186,7 +212,6 @@ const AddPhotosScreen = ({ navigation }) => {
           flex: 1,
           paddingHorizontal: 10,
           paddingTop: 30,
-
           justifyContent: "space-between",
         }}
       >
@@ -198,8 +223,7 @@ const AddPhotosScreen = ({ navigation }) => {
           <DraggableFlatList
             scrollEnabled={false}
             contentContainerStyle={{
-              flexGrow: 1, // allow content to expand
-              gap: 20,
+              flexGrow: 1,
             }}
             data={selectedPhotos}
             numColumns={3}
@@ -209,14 +233,32 @@ const AddPhotosScreen = ({ navigation }) => {
               <TouchableOpacity
                 onLongPress={drag}
                 activeOpacity={1}
-                style={{ padding: 10 }}
+                style={getItemStyle(index)}
               >
                 <View>
                   {item.uri ? (
-                    <Image source={{ uri: item.uri }} style={styles.photo} />
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={[
+                        styles.photo,
+                        { width: photoSize, height: photoSize },
+                      ]}
+                    />
                   ) : (
-                    <View style={styles.photoBox}>
-                      <Text style={styles.photoText}>+</Text>
+                    <View
+                      style={[
+                        styles.photoBox,
+                        { width: photoSize, height: photoSize },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.photoText,
+                          { fontSize: photoSize * 0.3 },
+                        ]}
+                      >
+                        +
+                      </Text>
                     </View>
                   )}
                   <TouchableOpacity
@@ -235,7 +277,7 @@ const AddPhotosScreen = ({ navigation }) => {
                       name={
                         item.uri ? "close-circle-sharp" : "add-circle-sharp"
                       }
-                      size={34}
+                      size={Math.min(34, photoSize * 0.3)}
                       color="green"
                     />
                   </TouchableOpacity>
@@ -250,10 +292,20 @@ const AddPhotosScreen = ({ navigation }) => {
         </View>
       </View>
       <View style={styles.buttonContainer}>
-        <Button mode="contained" onPress={handleSave}>
+        <Button
+          buttonColor={theme.colors.primary}
+          textColor={theme.colors.text}
+          mode="contained"
+          onPress={handleSave}
+        >
           Save Changes
         </Button>
-        <Button mode="contained" onPress={() => navigation.goBack()}>
+        <Button
+          buttonColor={theme.colors.primary}
+          textColor={theme.colors.text}
+          mode="contained"
+          onPress={() => navigation.goBack()}
+        >
           Cancel
         </Button>
       </View>
@@ -263,15 +315,11 @@ const AddPhotosScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   photo: {
-    width: 110,
-    height: 110,
     borderWidth: 2,
     borderRadius: 10,
     borderStyle: "dotted",
   },
   photoBox: {
-    width: 110,
-    height: 110,
     backgroundColor: "#ccc",
     justifyContent: "center",
     alignItems: "center",
@@ -280,7 +328,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   photoText: {
-    fontSize: 40,
     color: "#888",
   },
   buttonContainer: {

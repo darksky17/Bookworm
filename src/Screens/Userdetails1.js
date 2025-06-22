@@ -1,5 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from "react-native";
 import { Button } from "react-native-paper";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -18,6 +29,9 @@ import {
   fetchUserDataById,
 } from "../components/FirestoreHelpers";
 import { SERVER_URL } from "../constants/api";
+import Header from "../components/Header.js";
+import Container from "../components/Container.js";
+import theme from "../design-system/theme/theme.js";
 
 const Screen1 = ({ navigation }) => {
   console.log("first log");
@@ -166,82 +180,107 @@ const Screen1 = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View
-        style={{
-          alignItems: "center",
-          fontWeight: "bold",
-          paddingHorizontal: 10,
-        }}
-      >
-        <Text style={{ fontSize: 34, color: "lawngreen" }}>
-          Tell Us About Yourself
-        </Text>
-      </View>
-      <View style={{ flex: 1, gap: 40 }}>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your name"
-          value={name}
-          onChangeText={setNameState}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your email"
-          value={email}
-          onChangeText={setEmailState}
-          keyboardType="email-address"
-        />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <Container>
+            {/* <Header title={"Tell Us About Yourself"} /> */}
+            <View style={styles.container}>
+              <View
+                style={{
+                  alignItems: "center",
+                  fontWeight: "bold",
+                  paddingHorizontal: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: theme.fontSizes.title,
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.bold,
+                    fontWeight: "bold",
+                  }}
+                >
+                  Tell Us About Yourself
+                </Text>
+              </View>
+              <View style={{ flex: 1, gap: 40 }}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your name"
+                  value={name}
+                  onChangeText={setNameState}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  value={email}
+                  onChangeText={setEmailState}
+                  keyboardType="email-address"
+                />
 
-        <Text style={styles.label}>Date of Birth (DD/MM/YYYY):</Text>
-        <View style={styles.dateInputContainer}>
-          <TextInput
-            style={[styles.dateInput, styles.dayInput]}
-            placeholder="DD"
-            value={day}
-            onChangeText={(value) =>
-              setDay(value.replace(/[^0-9]/g, "").slice(0, 2))
-            }
-            keyboardType="numeric"
-          />
-          <Text style={styles.separator}>/</Text>
-          <TextInput
-            style={[styles.dateInput, styles.monthInput]}
-            placeholder="MM"
-            value={month}
-            onChangeText={(value) =>
-              setMonth(value.replace(/[^0-9]/g, "").slice(0, 2))
-            }
-            keyboardType="numeric"
-          />
-          <Text style={styles.separator}>/</Text>
-          <TextInput
-            style={[styles.dateInput, styles.yearInput]}
-            placeholder="YYYY"
-            value={year}
-            onChangeText={(value) =>
-              setYear(value.replace(/[^0-9]/g, "").slice(0, 4))
-            }
-            keyboardType="numeric"
-          />
-        </View>
+                <Text style={styles.label}>Date of Birth (DD/MM/YYYY):</Text>
+                <View style={styles.dateInputContainer}>
+                  <TextInput
+                    style={[styles.dateInput, styles.dayInput]}
+                    placeholder="DD"
+                    value={day}
+                    onChangeText={(value) =>
+                      setDay(value.replace(/[^0-9]/g, "").slice(0, 2))
+                    }
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.separator}>/</Text>
+                  <TextInput
+                    style={[styles.dateInput, styles.monthInput]}
+                    placeholder="MM"
+                    value={month}
+                    onChangeText={(value) =>
+                      setMonth(value.replace(/[^0-9]/g, "").slice(0, 2))
+                    }
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.separator}>/</Text>
+                  <TextInput
+                    style={[styles.dateInput, styles.yearInput]}
+                    placeholder="YYYY"
+                    value={year}
+                    onChangeText={(value) =>
+                      setYear(value.replace(/[^0-9]/g, "").slice(0, 4))
+                    }
+                    keyboardType="numeric"
+                  />
+                </View>
 
-        <Picker
-          selectedValue={gender}
-          onValueChange={(itemValue) => setGenderState(itemValue)}
-        >
-          <Picker.Item label="Select gender" value="" />
-          <Picker.Item label="Male" value="male" />
-          <Picker.Item label="Female" value="female" />
-          <Picker.Item label="Other" value="other" />
-        </Picker>
-      </View>
-      <View>
-        <Button mode="contained" onPress={validateAndContinue}>
-          Continue
-        </Button>
-      </View>
-    </View>
+                <Picker
+                  selectedValue={gender}
+                  onValueChange={(itemValue) => setGenderState(itemValue)}
+                >
+                  <Picker.Item label="Select gender" value="" />
+                  <Picker.Item label="Male" value="male" />
+                  <Picker.Item label="Female" value="female" />
+                  <Picker.Item label="Other" value="other" />
+                </Picker>
+              </View>
+              <View>
+                <Button
+                  mode="contained"
+                  buttonColor={theme.colors.primary}
+                  labelStyle={{ color: theme.colors.text }}
+                  onPress={validateAndContinue}
+                >
+                  Continue
+                </Button>
+              </View>
+            </View>
+          </Container>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -249,14 +288,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "snow",
-    gap: 100,
+    backgroundColor: theme.colors.background,
+    gap: 80,
     paddingBottom: 40,
   },
   input: {
     height: 70,
-    borderColor: "#ccc",
-    borderWidth: 1,
+    borderColor: theme.colors.text,
+    borderWidth: 2,
     borderRadius: 10,
 
     paddingLeft: 10,
@@ -267,10 +306,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   dateInput: {
-    borderColor: "#ccc",
-    borderWidth: 1,
+    borderColor: theme.colors.text,
+    borderWidth: 2,
     textAlign: "center",
     height: 50,
+    borderRadius: theme.borderRadius.sm,
   },
   dayInput: {
     width: 60,
@@ -287,11 +327,11 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 5,
-    fontSize: 16,
+    fontSize: theme.fontSizes.medium,
     fontWeight: "bold",
   },
   errorText: {
-    color: "red",
+    color: theme.colors.error,
     marginBottom: 10,
   },
 });

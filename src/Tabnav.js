@@ -4,6 +4,7 @@ import Icon from "react-native-vector-icons/Ionicons"; // For tab icons
 import ProfileScreen from "./Screens/ProfileScreen"; // Your Profile screen file
 import MatchScreen from "./Screens/MatchScreen";
 import ChatScreenList from "./Screens/chatScreenList";
+import theme from "./design-system/theme/theme";
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
@@ -23,11 +24,11 @@ const BottomTabNavigator = () => {
             <Icon
               name={iconName}
               size={24}
-              color={focused ? "#007BFF" : "#ccc"}
+              color={focused ? theme.colors.primary : "#ccc"}
             />
           );
         },
-        tabBarActiveTintColor: "#007BFF",
+        tabBarActiveTintColor: theme.colors.text,
         tabBarInactiveTintColor: "#ccc",
         headerShown: false, // Hide the header for tabs
       })}

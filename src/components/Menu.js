@@ -10,6 +10,7 @@ import {
 
 import { doc, updateDoc, arrayUnion, auth, db } from "../Firebaseconfig";
 import { SERVER_URL } from "../constants/api";
+import theme from "../design-system/theme/theme";
 
 const Menu = ({
   visible,
@@ -114,12 +115,18 @@ const Menu = ({
         >
           <View style={styles.modalContent}>
             <TouchableOpacity onPress={() => setUnmatchModal(true)}>
-              <Text>Unmatch</Text>
+              <Text style={{ fontWeight: "bold", color: theme.colors.text }}>
+                Unmatch
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setBlockModal(true)}>
-              <Text>Block</Text>
+              <Text style={{ fontWeight: "bold", color: theme.colors.text }}>
+                Block
+              </Text>
             </TouchableOpacity>
-            <Text>Report</Text>
+            <Text style={{ fontWeight: "bold", color: theme.colors.text }}>
+              Report
+            </Text>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -210,7 +217,7 @@ const styles = StyleSheet.create({
     height: 200,
     padding: 10,
     flexDirection: "column",
-    backgroundColor: "lawngreen",
+    backgroundColor: theme.colors.background,
     borderRadius: 10,
     alignItems: "flex-start",
     justifyContent: "space-evenly",

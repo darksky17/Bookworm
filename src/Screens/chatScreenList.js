@@ -18,11 +18,11 @@ import { auth } from "../Firebaseconfig";
 import Header from "../components/Header";
 import Feather from "@expo/vector-icons/Feather";
 import Container from "../components/Container";
-
 import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import { Platform } from "react-native";
 import { getVersion, getApiLevel } from "react-native-device-info";
 import { SERVER_URL } from "../constants/api";
+import theme from "../design-system/theme/theme";
 
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
@@ -111,7 +111,15 @@ const ChatScreenList = ({ navigation }) => {
             resizeMode="cover"
           />
         ) : (
-          <Text style={{ color: "white", fontSize: 20 }}>{initials}</Text>
+          <Text
+            style={{
+              color: "white",
+              fontSize: theme.fontSizes.large,
+              fontFamily: theme.fontFamily.regular,
+            }}
+          >
+            {initials}
+          </Text>
         )}
       </View>
     );
@@ -190,23 +198,34 @@ const ChatScreenList = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <Container>
       <Header title={"Chats"} />
       {pause && (
-        <View style={{ paddingTop: 10, paddingHorizontal: 10 }}>
-          <Text style={{ color: "red", fontWeight: 500 }}>
+        <View
+          style={{
+            paddingTop: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.sm,
+          }}
+        >
+          <Text
+            style={{
+              color: theme.colors.error,
+              fontWeight: "bold",
+              fontFamily: theme.fontFamily.regular,
+            }}
+          >
             It looks like you have paused your matches, new users cant find you
             unless you turn it back on
           </Text>
         </View>
       )}
 
-      <View style={{ flex: 1, paddingTop: 5, padding: 15 }}>
+      <View style={{ flex: 1, paddingTop: theme.spacing.xs }}>
         <View
           style={{
             flexDirection: "row",
             gap: 10,
-            paddingVertical: 20,
+            paddingVertical: theme.spacing.md,
             justifyContent: "space-evenly",
           }}
         >
@@ -215,9 +234,9 @@ const ChatScreenList = ({ navigation }) => {
               key={filter}
               onPress={() => toggleFilter(filter)}
               style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 20,
+                paddingVertical: theme.spacing.xs,
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: theme.borderRadius.lg,
                 backgroundColor:
                   activeFilters.has(filter) ||
                   (filter === "All" && activeFilters.size === 0)
@@ -225,7 +244,14 @@ const ChatScreenList = ({ navigation }) => {
                     : "lightgray",
               }}
             >
-              <Text style={{ color: "black" }}>{filter}</Text>
+              <Text
+                style={{
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.regular,
+                }}
+              >
+                {filter}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -251,7 +277,11 @@ const ChatScreenList = ({ navigation }) => {
                   />
 
                   <Pressable
-                    style={{ paddingLeft: 10, flexShrink: 1, flexGrow: 1 }}
+                    style={{
+                      paddingLeft: theme.spacing.xs,
+                      flexShrink: 1,
+                      flexGrow: 1,
+                    }}
                     onPress={() =>
                       navigation.navigate("ChatDisplay", { allData: item })
                     }
@@ -263,13 +293,13 @@ const ChatScreenList = ({ navigation }) => {
                       {item.latestMessage ? (
                         <Text
                           style={{
-                            fontSize: 14,
+                            fontSize: theme.fontSizes.small,
                             color: "gray",
                             fontWeight: "bold",
                             flexShrink: 1,
                             flexGrow: 1,
                             overflow: "hidden",
-                            paddingLeft: 10,
+                            paddingLeft: theme.spacing.sm,
                           }}
                           numberOfLines={1}
                           ellipsizeMode="tail"
@@ -306,7 +336,7 @@ const ChatScreenList = ({ navigation }) => {
                         style={{
                           color: "white",
                           fontWeight: "bold",
-                          fontSize: 12,
+                          fontSize: theme.fontSizes.small,
                         }}
                       >
                         {item.unreadCount}
@@ -318,41 +348,25 @@ const ChatScreenList = ({ navigation }) => {
               </View>
             </View>
           )}
-          contentContainerStyle={{ gap: 10 }}
+          contentContainerStyle={{ gap: 1 }}
         />
       </View>
-    </View>
+    </Container>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-
-  header: {
-    backgroundColor: "lawngreen",
-    height: 60,
-    width: "100%",
-    elevation: 4,
-  },
-  headerText: {
-    position: "absolute",
-    bottom: 0,
-    fontWeight: "medium",
-    fontSize: 35,
+    backgroundColor: theme.colors.background,
   },
 
   chatListContainer: {
-    paddingTop: 15, // Space below header
+    paddingTop: 0, // Space below header
   },
 
   chatlistbg: {
-    backgroundColor: "snow",
-    padding: 15,
-    //marginHorizontal: 15,
-
-    borderRadius: 10,
+    padding: theme.spacing.md,
   },
 
   chatRow: {
@@ -363,10 +377,11 @@ const styles = StyleSheet.create({
   },
 
   chatText: {
-    color: "black", // White text for better contrast
-    fontSize: 18,
+    color: theme.colors.text,
+    fontSize: theme.fontSizes.medium,
+    fontFamily: theme.fontFamily.bold,
     fontWeight: "bold",
-    paddingLeft: 10,
+    paddingLeft: theme.spacing.sm,
   },
 });
 export default ChatScreenList;

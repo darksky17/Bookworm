@@ -1,4 +1,6 @@
 import { View, StyleSheet, Text } from "react-native";
+import theme from "../design-system/theme/theme";
+import { scale } from "../design-system/theme/scaleUtils";
 
 export default Header = ({ title }) => {
   return (
@@ -10,15 +12,18 @@ export default Header = ({ title }) => {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "lawngreen",
-    alignItems: "center",
+    backgroundColor: theme.colors.background,
+    flexDirection: "row",
     width: "100%",
-    elevation: 4,
-    paddingTop: 30,
+    // elevation: 4,
+    paddingTop: 10,
     paddingBottom: 10,
+    paddingLeft: 20,
   },
   headerText: {
-    fontWeight: "medium",
-    fontSize: 30,
+    fontWeight: "bold",
+    fontSize: theme.fontSizes.title,
+    fontFamily: theme.fontFamily.bold,
+    color: theme.colors.text,
   },
 });

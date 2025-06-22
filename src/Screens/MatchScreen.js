@@ -35,7 +35,12 @@ import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { SERVER_URL } from "../constants/api";
-
+import { scaleFont } from "../utils/responsiveFont";
+import Container from "../components/Container.js";
+import Header from "../components/Header.js";
+import theme from "../design-system/theme/theme.js";
+import { Button } from "react-native-paper";
+import { scale } from "../design-system/theme/scaleUtils.js";
 const MatchScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const location = useSelector((state) => state.user.location);
@@ -48,6 +53,11 @@ const MatchScreen = ({ navigation }) => {
   const Myuser = useSelector((state) => state.user);
   const unsubscribeRef = useRef(null);
   const pause = useSelector((state) => state.user.pauseMatch);
+  const scanningRef = useRef(scanning);
+
+  useEffect(() => {
+    scanningRef.current = scanning;
+  }, [scanning]);
 
   const onToggleSwitch = async () => {
     const newValue = !pause; // Flip the current value
@@ -179,7 +189,7 @@ const MatchScreen = ({ navigation }) => {
   };
 
   const findNearbyUsers = async () => {
-    if (!location) return;
+    if (!location || !scanningRef.current) return;
 
     setShowMatches(false);
     matchAnim.setValue(0); // Reset match animation
@@ -202,8 +212,13 @@ const MatchScreen = ({ navigation }) => {
       });
       const data = await response.json();
       console.log("Atleast we got the data back", data);
+      if (!scanningRef.current) {
+        console.log("Scan was stopped before response arrived. Ignoring data.");
+        return;
+      }
 
       setTimeout(() => {
+        if (!scanningRef.current) return;
         setMatches(data);
 
         setShowMatches(true);
@@ -259,110 +274,165 @@ const MatchScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={{ alignItems: "center" }}>
-        <Text style={styles.title}>Find Bookworms</Text>
+    <Container>
+      <Header title={"BookWorm"} />
+      <View style={styles.container}>
+        <View style={{ alignItems: "center" }}>
+          <Text style={styles.title}>Find Bookworms</Text>
 
-        <View>
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchText}>
-              {scanning
-                ? "Searching for matches..."
-                : "Tap to start finding matches"}
-            </Text>
-            <Switch
-              value={scanning}
-              onValueChange={(value) => {
-                setScanning(value);
-                if (!value) setMatches([]); // Clear matches when turning off
-              }}
-            />
+          <View>
+            <View style={styles.switchContainer}>
+              <Text style={styles.switchText}>
+                {scanning
+                  ? "Searching for matches..."
+                  : "Tap to start finding matches"}
+              </Text>
+              <Switch
+                value={scanning}
+                onValueChange={(value) => {
+                  setScanning(value);
+                  setShowMatches(value);
+                  if (!value) setMatches([]); // Clear matches when turning off
+                }}
+              />
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Animated Book */}
-      <Animated.View
-        style={[styles.loadingContainer, { transform: [{ scale: scaleAnim }] }]}
-      >
-        <Image
-          source={require("../assets/matchscreenload-unscreen.gif")}
-          style={styles.loadingGif}
-        />
-      </Animated.View>
+        {/* Animated Book */}
 
-      {/* Matches List with Pop-out Animation */}
-      {showMatches && (
-        <FlatList
-          data={matches}
-          keyExtractor={(item) => item.uid}
-          numColumns={3}
-          contentContainerStyle={styles.matchList}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => openChatModal(item)}
-              style={({ pressed }) => [
-                styles.matchItem,
-                pressed, // Add press feedback without interfering with animation
-              ]}
-            >
-              <Animated.View
-                style={{
-                  opacity: matchAnim, // Apply opacity animation
-                  transform: [{ scale: matchAnim }], // Apply scaling animation
-                }}
-              >
-                <Icon name="user-circle" size={50} color="lightgreen" />
-                <Text style={styles.matchDistance}>
-                  {(item.distance / 1000).toFixed(1)} km |{" "}
-                  {item.matchPercentage}% match
-                </Text>
-              </Animated.View>
-            </Pressable>
-          )}
-          ListEmptyComponent={
-            <Text style={styles.noMatches}>No matches found nearby.</Text>
-          }
-        />
-      )}
+        {!showMatches && (
+          <Animated.View
+            style={[
+              styles.loadingContainer,
+              { transform: [{ scale: scaleAnim }] },
+            ]}
+          >
+            <Image
+              source={require("../assets/matchscreenload-unscreen.gif")}
+              style={styles.loadingGif}
+            />
+          </Animated.View>
+        )}
 
-      {/* Chat Modal */}
-      {showChatModal && (
-        <Modal
-          transparent={true}
-          visible={showChatModal}
-          animationType="fade"
-          onRequestClose={closeChatModal}
-        >
-          <TouchableWithoutFeedback onPress={closeChatModal}>
-            <View style={styles.modalBackground}>
-              <Pressable style={styles.chatPrompt}>
-                <Text style={styles.chatPromptText}>
-                  Do you want to start a chat?
-                </Text>
-                <Pressable
-                  onPress={() => {
-                    newChat(selectedMatch.uid);
-                    setScanning(false);
-                    setTimeout(() => {
-                      navigation.navigate("Chats");
-                    }, 500);
-                  }}
-                >
-                  <Text style={styles.chatPromptButton}>Start Chat!</Text>
+        {/* Matches List with Pop-out Animation */}
+        {showMatches && (
+          <View
+            style={{
+              flex: 1,
+              paddingHorizontal: theme.spacing.sm,
+              paddingTop: theme.spacing.md,
+            }}
+          >
+            <FlatList
+              data={matches}
+              keyExtractor={(item) => item.uid}
+              numColumns={1}
+              contentContainerStyle={styles.matchList}
+              renderItem={({ item }) => (
+                <View style={styles.matchItem}>
+                  <Animated.View
+                    style={{
+                      opacity: matchAnim, // Apply opacity animation
+                      transform: [{ scale: matchAnim }], // Apply scaling animation
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          gap: 10,
+                        }}
+                      >
+                        <Icon
+                          name="user-circle"
+                          size={50}
+                          color={theme.colors.primary}
+                        />
+                        <View style={{ gap: 5, justifyContent: "flex-end" }}>
+                          <Text
+                            style={{
+                              color: theme.colors.text,
+                              fontFamily: theme.fontFamily.regular,
+                              fontSize: scale(14),
+                            }}
+                          >
+                            {item.displayName}
+                          </Text>
+                          <Text style={styles.matchDistance}>
+                            {(item.distance / 1000).toFixed(1)} km |{" "}
+                            {item.matchPercentage}% match
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Button
+                        onPress={() => openChatModal(item)}
+                        mode="contained"
+                      >
+                        Connect
+                      </Button>
+                    </View>
+                  </Animated.View>
+                </View>
+              )}
+              ListEmptyComponent={
+                <Text style={styles.noMatches}>No matches found nearby.</Text>
+              }
+            />
+          </View>
+        )}
+
+        {/* Chat Modal */}
+        {showChatModal && (
+          <Modal
+            transparent={true}
+            visible={showChatModal}
+            animationType="fade"
+            onRequestClose={closeChatModal}
+          >
+            <TouchableWithoutFeedback onPress={closeChatModal}>
+              <View style={styles.modalBackground}>
+                <Pressable style={styles.chatPrompt}>
+                  <Text style={styles.chatPromptText}>
+                    Do you want to start a chat?
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      newChat(selectedMatch.uid);
+                      setScanning(false);
+                      setShowMatches(false);
+                      setShowChatModal(false);
+                      setTimeout(() => {
+                        navigation.navigate("Chats");
+                      }, 700);
+                    }}
+                  >
+                    <Text style={styles.chatPromptButton}>Start Chat!</Text>
+                  </Pressable>
                 </Pressable>
-              </Pressable>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
-      )}
-      <View style={styles.switchContainer}>
-        <Text style={styles.switchText}>
-          Want to take a break? Go off the book here
-        </Text>
-        <Switch value={pause} onValueChange={onToggleSwitch} />
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+        )}
+        <View style={styles.switchContainer}>
+          <Text style={styles.switchText}>
+            Want to take a break? Go off the book here
+          </Text>
+          <Switch
+            color={theme.colors.primary}
+            value={pause}
+            onValueChange={onToggleSwitch}
+          />
+        </View>
       </View>
-    </View>
+    </Container>
   );
 };
 
@@ -371,22 +441,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between",
     paddingTop: 50,
-    backgroundColor: "#f8f9fa",
-    alignItems: "center",
+    backgroundColor: theme.colors.background,
+    paddingBottom: theme.spacing.lg,
   },
   title: {
-    fontSize: 22,
+    fontSize: scaleFont(22),
     fontWeight: "bold",
-    marginBottom: 20,
   },
   switchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    gap: 15,
+    paddingTop: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
   },
   switchText: {
-    fontSize: 16,
-    marginRight: 10,
+    fontSize: theme.fontSizes.medium,
   },
   loadingContainer: {
     position: "absolute",
@@ -399,30 +469,25 @@ const styles = StyleSheet.create({
     top: 45,
   },
   matchList: {
-    width: "90%",
-    alignItems: "center",
-    //backgroundColor: 'transparent',
+    backgroundColor: "white",
+    padding: theme.spacing.sm,
+    elevation: 3,
+    borderRadius: theme.borderRadius.md,
   },
   matchItem: {
-    alignItems: "center",
-    margin: 10,
-    padding: 15,
-    //borderRadius: 15,
-    //backgroundColor: 'white',
-    elevation: 3,
+    // backgroundColor: "white",
+    // elevation: 2,
+    padding: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
   },
 
-  matchName: {
-    fontSize: 14,
-    marginTop: 5,
-  },
   matchDistance: {
-    fontSize: 12,
+    fontSize: scaleFont(12),
     color: "gray",
     left: 10,
   },
   noMatches: {
-    fontSize: 16,
+    fontSize: scaleFont(16),
     color: "gray",
     marginTop: 20,
   },
@@ -440,7 +505,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   chatPromptText: {
-    fontSize: 18,
+    fontSize: theme.fontSizes.medium,
     fontWeight: "bold",
     marginBottom: 10,
   },

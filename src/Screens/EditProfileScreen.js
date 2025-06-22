@@ -22,6 +22,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Button } from "react-native-paper";
+import theme from "../design-system/theme/theme";
 
 const EditProfileScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
@@ -108,16 +109,23 @@ const EditProfileScreen = ({ navigation }) => {
     return (
       <View style={styles.rowContainer}>
         <Text>{label}</Text>
-        <Text style={{ crolor: "black", fontWeight: "bold" }}>{value}</Text>
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontWeight: "bold",
+          }}
+        >
+          {value}
+        </Text>
       </View>
     );
   };
 
   return (
     <View style={{ flex: 1 }}>
-      <Header title={"Edit Profile"} />
-      <ScrollView>
-        <Container>
+      <Container>
+        <Header title={"Edit Profile"} />
+        <ScrollView>
           <View style={styles.container}>
             <View style={{ alignItems: "center", justifyContent: "center" }}>
               <Image source={{ uri: selectedPhotos[0] }} style={styles.photo} />
@@ -271,7 +279,12 @@ const EditProfileScreen = ({ navigation }) => {
                         alignItems: "center",
                       }}
                     >
-                      <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                      <Text
+                        style={{
+                          fontWeight: "bold",
+                          fontSize: theme.fontSizes.medium,
+                        }}
+                      >
                         {currentread}
                       </Text>
                     </View>
@@ -346,7 +359,12 @@ const EditProfileScreen = ({ navigation }) => {
                         alignItems: "center",
                       }}
                     >
-                      <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+                      <Text
+                        style={{
+                          fontWeight: "bold",
+                          fontSize: theme.fontSizes.medium,
+                        }}
+                      >
                         {currentSummary}
                       </Text>
                     </View>
@@ -355,8 +373,8 @@ const EditProfileScreen = ({ navigation }) => {
               </View>
             </View>
           </View>
-        </Container>
-      </ScrollView>
+        </ScrollView>
+      </Container>
     </View>
   );
 };
@@ -391,6 +409,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 80,
     padding: 10,
+    paddingHorizontal: 20,
     backgroundColor: "white",
   },
 

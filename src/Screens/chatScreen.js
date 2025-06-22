@@ -38,7 +38,8 @@ import {
 import { runOnJS } from "react-native-reanimated";
 
 import { SERVER_URL } from "../constants/api";
-
+import theme from "../design-system/theme/theme";
+import { scale } from "../design-system/theme/scaleUtils";
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
   const userId = auth.currentUser?.uid;
@@ -300,8 +301,11 @@ const ChatDisplay = ({ route, navigation }) => {
     const unsubscribeMessages = onSnapshot(messagesRef, (snapshot) => {
       const messageCount = snapshot.size; // ✅ Count messages dynamically
       console.log("Message count:", messageCount);
+      if (!chatData) return; // Safety check
 
       if (messageCount > 0 && messageCount % 50 === 0 && !chatData.ascended) {
+        console.log("Check 1 for chatData", chatData);
+        console.log("Check 2 for message count", messageCount);
         setModalState(true);
       }
     });
@@ -322,7 +326,7 @@ const ChatDisplay = ({ route, navigation }) => {
         if (!choice.some((c) => c.endsWith(":No"))) {
           if (!chatData.ascended) {
             await updateDoc(messagesDocRef, { ascended: true });
-            Alert.alert("WOOHOO, this chat is not ascended!");
+            Alert.alert("WOOHOO, this chat is now ascended!");
           }
         } else {
           if (chatData.choices.length !== 0) {
@@ -372,7 +376,7 @@ const ChatDisplay = ({ route, navigation }) => {
         console.log("Swiped Left");
         runOnJS(navigation.navigate)("ProfileDisplay", { allData });
       } else if (event.translationX > 50) {
-        Alert.alert("Swiped Right");
+        return;
       }
     })
     .activeOffsetX([-10, 10]);
@@ -431,10 +435,18 @@ const ChatDisplay = ({ route, navigation }) => {
           justifyContent: "space-evenly",
           alignItems: "flex-end",
           height: 30,
-          backgroundColor: "lawngreen",
+          backgroundColor: theme.colors.background,
         }}
       >
-        <Text style={{ fontWeight: "bold" }}>Chat</Text>
+        <Text
+          style={{
+            fontWeight: "bold",
+            color: theme.colors.text,
+            fontSize: scale(14),
+          }}
+        >
+          Chat
+        </Text>
         <Text>Profile</Text>
       </View>
       <GestureHandlerRootView>
@@ -460,12 +472,12 @@ const ChatDisplay = ({ route, navigation }) => {
               <Bubble
                 {...props}
                 wrapperStyle={{
-                  right: { backgroundColor: "lawngreen" }, // Sent messages (you)  //#90EE90 #32CD32 #0BDA51 #98FB98 #00FF7F
-                  left: { backgroundColor: "black" }, // Received messages (other party)
+                  right: { backgroundColor: theme.colors.primary }, // Sent messages (you)  //#90EE90 #32CD32 #0BDA51 #98FB98 #00FF7F
+                  left: { backgroundColor: theme.colors.text }, // Received messages (other party)
                 }}
                 textStyle={{
-                  right: { color: "black", fontWeight: "350" },
-                  left: { color: "white", fontWeight: "350" },
+                  right: { color: theme.colors.text },
+                  left: { color: theme.colors.background },
                 }}
               />
             )}
@@ -514,7 +526,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    backgroundColor: "lawngreen",
+    backgroundColor: theme.colors.background,
     height: 60,
     width: "100%",
     elevation: 4,
@@ -526,7 +538,7 @@ const styles = StyleSheet.create({
   headerText: {
     marginTop: "30",
     fontWeight: "500",
-    fontSize: 25,
+    fontSize: scale(25),
   },
   centeredView: {
     flex: 1,

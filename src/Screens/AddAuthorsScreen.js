@@ -8,7 +8,7 @@ import { GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../constants/api";
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
 import Header from "../components/Header";
-
+import theme from "../design-system/theme/theme";
 import { MultiSelect } from "react-native-element-dropdown";
 
 import { Button } from "react-native-paper";
@@ -98,38 +98,36 @@ const AddAuthorsScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Container>
       <Header title={"Add Authors"} />
       <ScrollView>
-        <Container>
-          <View style={styles.container}>
-            <MultiSelect
-              style={styles.dropdown}
-              data={authorOptions}
-              labelField="label"
-              valueField="value"
-              placeholder="Search and select authors"
-              search
-              value={selectedAuthors}
-              onChange={handleAuthorChange}
-              onChangeText={fetchAuthors} // Key line: fetch authors as user types
-              maxSelect={5}
-              selectedTextStyle={styles.selectedText}
-              dropdownStyle={styles.dropdownList}
-              selectedStyle={styles.selectedItem}
-            />
-            <View style={{ gap: 10 }}>
-              <Button mode="contained" onPress={() => handleSave()}>
-                Save Changes
-              </Button>
-              <Button mode="contained" onPress={() => navigation.goBack()}>
-                Cancel
-              </Button>
-            </View>
+        <View style={styles.container}>
+          <MultiSelect
+            style={styles.dropdown}
+            data={authorOptions}
+            labelField="label"
+            valueField="value"
+            placeholder="Search and select authors"
+            search
+            value={selectedAuthors}
+            onChange={handleAuthorChange}
+            onChangeText={fetchAuthors} // Key line: fetch authors as user types
+            maxSelect={5}
+            selectedTextStyle={styles.selectedText}
+            dropdownStyle={styles.dropdownList}
+            selectedStyle={styles.selectedItem}
+          />
+          <View style={{ gap: 10 }}>
+            <Button mode="contained" onPress={() => handleSave()}>
+              Save Changes
+            </Button>
+            <Button mode="contained" onPress={() => navigation.goBack()}>
+              Cancel
+            </Button>
           </View>
-        </Container>
+        </View>
       </ScrollView>
-    </View>
+    </Container>
   );
 };
 
@@ -181,9 +179,8 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     gap: 60,
     borderRadius: 10,
-    marginTop: 0,
-    padding: 10,
-    backgroundColor: "white",
+    padding: 15,
+    backgroundColor: theme.colors.background,
   },
 
   rowContainer: {

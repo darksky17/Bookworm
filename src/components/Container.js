@@ -1,5 +1,6 @@
 import { View, StyleSheet, Text } from "react-native";
-
+import { scale } from "../design-system/theme/scaleUtils";
+import theme from "../design-system/theme/theme";
 const Container = ({ children }) => {
   return <View style={styles.container}>{children}</View>;
 };
@@ -9,7 +10,7 @@ export default Container;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f8f9fa",
+    padding: 1,
+    backgroundColor: theme.colors.background,
   },
 });

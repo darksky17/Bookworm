@@ -12,6 +12,7 @@ import Header from "../components/Header";
 import { MultiSelect } from "react-native-element-dropdown";
 
 import { Button } from "react-native-paper";
+import theme from "../design-system/theme/theme";
 
 const genres = [
   "Fiction",
@@ -135,76 +136,74 @@ const AddGenresScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Container>
       <Header title={"Add Genres"} />
       <ScrollView>
-        <Container>
-          <View style={styles.container}>
-            <MultiSelect
-              style={styles.dropdown}
-              data={genres.map((g) => ({ label: g, value: g }))}
-              labelField="label"
-              valueField="value"
-              placeholder="Search and select Genres"
-              search
-              value={selectedGenres}
-              onChange={handleGenreChange}
-              onChangeText={filterGenres}
-              maxSelect={5}
-              selectedTextStyle={styles.selectedText}
-              containerStyle={{
-                backgroundColor: "white",
-                flex: 1,
+        <View style={styles.container}>
+          <MultiSelect
+            style={styles.dropdown}
+            data={genres.map((g) => ({ label: g, value: g }))}
+            labelField="label"
+            valueField="value"
+            placeholder="Search and select Genres"
+            search
+            value={selectedGenres}
+            onChange={handleGenreChange}
+            onChangeText={filterGenres}
+            maxSelect={5}
+            selectedTextStyle={styles.selectedText}
+            containerStyle={{
+              backgroundColor: "white",
+              flex: 1,
 
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: "#ddd",
-                padding: 5,
-                marginTop: 5,
-              }}
-              renderItem={(item, selected) => (
-                <View
-                  style={[
-                    styles.itemContainer,
-                    selected && styles.selectedItemList,
-                  ]}
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#ddd",
+              padding: 5,
+              marginTop: 5,
+            }}
+            renderItem={(item, selected) => (
+              <View
+                style={[
+                  styles.itemContainer,
+                  selected && styles.selectedItemList,
+                ]}
+              >
+                <Text
+                  style={[styles.itemText, selected && styles.selectedText]}
                 >
-                  <Text
-                    style={[styles.itemText, selected && styles.selectedText]}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-              )}
-              selectedStyle={styles.selectedItem}
-              flatListProps={{
-                ItemSeparatorComponent: () => <View style={{ height: 15 }} />,
-              }}
-            />
+                  {item.label}
+                </Text>
+              </View>
+            )}
+            selectedStyle={styles.selectedItem}
+            flatListProps={{
+              ItemSeparatorComponent: () => <View style={{ height: 15 }} />,
+            }}
+          />
 
-            <View style={styles.buttonContainer}>
-              <Button
-                mode="contained"
-                style={styles.buttonSave}
-                onPress={handleSave}
-                labelStyle={{ fontWeight: "700" }}
-              >
-                Save Changes
-              </Button>
+          <View style={styles.buttonContainer}>
+            <Button
+              mode="contained"
+              style={styles.buttonSave}
+              onPress={handleSave}
+              labelStyle={{ fontWeight: "700" }}
+            >
+              Save Changes
+            </Button>
 
-              <Button
-                mode="contained"
-                style={styles.buttonCancel}
-                onPress={() => navigation.goBack()}
-                labelStyle={{ color: "#333", fontWeight: "700" }}
-              >
-                Cancel
-              </Button>
-            </View>
+            <Button
+              mode="contained"
+              style={styles.buttonCancel}
+              onPress={() => navigation.goBack()}
+              labelStyle={{ color: "#333", fontWeight: "700" }}
+            >
+              Cancel
+            </Button>
           </View>
-        </Container>
+        </View>
       </ScrollView>
-    </View>
+    </Container>
   );
 };
 
@@ -212,13 +211,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#fff",
+    gap: 30,
+    backgroundColor: theme.colors.background,
   },
   itemContainer: {
     flex: 1,
     gap: 20,
     padding: 15,
-    backgroundColor: "white",
 
     borderRadius: 8,
 
@@ -276,25 +275,8 @@ const styles = StyleSheet.create({
   },
 
   buttonContainer: {
-    marginTop: 30,
-    flexDirection: "row",
+    gap: 10,
     justifyContent: "space-between",
-  },
-
-  buttonSave: {
-    flex: 1,
-    marginRight: 10,
-    backgroundColor: "#4caf50",
-    borderRadius: 12,
-    paddingVertical: 10,
-  },
-
-  buttonCancel: {
-    flex: 1,
-    marginLeft: 10,
-    backgroundColor: "#ccc",
-    borderRadius: 12,
-    paddingVertical: 10,
   },
 });
 

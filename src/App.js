@@ -190,7 +190,7 @@ const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      <StatusBar backgroundColor="lightgreen" barStyle="dark-content" />
+      <StatusBar backgroundColor="transparent" barStyle="dark-content" />
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
         initialRouteName={initialRoute}
