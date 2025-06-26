@@ -162,15 +162,22 @@ const Userdetails2 = ({ navigation }) => {
   };
 
   const handleFinish = async () => {
-    if (
-      selectedGenres.length < 3 ||
-      selectedAuthors.length < 3 ||
-      currentread.length < 1 ||
-      bookSummary.length < 20
-    ) {
+    if (selectedGenres.length < 3) {
+      Alert.alert("Error", "Please select at least 3 genres.");
+      return;
+    }
+    if (selectedAuthors.length < 3) {
+      Alert.alert("Error", "Please select atleast 3 authors.");
+      return;
+    }
+    if (currentread.length < 1) {
+      Alert.alert("Error", "Please select your current read.");
+      return;
+    }
+    if (bookSummary.length < 50) {
       Alert.alert(
         "Error",
-        "Please select 3 genres, 3 authors, and fill the remaining fields."
+        "Please make sure that your book sumamry is atleast 50 charachters long."
       );
       return;
     }

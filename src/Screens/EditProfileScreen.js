@@ -127,7 +127,12 @@ const EditProfileScreen = ({ navigation }) => {
         <Header title={"Edit Profile"} />
         <ScrollView>
           <View style={styles.container}>
-            <View style={{ alignItems: "center", justifyContent: "center" }}>
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Image source={{ uri: selectedPhotos[0] }} style={styles.photo} />
               <TouchableOpacity
                 onPress={() => navigation.navigate("AddPhotos")}
@@ -380,10 +385,6 @@ const EditProfileScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  dropdown: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-  },
   chipContainer: {
     flexDirection: "column",
     borderWidth: 1,
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
     marginTop: 80,
     padding: 10,
     paddingHorizontal: 20,
-    backgroundColor: "white",
+    backgroundColor: theme.colors.background,
   },
 
   rowContainer: {
@@ -422,95 +423,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
 
-  flatListContent: {
-    alignItems: "center",
-  },
-  photoText: {
-    fontSize: 30,
-    color: "black",
-  },
-
-  photoBox: {
-    width: 100,
-    height: 100,
-    backgroundColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-    margin: 5,
-    borderRadius: 10,
-  },
-
-  subHeader: {
-    fontSize: 16,
-    marginVertical: 10,
-  },
-  optionsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  optionBox: {
-    borderWidth: 1,
-    borderColor: "gray",
-    padding: 10,
-    margin: 5,
-    borderRadius: 5,
-  },
-  selectedBox: {
-    backgroundColor: "lightgreen",
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 20,
-    backgroundColor: "#fff",
-  },
-  imageWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  placeholderImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageButton: {
-    marginLeft: 10,
-    backgroundColor: "#007BFF",
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-  },
-  imageButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  imageContainer: {
-    position: "relative",
-    marginRight: 10,
-  },
   photo: {
     width: 120,
     aspectRatio: 1,
@@ -518,27 +430,6 @@ const styles = StyleSheet.create({
     marginTop: -70,
     borderWidth: 3,
     borderColor: "brown",
-  },
-  removeButton: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    backgroundColor: "red",
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 15,
-  },
-  removeButtonText: {
-    color: "#fff",
-    fontSize: 12,
-  },
-  emptyText: {
-    color: "#666",
-    fontStyle: "italic",
-    marginVertical: 20,
-  },
-  buttonContainer: {
-    marginTop: 20,
   },
 });
 

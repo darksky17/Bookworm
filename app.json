@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Demo1",
+    "name": "BookWorm",
     "slug": "Demo1",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/BookWorm_logo.png",
+    "icon": "./src/assets/play_store_512.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./src/assets/BookWorm_logo.png",
+      "image": "./src/assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -20,12 +20,12 @@
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"],
       "googleServicesFile": "./src/google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/BookWorm_logo.png",
+        "foregroundImage": "./src/assets/play_store_512.png",
         "backgroundColor": "#ffffff"
       }
     },
     "web": {
-      "favicon": "./src/assets/favicon.png"
+      "favicon": "./src/assets/play_store_512.png"
     },
     "plugins": [
       "expo-build-properties"

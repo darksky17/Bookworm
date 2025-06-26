@@ -8,8 +8,10 @@ import {
   Pressable,
   TouchableHighlight,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { GiftedChat } from "react-native-gifted-chat";
+import * as ImagePicker from "expo-image-picker";
 import Menu from "../components/Menu";
 import {
   collection,
@@ -26,20 +28,27 @@ import {
   increment,
   db,
   auth,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
 } from "../Firebaseconfig";
-import { Bubble } from "react-native-gifted-chat";
+import storage from "@react-native-firebase/storage";
+import { Bubble, Send, InputToolbar, Actions } from "react-native-gifted-chat";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Feather from "@expo/vector-icons/Feather";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import {
   GestureHandlerRootView,
   Gesture,
   GestureDetector,
+  ScrollView,
 } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
-
 import { SERVER_URL } from "../constants/api";
 import theme from "../design-system/theme/theme";
 import { scale } from "../design-system/theme/scaleUtils";
+import ImageView from "react-native-image-viewing";
+
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
   const userId = auth.currentUser?.uid;
@@ -53,9 +62,57 @@ const ChatDisplay = ({ route, navigation }) => {
   const [hasHandledChoice, setHasHandledChoice] = useState(false);
   const [stopLoad, setStopLoad] = useState(false);
   const unsubscribeRef = useRef(null);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   console.log("THIS IS WHAT I GOT as ALL DATA", allData);
+
   const toggleMenu = () => {
     setMenuVisible((prev) => !prev); // ✅ This correctly toggles the modal
+  };
+
+  // Handle image picking (just selection, not sending)
+
+  const handleImagePick = async () => {
+    try {
+      // Ask for permission
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Denied", "Camera roll access is required.");
+        return [];
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        const image = result.assets[0];
+        console.log("Damn", image.uri);
+
+        return [
+          {
+            _id: Math.round(Math.random() * 1000000),
+            text: "",
+            createdAt: new Date(),
+            user: {
+              _id: userId,
+            },
+            image: image.uri, // local file URI
+            pending: true, // mark as not yet uploaded
+          },
+        ];
+      }
+
+      return [];
+    } catch (error) {
+      console.error("💥 Error picking image:", error);
+      return [];
+    }
   };
   // Fetch or create chat between users
   const getChatId = async () => {
@@ -84,55 +141,180 @@ const ChatDisplay = ({ route, navigation }) => {
 
     return chatId;
   };
+
   useEffect(() => {
     const fetchChatId = async () => {
       const id = await getChatId();
-
       setChatId(id);
     };
     fetchChatId();
   }, []);
 
-  // Handle sending messages
+  // Handle sending messages (both text and images)
+  // const onSend = useCallback(
+  //   async (newMessages = []) => {
+  //     if (!chatId || newMessages.length === 0) return;
+
+  //     const message = newMessages[0];
+  //     const messagesRef = collection(db, "Chats", chatId, "messages");
+
+  //     try {
+  //       let imageUrl = null;
+
+  //       // If the message contains an image, upload it
+  //       if (message.image && message.pending) {
+  //         console.log("Uploading image with putFile...");
+  //         const tempMessageId = `${Date.now()}_${Math.random()
+  //           .toString(36)
+  //           .substr(2, 9)}`;
+  //         const imagePath = `images/${chatId}/${tempMessageId}.jpg`;
+  //         const storageRef = storage().ref(imagePath);
+  //         console.log("Storage bucket:", storage().app.options.storageBucket);
+
+  //         try {
+  //           console.log("this is sotorageRef", storageRef);
+  //           console.log("This is image path", message.image);
+  //           await storageRef.putFile(message.image);
+  //           console.log("Upload finished.");
+  //           const imageUrl = await storageRef.getDownloadURL();
+  //           console.log(
+  //             "✅ Image uploaded with putFile to Firebase Storage:",
+  //             imageUrl
+  //           );
+  //           return imageUrl;
+  //         } catch (error) {
+  //           console.error("❌ Upload failed:", error);
+  //           throw error;
+  //         }
+  //       } else if (message.image && !message.pending) {
+  //         // Already uploaded (edge case)
+  //         imageUrl = message.image;
+  //       }
+
+  //       // Prepare Firestore message
+  //       const firestoreMessage = {
+  //         content: message.text || "",
+  //         senderID: userId,
+  //         receiverID: allData.id,
+  //         timestamp: serverTimestamp(),
+  //       };
+
+  //       if (imageUrl) {
+  //         firestoreMessage.image = imageUrl;
+  //       }
+
+  //       // Add to Firestore messages
+  //       await addDoc(messagesRef, firestoreMessage);
+
+  //       const lastMessageText = imageUrl ? "📷 Photo" : message.text;
+
+  //       // Update parent chat doc
+  //       await updateDoc(doc(db, "Chats", chatId), {
+  //         lastMessage: lastMessageText,
+  //         timestamp: serverTimestamp(),
+  //         [`unreadCounts.${allData.id}`]: increment(1),
+  //         lastSenderId: userId,
+  //         messageCount: increment(1),
+  //       });
+
+  //       // Send notification to receiver
+  //       const idToken = await auth.currentUser.getIdToken();
+  //       await fetch(`${SERVER_URL}/send-message-notification`, {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${idToken}`,
+  //         },
+  //         body: JSON.stringify({
+  //           receiverId: allData.id,
+  //           message: lastMessageText,
+  //         }),
+  //       });
+  //     } catch (error) {
+  //       console.error("❌ Error sending message:", error);
+  //       Alert.alert("Error", "Failed to send message. Please try again.");
+  //     }
+  //   },
+  //   [chatId, userId, allData.id]
+  // );
+
   const onSend = useCallback(
     async (newMessages = []) => {
-      if (!chatId) {
-        return;
-      }
-      const messagesRef = collection(db, "Chats", chatId, "messages");
+      if (!chatId || newMessages.length === 0) return;
 
       const message = newMessages[0];
+      const messagesRef = collection(db, "Chats", chatId, "messages");
 
-      const firestoreMessage = {
-        content: message.text,
-        senderID: userId,
-        receiverID: allData.id,
-        timestamp: serverTimestamp(),
-      };
+      try {
+        let imageUrl = null;
 
-      await addDoc(messagesRef, firestoreMessage);
-      await updateDoc(doc(db, "Chats", chatId), {
-        lastMessage: message.text,
-        timestamp: serverTimestamp(),
-        [`unreadCounts.${allData.id}`]: increment(1),
-        lastSenderId: userId,
-        messageCount: increment(1),
-      });
-      const idToken = await auth.currentUser.getIdToken();
+        // Upload image if message has a pending image
+        if (message.image && message.pending) {
+          console.log("Uploading image...");
+          const tempMessageId = `${Date.now()}_${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+          const imagePath = `images/${chatId}/${tempMessageId}.jpg`;
+          const storageRef = storage().ref(imagePath);
 
-      await fetch(`${SERVER_URL}/send-message-notification`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          receiverId: allData.id,
-          message: message.text,
-        }),
-      });
+          try {
+            await storageRef.putFile(message.image);
+            imageUrl = await storageRef.getDownloadURL();
+            console.log("✅ Image uploaded, URL:", imageUrl);
+          } catch (uploadError) {
+            console.error("❌ Upload failed:", uploadError);
+            throw uploadError;
+          }
+        } else if (message.image && !message.pending) {
+          // Image was already uploaded (edge case)
+          imageUrl = message.image;
+        }
+
+        // Prepare Firestore message object
+        const firestoreMessage = {
+          content: imageUrl ? "📷 Photo" : message.text || "",
+          senderID: userId,
+          receiverID: allData.id,
+          timestamp: serverTimestamp(),
+        };
+
+        if (imageUrl) {
+          firestoreMessage.image = imageUrl;
+        }
+
+        // Add message document to Firestore
+        await addDoc(messagesRef, firestoreMessage);
+
+        const lastMessageText = imageUrl ? "📷 Photo" : message.text;
+
+        // Update the parent chat document
+        await updateDoc(doc(db, "Chats", chatId), {
+          lastMessage: lastMessageText,
+          timestamp: serverTimestamp(),
+          [`unreadCounts.${allData.id}`]: increment(1),
+          lastSenderId: userId,
+          messageCount: increment(1),
+        });
+
+        // Send notification to receiver
+        const idToken = await auth.currentUser.getIdToken();
+        await fetch(`${SERVER_URL}/send-message-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            receiverId: allData.id,
+            message: lastMessageText,
+          }),
+        });
+      } catch (error) {
+        console.error("❌ Error sending message:", error);
+        Alert.alert("Error", "Failed to send message. Please try again.");
+      }
     },
-    [chatId]
+    [chatId, userId, allData.id]
   );
 
   useEffect(() => {
@@ -168,7 +350,7 @@ const ChatDisplay = ({ route, navigation }) => {
             const loadedMessages = snapshot.docs.map((doc) => {
               const datas = doc.data();
 
-              return {
+              const messageObj = {
                 _id: doc.id,
                 text: datas.content,
                 createdAt: datas.timestamp?.toDate() || new Date(),
@@ -176,6 +358,13 @@ const ChatDisplay = ({ route, navigation }) => {
                   _id: datas.senderID,
                 },
               };
+
+              // Add image if it exists
+              if (datas.image) {
+                messageObj.image = datas.image;
+              }
+
+              return messageObj;
             });
 
             setMessages([...loadedMessages]);
@@ -199,98 +388,6 @@ const ChatDisplay = ({ route, navigation }) => {
       }
     };
   }, [chatId]);
-
-  // useEffect(() => {
-  //   if (!chatId || stopLoad) return;
-
-  //   const chatDocRef = doc(db, "Chats", chatId);
-  //   const messagesRef = collection(db, "Chats", chatId, "messages");
-  //   const messagesQuery = query(messagesRef, orderBy("timestamp", "desc"));
-
-  //   // 1. Listen to messages collection
-  //   unsubscribeRef.current = onSnapshot(
-  //     messagesQuery,
-  //     (snapshot) => {
-  //       const loadedMessages = snapshot.docs.map((doc) => {
-  //         const datas = doc.data();
-  //         return {
-  //           _id: doc.id,
-  //           text: datas.content,
-  //           createdAt: datas.timestamp?.toDate() || new Date(),
-  //           user: {
-  //             _id: datas.senderID,
-  //           },
-  //         };
-  //       });
-  //       setMessages(loadedMessages);
-  //     },
-  //     (error) => {
-  //       console.error("Error in messages onSnapshot:", error);
-  //     }
-  //   );
-
-  //   // 2. Listen to Chats document separately for ascension logic
-  //   const unsubscribeChatDoc = onSnapshot(
-  //     chatDocRef,
-  //     async (docSnap) => {
-  //       if (!docSnap.exists()) return;
-
-  //       const chatData = docSnap.data();
-  //       const choice = Array.isArray(chatData.choices) ? chatData.choices : [];
-  //       const messageCount = chatData.messageCount;
-
-  //       console.log("Live message count:", messageCount);
-
-  //       if (
-  //         messageCount != 0 &&
-  //         !chatData.ascended &&
-  //         messageCount % 10 === 0
-  //       ) {
-  //         setModalState(true);
-  //       }
-
-  //       if (choice.some((c) => c.startsWith(userId))) {
-  //         setModalState(true);
-  //         setIsDisabled(true);
-  //       }
-
-  //       if (choice.length === 2 && !hasHandledChoice) {
-  //         setHasHandledChoice(true);
-
-  //         if (!choice.some((c) => c.endsWith(":No"))) {
-  //           if (!chatData.ascended) {
-  //             await updateDoc(chatDocRef, { ascended: true });
-  //             setModalState(false);
-  //           }
-  //         } else {
-  //           if (chatData.choices.length !== 0) {
-  //             await updateDoc(chatDocRef, { choices: [] });
-  //           }
-  //           Alert.alert(
-  //             "Looks like one of you chose not to Ascend. We will ask again later."
-  //           );
-  //           await updateDoc(chatDocRef, { messageCount: increment(1) });
-  //           setModalState(false);
-  //           setIsDisabled(false);
-  //         }
-
-  //         setModalState(false);
-  //       }
-  //     },
-  //     (error) => {
-  //       console.error("Error in chat doc onSnapshot:", error);
-  //     }
-  //   );
-
-  //   return () => {
-  //     // Clean up both listeners
-  //     if (unsubscribeRef.current) {
-  //       unsubscribeRef.current();
-  //       unsubscribeRef.current = null;
-  //     }
-  //     unsubscribeChatDoc();
-  //   };
-  // }, [chatId, stopLoad, userId, hasHandledChoice]);
 
   useEffect(() => {
     if (!chatId) return;
@@ -316,7 +413,8 @@ const ChatDisplay = ({ route, navigation }) => {
         : [];
 
       // Hide modal if the user already made a choice
-      if (choice.some((c) => c.startsWith(userId))) {
+      if (choice.some((c) => c.startsWith(userId)) && !chatData.ascended) {
+        console.log("🔴 MODAL TRIGGERED FROM USER CHOICE CHECK");
         setModalState(true);
         setIsDisabled(true);
       }
@@ -400,6 +498,93 @@ const ChatDisplay = ({ route, navigation }) => {
     markChatAsRead(); // ✅ Actually call the function
   }, [chatId, userId]); // ✅ Run when chatId or userId changes
 
+  const renderSend = useCallback((props) => {
+    const messageLength = props.text?.trim().length || 0;
+    return (
+      <Send
+        {...props}
+        containerStyle={{ justifyContent: "center", paddingHorizontal: 10 }}
+        alwaysShowSend="true"
+        disabled={messageLength === 0}
+      >
+        <MaterialIcons
+          size={30}
+          color={messageLength ? theme.colors.primary : "grey"}
+          name={"send"}
+        />
+      </Send>
+    );
+  }, []);
+
+  // Custom Actions component for image picker
+  const renderActions = useCallback(
+    (props) => {
+      return (
+        <Actions
+          {...props}
+          containerStyle={{
+            width: 44,
+            height: 44,
+            alignItems: "center",
+            justifyContent: "center",
+            marginLeft: 4,
+            marginRight: 4,
+            marginBottom: 0,
+          }}
+          icon={() => (
+            <Ionicons name="camera" size={24} color={theme.colors.primary} />
+          )}
+          onPressActionButton={async () => {
+            const messages = await handleImagePick();
+            if (messages.length > 0) {
+              // show message in chat immediately
+              setMessages((previousMessages) =>
+                GiftedChat.append(previousMessages, messages)
+              );
+              // upload image + send to Firestore
+              await onSend(messages);
+            }
+          }}
+        />
+      );
+    },
+    [onSend]
+  ); // 💡 include onSend in dependencies
+
+  const CustomInputToolbar = (props) => {
+    return (
+      <View style={styles.inputContainer}>
+        <ScrollView>
+          <InputToolbar
+            {...props}
+            containerStyle={styles.inputToolbar}
+            primaryStyle={{ flex: 1 }}
+            renderSend={() => <View />}
+            renderActions={renderActions}
+          />
+        </ScrollView>
+        {renderSend(props)}
+      </View>
+    );
+  };
+
+  const renderMessageImage = (props) => {
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          setSelectedImage([{ uri: props.currentMessage.image }]);
+          setImageViewerVisible(true);
+        }}
+      >
+        <Image
+          source={{ uri: props.currentMessage.image }}
+          style={{ width: 200, height: 200, borderRadius: 10 }}
+          resizeMode="cover"
+        />
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -447,14 +632,22 @@ const ChatDisplay = ({ route, navigation }) => {
         >
           Chat
         </Text>
-        <Text>Profile</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("ProfileDisplay", { allData })}
+        >
+          <Text>Profile</Text>
+        </TouchableOpacity>
       </View>
       <GestureHandlerRootView>
         <GestureDetector gesture={swipeGesture}>
           <GiftedChat
             //key={messages.length}
+            // renderSend={renderSend}
             disableComposer={allData.isDeleted}
+            renderInputToolbar={(props) => <CustomInputToolbar {...props} />}
+            alwaysShowSend={false}
             keyboardShouldPersistTaps="handled"
+            renderMessageImage={renderMessageImage}
             renderAvatar={null}
             messages={messages}
             onSend={(messages) => onSend(messages)}
@@ -516,11 +709,34 @@ const ChatDisplay = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+      <ImageView
+        images={selectedImage || []}
+        imageIndex={0}
+        visible={imageViewerVisible}
+        onRequestClose={() => setImageViewerVisible(false)}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  inputContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    alignItems: "center",
+    maxHeight: 120,
+  },
+  inputToolbar: {
+    flex: 1,
+    marginRight: 1,
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    borderRadius: theme.borderRadius.lg,
+    minHeight: 44, // Ensure minimum height
+    maxHeight: "auto",
+    // overflow: "hidden",
+  },
   container: {
     flex: 1,
   },

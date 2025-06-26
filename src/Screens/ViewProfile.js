@@ -69,7 +69,13 @@ const ViewProfile = ({ route, navigation }) => {
           backgroundColor: theme.colors.background,
         }}
       >
-        <Text>Chat</Text>
+        <TouchableOpacity
+          onPress={() => {
+            navigation.goBack();
+          }}
+        >
+          <Text>Chat</Text>
+        </TouchableOpacity>
         <Text
           style={{
             fontWeight: "bold",

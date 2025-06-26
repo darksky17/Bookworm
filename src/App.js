@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
 import PhoneauthScreen from "./Screens/PhoneauthScreen";
 import Userdetails1 from "./Screens/Userdetails1";
 import Userdetails2 from "./Screens/Userdetails2";
@@ -14,7 +13,6 @@ import { store } from "./redux/store";
 import SignupScreen from "./Screens/SignupScreen";
 import EditProfileScreen from "./Screens/EditProfileScreen";
 import { db, auth, doc, getDoc, updateDoc } from "./Firebaseconfig";
-// import { doc, getDoc, updateDoc } from "@react-native-firebase/firestore";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 import { PaperProvider, Button } from "react-native-paper";
@@ -31,12 +29,28 @@ import { setNotificationPref } from "./redux/userSlice";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { signOut, onAuthStateChanged } from "@react-native-firebase/auth";
+import theme from "./design-system/theme/theme";
+import { APP_VERSION } from "./constants/api";
+import {
+  SERVER_URL,
+  PRIVACY_POLICY,
+  TERMS_N_CONDITIONS,
+} from "./constants/api";
+import axios from "axios";
+import { Modal, Linking } from "react-native";
 
 function HomeScreen({ navigation }) {
   return (
     <View
-      style={{ flex: 1, gap: 20, padding: 20, backgroundColor: "lightgreen" }}
+      style={{
+        flex: 1,
+        gap: 20,
+        padding: 20,
+        paddingTop: 50,
+        backgroundColor: "lightgreen",
+      }}
     >
+      <StatusBar backgroundColor="lightgreen" barStyle="dark-content" />
       {/* <Text style={{ fontSize: 40, color: "darkgreen" }}>BookWorm</Text> */}
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Image
@@ -53,7 +67,7 @@ function HomeScreen({ navigation }) {
           mode="contained"
           onPress={() => navigation.replace("Phoneauth")}
           style={{ backgroundColor: "snow" }}
-          textColor="brown"
+          textColor={theme.colors.text}
         >
           Get Started
         </Button>
@@ -64,14 +78,39 @@ function HomeScreen({ navigation }) {
             signOut(auth).then(() => console.log("User signed out!"))
           }
           style={{ backgroundColor: "snow" }}
-          textColor="brown"
+          textColor={theme.colors.text}
         >
           Logout
         </Button>
       </View>
-      <View style={{ alignItems: "center", justifyContent: "flex-start" }}>
+      <View
+        style={{ alignItems: "center", justifyContent: "flex-start", gap: 12 }}
+      >
         <Text style={{ fontWeight: "bold" }}>
           Made with <Ionicons name="heart" size={16} color="red" /> by Soraaa
+        </Text>
+        <Text
+          style={{
+            fontSize: 7,
+            color: theme.colors.text,
+            fontWeight: "bold",
+          }}
+        >
+          By proceeding, you agree to{" "}
+          <Text
+            style={{ color: "blue", textDecorationLine: "underline" }}
+            onPress={() => Linking.openURL(PRIVACY_POLICY)}
+          >
+            Privacy Policy
+          </Text>{" "}
+          and{" "}
+          <Text
+            style={{ color: "blue", textDecorationLine: "underline" }}
+            onPress={() => Linking.openURL(TERMS_N_CONDITIONS)}
+          >
+            Terms & Conditions
+          </Text>{" "}
+          for using BookWorm.
         </Text>
       </View>
     </View>
@@ -80,6 +119,8 @@ function HomeScreen({ navigation }) {
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
+  const [openModal, setOpenModal] = useState(false);
+  const [downloadlink, setDownloadLink] = useState(null);
   const notificationPref = useSelector((state) => state.user.notificationpref);
   console.log("WALAAALLALALAAL", notificationPref);
   const dispatch = useDispatch();
@@ -87,6 +128,30 @@ const AppNavigator = () => {
   const [initialRoute, setInitialRoute] = useState("Home");
   const [user, setUser] = useState();
   const [notificationPrefReady, setNotificationPrefReady] = useState(false);
+
+  const checkForUpdates = async () => {
+    try {
+      // Check version from your server
+      console.log("I did run");
+      const response = await fetch(`${SERVER_URL}/version-check`);
+      const { version, updatelink } = await response.json();
+
+      console.log("Here is the version", version);
+      console.log("And the update link", updatelink);
+
+      if (version !== APP_VERSION) {
+        // Get APK download URL from Firebase Storage
+
+        setDownloadLink(updatelink);
+        setOpenModal(true);
+      }
+    } catch (error) {
+      console.log("Update check failed:", error);
+    }
+  };
+  useEffect(() => {
+    checkForUpdates();
+  }, []);
   useEffect(() => {
     if (notificationPref !== true) {
       console.log("🚫 Notification disabled or not loaded yet");
@@ -187,10 +252,59 @@ const AppNavigator = () => {
       </View>
     );
   }
-
+  if (openModal) {
+    return (
+      <Modal visible transparent animationType="slide">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              padding: 20,
+              borderRadius: 10,
+              width: "80%",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "bold",
+                marginBottom: 15,
+                textAlign: "center",
+              }}
+            >
+              Update Required
+            </Text>
+            <Text style={{ textAlign: "center", marginBottom: 20 }}>
+              A new version of the app is available. You must update to
+              continue.
+            </Text>
+            <Button
+              mode="contained"
+              onPress={() => {
+                Linking.openURL(downloadlink);
+              }}
+            >
+              Update Now
+            </Button>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
   return (
     <NavigationContainer>
-      <StatusBar backgroundColor="transparent" barStyle="dark-content" />
+      <StatusBar
+        backgroundColor={theme.colors.background}
+        barStyle="dark-content"
+      />
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
         initialRouteName={initialRoute}

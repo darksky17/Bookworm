@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Alert,
   Dimensions,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useDispatch, useSelector } from "react-redux";
@@ -25,7 +27,7 @@ const AddPhotosScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const userId = auth.currentUser.uid;
-
+  const [isLoading, setIsLoading] = useState(false);
   const initialPhotos = globalSelected.photos
     .slice(0, 6)
     .map((uri, index) => ({ key: `${index}`, uri }));
@@ -160,6 +162,7 @@ const AddPhotosScreen = ({ navigation }) => {
     }
 
     try {
+      setIsLoading(true);
       const newPhotos = photoUris.filter((uri) => !tempphotos.includes(uri));
       const photoUrls = [...photoUris];
 
@@ -180,9 +183,11 @@ const AddPhotosScreen = ({ navigation }) => {
       );
 
       dispatch(setPhotos(photoUrls));
+      setIsLoading(false);
       await updateDoc(userDocRef, { step2Completed: true });
       navigation.replace("MainTabs");
     } catch (error) {
+      setIsLoading(false);
       console.error("Error saving user data to Firestore:", error);
       Alert.alert(
         "Error",
@@ -196,6 +201,14 @@ const AddPhotosScreen = ({ navigation }) => {
     marginRight: (index + 1) % numColumns === 0 ? 0 : itemSpacing,
     marginBottom: 15,
   });
+
+  // if (isLoading) {
+  //   return (
+  //     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+  //       <ActivityIndicator size="large" color="#0000ff" />
+  //     </View>
+  //   );
+  // }
 
   return (
     <View
@@ -297,6 +310,7 @@ const AddPhotosScreen = ({ navigation }) => {
           textColor={theme.colors.text}
           mode="contained"
           onPress={handleSave}
+          disabled={isLoading}
         >
           Save Changes
         </Button>
@@ -309,6 +323,18 @@ const AddPhotosScreen = ({ navigation }) => {
           Cancel
         </Button>
       </View>
+      <Modal visible={isLoading} transparent>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </Modal>
     </View>
   );
 };
