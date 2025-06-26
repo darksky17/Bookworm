@@ -296,10 +296,20 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.unmatchModal}>
             <Text>Are you sure you want to Logout?</Text>
             <View style={{ flexDirection: "row", gap: 30 }}>
-              <Button mode="contained" onPress={handleLogout}>
+              <Button
+                buttonColor={theme.colors.primary}
+                textColor={theme.colors.text}
+                mode="contained"
+                onPress={handleLogout}
+              >
                 <Text>Yes</Text>
               </Button>
-              <Button mode="contained" onPress={() => setLogoutModal(false)}>
+              <Button
+                buttonColor={theme.colors.primary}
+                textColor={theme.colors.text}
+                mode="contained"
+                onPress={() => setLogoutModal(false)}
+              >
                 <Text>No</Text>
               </Button>
             </View>
@@ -433,13 +443,13 @@ const styles = StyleSheet.create({
   },
   closeModalButton: {
     marginTop: 10,
-    backgroundColor: "#2d98da",
+    backgroundColor: theme.colors.primary,
     paddingVertical: 5,
     paddingHorizontal: 20,
     borderRadius: 5,
   },
   closeModalText: {
-    color: "#fff",
+    color: theme.colors.text,
     fontWeight: "bold",
   },
 });

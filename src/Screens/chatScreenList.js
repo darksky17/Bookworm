@@ -12,6 +12,7 @@ import {
   flex,
   Pressable,
   Image,
+  ActivityIndicator,
 } from "react-native";
 
 import { auth } from "../Firebaseconfig";
@@ -192,7 +193,7 @@ const ChatScreenList = ({ navigation }) => {
   if (initializing) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color={theme.colors.secondary} />
       </View>
     );
   }

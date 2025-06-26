@@ -325,7 +325,7 @@ const MatchScreen = ({ navigation }) => {
             }}
           >
             <FlatList
-              data={matches}
+              data={matches.slice(0, 5)}
               keyExtractor={(item) => item.uid}
               numColumns={1}
               contentContainerStyle={styles.matchList}

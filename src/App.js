@@ -37,7 +37,7 @@ import {
   TERMS_N_CONDITIONS,
 } from "./constants/api";
 import axios from "axios";
-import { Modal, Linking } from "react-native";
+import { Modal, Linking, ActivityIndicator } from "react-native";
 
 function HomeScreen({ navigation }) {
   return (
@@ -248,7 +248,7 @@ const AppNavigator = () => {
   if (initializing) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color={theme.colors.secondary} />
       </View>
     );
   }
