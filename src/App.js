@@ -72,7 +72,7 @@ function HomeScreen({ navigation }) {
           Get Started
         </Button>
 
-        <Button
+        {/* <Button
           mode="contained"
           onPress={() =>
             signOut(auth).then(() => console.log("User signed out!"))
@@ -81,7 +81,7 @@ function HomeScreen({ navigation }) {
           textColor={theme.colors.text}
         >
           Logout
-        </Button>
+        </Button> */}
       </View>
       <View
         style={{ alignItems: "center", justifyContent: "flex-start", gap: 12 }}
