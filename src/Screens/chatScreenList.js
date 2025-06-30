@@ -13,6 +13,7 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 
 import { auth } from "../Firebaseconfig";
@@ -24,9 +25,15 @@ import { Platform } from "react-native";
 import { getVersion, getApiLevel } from "react-native-device-info";
 import { SERVER_URL } from "../constants/api";
 import theme from "../design-system/theme/theme";
+import {
+  verticalScale,
+  moderateScale,
+  horizontalScale,
+} from "../design-system/theme/scaleUtils";
 
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
+  const gender = useSelector((state) => state.user.gender);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [initializing, setInitializing] = useState(true);
 
@@ -135,7 +142,7 @@ const ChatScreenList = ({ navigation }) => {
           style={{
             display: "flex",
             justifyContent: "flex-end",
-            marginLeft: 10,
+            marginLeft: horizontalScale(10),
           }}
         >
           <Feather name="chevrons-up" size={24} color="limegreen" />
@@ -204,8 +211,8 @@ const ChatScreenList = ({ navigation }) => {
       {pause && (
         <View
           style={{
-            paddingTop: theme.spacing.sm,
-            paddingHorizontal: theme.spacing.sm,
+            paddingTop: theme.spacing.vertical.sm,
+            paddingHorizontal: theme.spacing.horizontal.sm,
           }}
         >
           <Text
@@ -221,137 +228,192 @@ const ChatScreenList = ({ navigation }) => {
         </View>
       )}
 
-      <View style={{ flex: 1, paddingTop: theme.spacing.xs }}>
+      {chats.length === 0 ? (
         <View
           style={{
-            flexDirection: "row",
-            gap: 10,
-            paddingVertical: theme.spacing.md,
-            justifyContent: "space-evenly",
+            flex: 1,
+            paddingTop: theme.spacing.vertical.xl,
+            alignItems: "center",
           }}
         >
-          {filters.map((filter) => (
-            <TouchableOpacity
-              key={filter}
-              onPress={() => toggleFilter(filter)}
+          <View
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              gap: verticalScale(70),
+            }}
+          >
+            <Text
               style={{
-                paddingVertical: theme.spacing.xs,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.borderRadius.lg,
-                backgroundColor:
-                  activeFilters.has(filter) ||
-                  (filter === "All" && activeFilters.size === 0)
-                    ? "limegreen"
-                    : "lightgray",
+                color: theme.colors.text,
+                fontSize: theme.fontSizes.medium,
+                fontWeight: "bold",
               }}
             >
-              <Text
+              You have no chats as now. How about you read a book?
+            </Text>
+            <Animated.View>
+              {gender == "male" ? (
+                <Image
+                  source={require("../assets/nochats_boy.gif")}
+                  style={{
+                    width: horizontalScale(230),
+                    height: verticalScale(300),
+                    borderRadius: theme.borderRadius.sm,
+                  }}
+                />
+              ) : (
+                <Image
+                  source={require("../assets/nochats_girl.gif")}
+                  style={{
+                    width: horizontalScale(230),
+                    height: verticalScale(300),
+                    borderRadius: theme.borderRadius.sm,
+                  }}
+                />
+              )}
+            </Animated.View>
+          </View>
+        </View>
+      ) : (
+        <View style={{ flex: 1, paddingTop: theme.spacing.vertical.xs }}>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 10,
+              paddingVertical: theme.spacing.vertical.md,
+              justifyContent: "space-evenly",
+            }}
+          >
+            {filters.map((filter) => (
+              <TouchableOpacity
+                key={filter}
+                onPress={() => toggleFilter(filter)}
                 style={{
-                  color: theme.colors.text,
-                  fontFamily: theme.fontFamily.regular,
+                  paddingVertical: theme.spacing.vertical.xs,
+                  paddingHorizontal: theme.spacing.horizontal.md,
+                  borderRadius: theme.borderRadius.lg,
+                  backgroundColor:
+                    activeFilters.has(filter) ||
+                    (filter === "All" && activeFilters.size === 0)
+                      ? "limegreen"
+                      : "lightgray",
                 }}
               >
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <FlatList
-          style={styles.chatListContainer}
-          data={getFilteredChats()}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.chatlistbg}>
-              <View style={styles.chatRow}>
-                <View
+                <Text
                   style={{
-                    flexDirection: "row",
-                    flexShrink: 1,
-                    flexGrow: 1,
-                    alignItems: "center",
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.regular,
                   }}
                 >
-                  <InitialIcon
-                    ascended={item.ascended}
-                    photo={item.photos?.[0]}
-                    initials={item.displayName?.[0]}
-                  />
-
-                  <Pressable
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <FlatList
+            style={styles.chatListContainer}
+            data={getFilteredChats()}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.chatlistbg}>
+                <View style={styles.chatRow}>
+                  <View
                     style={{
-                      paddingLeft: theme.spacing.xs,
+                      flexDirection: "row",
                       flexShrink: 1,
                       flexGrow: 1,
+                      alignItems: "center",
                     }}
-                    onPress={() =>
-                      navigation.navigate("ChatDisplay", { allData: item })
-                    }
                   >
-                    <View style={{ flexShrink: 1, flexGrow: 1, gap: 5 }}>
-                      <Text style={styles.chatText}>
-                        {item.ascended ? item.name : item.displayName}
-                      </Text>
-                      {item.latestMessage ? (
-                        <Text
-                          style={{
-                            fontSize: theme.fontSizes.small,
-                            color: "gray",
-                            fontWeight: "bold",
-                            flexShrink: 1,
-                            flexGrow: 1,
-                            overflow: "hidden",
-                            paddingLeft: theme.spacing.sm,
-                          }}
-                          numberOfLines={1}
-                          ellipsizeMode="tail"
-                        >
-                          {item.latestMessage}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </Pressable>
-                </View>
+                    <InitialIcon
+                      ascended={item.ascended}
+                      photo={item.photos?.[0]}
+                      initials={item.displayName?.[0]}
+                    />
 
-                {/* RIGHT SIDE */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginLeft: 10,
-                  }}
-                >
-                  {item.unreadCount > 0 && (
-                    <View
+                    <Pressable
                       style={{
-                        backgroundColor: "green",
-                        borderRadius: 10,
-                        minWidth: 20,
-                        paddingHorizontal: 6,
-                        paddingVertical: 2,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginRight: 5,
+                        paddingLeft: theme.spacing.horizontal.xs,
+                        flexShrink: 1,
+                        flexGrow: 1,
                       }}
+                      onPress={() =>
+                        navigation.navigate("ChatDisplay", { allData: item })
+                      }
                     >
-                      <Text
+                      <View
                         style={{
-                          color: "white",
-                          fontWeight: "bold",
-                          fontSize: theme.fontSizes.small,
+                          flexShrink: 1,
+                          flexGrow: 1,
+                          gap: verticalScale(5),
                         }}
                       >
-                        {item.unreadCount}
-                      </Text>
-                    </View>
-                  )}
-                  <AscendIcon value={item.ascended} />
+                        <Text style={styles.chatText}>
+                          {item.ascended ? item.name : item.displayName}
+                        </Text>
+                        {item.latestMessage ? (
+                          <Text
+                            style={{
+                              fontSize: theme.fontSizes.small,
+                              color: "gray",
+                              fontWeight: "bold",
+                              flexShrink: 1,
+                              flexGrow: 1,
+                              overflow: "hidden",
+                              paddingLeft: theme.spacing.horizontal.sm,
+                            }}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {item.latestMessage}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  </View>
+
+                  {/* RIGHT SIDE */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginLeft: horizontalScale(10),
+                    }}
+                  >
+                    {item.unreadCount > 0 && (
+                      <View
+                        style={{
+                          backgroundColor: "green",
+                          borderRadius: moderateScale(10),
+                          minWidth: horizontalScale(20),
+                          paddingHorizontal: horizontalScale(6),
+                          paddingVertical: verticalScale(2),
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: horizontalScale(5),
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "white",
+                            fontWeight: "bold",
+                            fontSize: theme.fontSizes.small,
+                          }}
+                        >
+                          {item.unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                    <AscendIcon value={item.ascended} />
+                  </View>
                 </View>
               </View>
-            </View>
-          )}
-          contentContainerStyle={{ gap: 1 }}
-        />
-      </View>
+            )}
+            contentContainerStyle={{ gap: 1 }}
+          />
+        </View>
+      )}
     </Container>
   );
 };
@@ -367,7 +429,7 @@ const styles = StyleSheet.create({
   },
 
   chatlistbg: {
-    padding: theme.spacing.md,
+    padding: theme.spacing.horizontal.md,
   },
 
   chatRow: {
@@ -382,7 +444,7 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSizes.medium,
     fontFamily: theme.fontFamily.bold,
     fontWeight: "bold",
-    paddingLeft: theme.spacing.sm,
+    paddingLeft: theme.spacing.horizontal.sm,
   },
 });
 export default ChatScreenList;

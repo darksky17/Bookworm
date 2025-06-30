@@ -1,32 +1,22 @@
 import React, { useEffect, useState, useRef } from "react";
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  Modal,
-  Alert,
-  TextInput,
-} from "react-native";
-import { db } from "../Firebaseconfig";
+import { View, Text, Image, StyleSheet } from "react-native";
+import { db, auth } from "../Firebaseconfig";
 import moment from "moment";
-import auth from "@react-native-firebase/auth";
+
 import { useSelector, useDispatch } from "react-redux";
 import { setUserState, setAgeRange, setDistance } from "../redux/userSlice";
 import Slider from "@react-native-community/slider";
-import {
-  onSnapshot,
-  doc,
-  deleteDoc,
-  updateDoc,
-} from "@react-native-firebase/firestore";
+import { doc, updateDoc } from "@react-native-firebase/firestore";
 import RangeSlider from "../components/Slider";
 import Header from "../components/Header";
 import { Button } from "react-native-paper";
 import theme from "../design-system/theme/theme";
 import Container from "../components/Container";
+import {
+  verticalScale,
+  horizontalScale,
+  moderateScale,
+} from "../design-system/theme/scaleUtils";
 const AccountSettings = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
 
@@ -41,7 +31,7 @@ const AccountSettings = ({ navigation }) => {
   const handleSave = async () => {
     dispatch(setAgeRange({ min: localMin, max: localMax }));
 
-    await updateDoc(doc(db, "Users", auth().currentUser.uid), {
+    await updateDoc(doc(db, "Users", auth.currentUser.uid), {
       ageMin: localMin,
       ageMax: localMax,
       distance: value,
@@ -61,22 +51,24 @@ const AccountSettings = ({ navigation }) => {
       <View
         style={{
           padding: 20,
-          paddingTop: 25,
-          gap: 40,
+          paddingTop: verticalScale(25),
+          gap: verticalScale(40),
           backgroundColor: theme.colors.background,
         }}
       >
-        <View style={{ gap: 20 }}>
-          <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+        <View style={{ gap: verticalScale(20) }}>
+          <Text style={{ fontWeight: "bold", fontSize: moderateScale(18) }}>
             How old should your new friend be?
           </Text>
           <View style={styles.chipContainer}>
             <View
               style={{
-                paddingHorizontal: 10,
+                paddingHorizontal: horizontalScale(10),
               }}
             >
-              <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+              <Text
+                style={{ fontWeight: "bold", fontSize: theme.fontSizes.medium }}
+              >
                 Between {localMin} and {localMax}
               </Text>
             </View>
@@ -88,17 +80,19 @@ const AccountSettings = ({ navigation }) => {
             />
           </View>
         </View>
-        <View style={{ gap: 20 }}>
-          <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+        <View style={{ gap: verticalScale(20) }}>
+          <Text style={{ fontWeight: "bold", fontSize: moderateScale(18) }}>
             How close do you want them to yourself?
           </Text>
           <View style={styles.chipContainer}>
             <View
               style={{
-                paddingHorizontal: 10,
+                paddingHorizontal: horizontalScale(10),
               }}
             >
-              <Text style={{ fontWeight: "bold", fontSize: 16 }}>
+              <Text
+                style={{ fontWeight: "bold", fontSize: theme.fontSizes.medium }}
+              >
                 Upto {Myuser.distance} Kilometers away
               </Text>
             </View>
@@ -129,7 +123,7 @@ const AccountSettings = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "column",
-    gap: 80,
+    gap: verticalScale(80),
   },
   sliderRow: {
     flexDirection: "row",
@@ -142,151 +136,20 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     textAlign: "center",
-    marginBottom: 5,
+    marginBottom: verticalScale(5),
   },
   slider: {
     width: "100%",
-    height: 40,
+    height: verticalScale(40),
   },
 
   chipContainer: {
     flexDirection: "column",
     borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 20,
-    gap: 20,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loaderText: {
-    fontSize: 18,
-    color: "#555",
-  },
-  unmatchModal: {
-    padding: 20,
-    gap: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "snow",
-    elevation: 3,
-    borderRadius: 10,
-  },
-  profileHeader: {
-    flexDirection: "row",
-    gap: 15,
-    backgroundColor: "#ffffff",
-    padding: 15,
-    borderRadius: 10,
-    elevation: 3,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  placeholderProfileImage: {
-    width: 100,
-    height: 100,
-    backgroundColor: "#dfe4ea",
-    borderRadius: 50,
-  },
-  placeholderText: {
-    color: "#7f8c8d",
-    fontSize: 16,
-  },
-  nameText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#2d3436",
-  },
-  ageText: {
-    fontSize: 18,
-    color: "#636e72",
-  },
-  genderText: {
-    fontSize: 18,
-    color: "#636e72",
-    marginTop: 5,
-  },
-  section: {
-    flexDirection: "column",
-    backgroundColor: "#ffffff",
-    gap: 25,
-    borderRadius: 10,
-    padding: 10,
-    paddingTop: 20,
-    paddingBottom: 30,
-  },
-  sectionHeader: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#2d3436",
-  },
-  infoText: {
-    fontSize: 16,
-    color: "#2d3436",
-  },
-  photo: {
-    width: 100,
-    height: 100,
-    marginRight: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#dfe6e9",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 30,
-  },
-  button: {
-    backgroundColor: "#2d98da",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    elevation: 3,
-  },
-  logoutButton: {
-    backgroundColor: "#eb4d4b",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  modalImage: {
-    width: 300,
-    height: 300,
-    borderRadius: 10,
-  },
-  closeModalButton: {
-    marginTop: 10,
-    backgroundColor: "#2d98da",
-    paddingVertical: 5,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  closeModalText: {
-    color: "#fff",
-    fontWeight: "bold",
+    borderRadius: moderateScale(20),
+    paddingHorizontal: horizontalScale(15),
+    paddingVertical: verticalScale(20),
+    gap: verticalScale(20),
   },
 });
 

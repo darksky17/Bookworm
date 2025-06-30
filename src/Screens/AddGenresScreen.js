@@ -13,6 +13,11 @@ import { MultiSelect } from "react-native-element-dropdown";
 
 import { Button } from "react-native-paper";
 import theme from "../design-system/theme/theme";
+import {
+  verticalScale,
+  horizontalScale,
+  moderateScale,
+} from "../design-system/theme/scaleUtils";
 
 const genres = [
   "Fiction",
@@ -156,11 +161,11 @@ const AddGenresScreen = ({ navigation }) => {
               backgroundColor: "white",
               flex: 1,
 
-              borderRadius: 12,
+              borderRadius: moderateScale(12),
               borderWidth: 1,
               borderColor: "#ddd",
               padding: 5,
-              marginTop: 5,
+              marginTop: verticalScale(5),
             }}
             renderItem={(item, selected) => (
               <View
@@ -178,7 +183,9 @@ const AddGenresScreen = ({ navigation }) => {
             )}
             selectedStyle={styles.selectedItem}
             flatListProps={{
-              ItemSeparatorComponent: () => <View style={{ height: 15 }} />,
+              ItemSeparatorComponent: () => (
+                <View style={{ height: verticalScale(15) }} />
+              ),
             }}
           />
 
@@ -211,7 +218,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    gap: 30,
+    gap: verticalScale(30),
     backgroundColor: theme.colors.background,
   },
   itemContainer: {
@@ -226,11 +233,11 @@ const styles = StyleSheet.create({
   },
 
   dropdown: {
-    height: 55,
+    height: verticalScale(55),
     borderColor: "#888",
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 15,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: horizontalScale(15),
     backgroundColor: "#fafafa",
     shadowColor: "#000",
     shadowOpacity: 0.1,
@@ -241,20 +248,21 @@ const styles = StyleSheet.create({
 
   dropdownList: {
     backgroundColor: "green",
-    borderRadius: 12,
+    borderRadius: moderateScale(12),
     borderWidth: 1,
     borderColor: "#ddd",
-    maxHeight: 250,
-    paddingVertical: 5,
-    marginTop: 5,
+    maxHeight: verticalScale(250),
+    paddingVertical: verticalScale(5),
+    marginTop: verticalScale(5),
   },
 
   selectedItem: {
-    backgroundColor: "#4caf50",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    marginTop: 20,
+    backgroundColor: theme.colors.secondary,
+
+    borderRadius: moderateScale(20),
+    paddingHorizontal: horizontalScale(15),
+    paddingVertical: verticalScale(5),
+    marginTop: verticalScale(20),
   },
   selectedItemList: {
     flex: 1,
@@ -262,7 +270,7 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: "green",
 
-    borderRadius: 8,
+    borderRadius: moderateScale(8),
 
     borderWidth: 1,
     borderColor: "#eee",
@@ -271,7 +279,7 @@ const styles = StyleSheet.create({
   selectedText: {
     color: "white",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: moderateScale(14),
   },
 
   buttonContainer: {

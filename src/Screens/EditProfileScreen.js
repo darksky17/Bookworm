@@ -23,6 +23,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Button } from "react-native-paper";
 import theme from "../design-system/theme/theme";
+import {
+  verticalScale,
+  horizontalScale,
+  moderateScale,
+} from "../design-system/theme/scaleUtils";
 
 const EditProfileScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
@@ -142,10 +147,10 @@ const EditProfileScreen = ({ navigation }) => {
                   size={37}
                   color="green"
                   style={{
-                    marginTop: -30,
-                    marginLeft: 60,
+                    marginTop: verticalScale(-30),
+                    marginLeft: horizontalScale(60),
                     backgroundColor: "white",
-                    borderRadius: 1000,
+                    borderRadius: moderateScale(1000),
                   }}
                 />
               </TouchableOpacity>
@@ -156,7 +161,7 @@ const EditProfileScreen = ({ navigation }) => {
             <InfoRow label="Gender" value={globalSelected.gender} />
             <InfoRow label="Date of Birth" value={globalSelected.dateOfBirth} />
 
-            <View style={{ gap: 30 }}>
+            <View style={{ gap: verticalScale(30) }}>
               <View style={styles.chipContainer}>
                 <TouchableOpacity
                   onPress={() => navigation.navigate("AddAuthors")}
@@ -165,7 +170,7 @@ const EditProfileScreen = ({ navigation }) => {
                     style={{
                       flexDirection: "row",
                       justifyContent: "space-between",
-                      paddingHorizontal: 10,
+                      paddingHorizontal: horizontalScale(10),
                     }}
                   >
                     <Text>Your favorite Authors:</Text>
@@ -176,7 +181,7 @@ const EditProfileScreen = ({ navigation }) => {
                 <View
                   style={{
                     flexDirection: "row",
-                    gap: 5,
+                    gap: horizontalScale(5),
                     justifyContent: "flex-start",
                     flexWrap: "wrap",
                   }}
@@ -196,7 +201,7 @@ const EditProfileScreen = ({ navigation }) => {
                     style={{
                       flexDirection: "row",
                       justifyContent: "space-between",
-                      paddingHorizontal: 10,
+                      paddingHorizontal: horizontalScale(10),
                     }}
                   >
                     <Text>Your favorite Genres:</Text>
@@ -207,7 +212,7 @@ const EditProfileScreen = ({ navigation }) => {
                 <View
                   style={{
                     flexDirection: "row",
-                    gap: 5,
+                    gap: horizontalScale(5),
                     justifyContent: "flex-start",
                     flexWrap: "wrap",
                   }}
@@ -224,7 +229,7 @@ const EditProfileScreen = ({ navigation }) => {
                   style={{
                     flexDirection: "row",
                     justifyContent: "space-between",
-                    paddingHorizontal: 10,
+                    paddingHorizontal: horizontalScale(10),
                   }}
                 >
                   <Text>Your Current/Recent Read:</Text>
@@ -235,13 +240,13 @@ const EditProfileScreen = ({ navigation }) => {
                 <View
                   style={{
                     flexDirection: "row",
-                    gap: 5,
+                    gap: horizontalScale(5),
                     justifyContent: "flex-start",
                     flexWrap: "wrap",
                   }}
                 >
                   {choicebook ? (
-                    <View style={{ gap: 20 }}>
+                    <View style={{ gap: verticalScale(20) }}>
                       <TextInput
                         placeholder="Please only mention the name of the Book!"
                         editable
@@ -251,8 +256,8 @@ const EditProfileScreen = ({ navigation }) => {
                         style={{
                           borderColor: "grey",
                           borderWidth: 2,
-                          borderRadius: 10,
-                          paddingHorizontal: 10,
+                          borderRadius: moderateScale(10),
+                          paddingHorizontal: horizontalScale(10),
                         }}
                         value={currentreade}
                         onChangeText={setCurrentRead}
@@ -260,7 +265,7 @@ const EditProfileScreen = ({ navigation }) => {
                       <View
                         style={{
                           flexDirection: "row",
-                          gap: 10,
+                          gap: horizontalScale(10),
                           justifyContent: "space-evenly",
                         }}
                       >
@@ -301,7 +306,7 @@ const EditProfileScreen = ({ navigation }) => {
                   style={{
                     flexDirection: "row",
                     justifyContent: "space-between",
-                    paddingHorizontal: 10,
+                    paddingHorizontal: horizontalScale(10),
                   }}
                 >
                   <Text>Summary of your favorite book:</Text>
@@ -312,13 +317,13 @@ const EditProfileScreen = ({ navigation }) => {
                 <View
                   style={{
                     flexDirection: "row",
-                    gap: 5,
+                    gap: horizontalScale(5),
                     justifyContent: "flex-start",
                     flexWrap: "wrap",
                   }}
                 >
                   {choicesummary ? (
-                    <View style={{ gap: 20 }}>
+                    <View style={{ gap: verticalScale(20) }}>
                       <TextInput
                         placeholder="It would be fun if you let your matches guess what book it is ;)"
                         editable
@@ -330,9 +335,9 @@ const EditProfileScreen = ({ navigation }) => {
                         style={{
                           borderColor: "grey",
                           borderWidth: 2,
-                          borderRadius: 10,
-                          paddingHorizontal: 10,
-                          paddingTop: 10,
+                          borderRadius: moderateScale(10),
+                          paddingHorizontal: horizontalScale(10),
+                          paddingTop: verticalScale(10),
                         }}
                         value={bookSummary}
                         onChangeText={setBooksummary}
@@ -340,7 +345,7 @@ const EditProfileScreen = ({ navigation }) => {
                       <View
                         style={{
                           flexDirection: "row",
-                          gap: 10,
+                          gap: horizontalScale(10),
                           justifyContent: "space-evenly",
                         }}
                       >
@@ -388,29 +393,29 @@ const styles = StyleSheet.create({
   chipContainer: {
     flexDirection: "column",
     borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 20,
-    gap: 10,
+    borderRadius: moderateScale(20),
+    paddingHorizontal: horizontalScale(10),
+    paddingVertical: verticalScale(20),
+    gap: verticalScale(10),
   },
   chip: {
     backgroundColor: "#d1e7dd",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
+    paddingHorizontal: horizontalScale(10),
+    paddingVertical: verticalScale(5),
+    borderRadius: moderateScale(20),
   },
   chipText: {
     color: "#0f5132",
-    fontSize: 14,
+    fontSize: moderateScale(14),
   },
   container: {
     flex: 1,
     flexDirection: "column",
-    gap: 60,
-    borderRadius: 10,
-    marginTop: 80,
-    padding: 10,
-    paddingHorizontal: 20,
+    gap: verticalScale(60),
+    borderRadius: moderateScale(10),
+    marginTop: verticalScale(80),
+    padding: verticalScale(10),
+    paddingHorizontal: horizontalScale(20),
     backgroundColor: theme.colors.background,
   },
 
@@ -418,16 +423,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignContent: "centre",
-    paddingBottom: 10,
+    paddingBottom: verticalScale(10),
     borderBottomColor: "grey",
     borderBottomWidth: 1,
   },
 
   photo: {
-    width: 120,
+    width: horizontalScale(120),
     aspectRatio: 1,
-    borderRadius: 100,
-    marginTop: -70,
+    borderRadius: moderateScale(100),
+    marginTop: verticalScale(-70),
     borderWidth: 3,
     borderColor: "brown",
   },

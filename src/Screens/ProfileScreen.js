@@ -39,7 +39,11 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Header from "../components/Header";
 import theme from "../design-system/theme/theme";
-import { scale } from "../design-system/theme/scaleUtils";
+import {
+  moderateScale,
+  horizontalScale,
+  verticalScale,
+} from "../design-system/theme/scaleUtils";
 const ProfileScreen = ({ navigation }) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false); // Delete confirmation modal
   const [deleteConfirmation, setDeleteConfirmation] = useState(""); // Confirmation text input
@@ -149,12 +153,18 @@ const ProfileScreen = ({ navigation }) => {
         justifyContent: "space-between",
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: horizontalScale(10),
+        }}
+      >
         <Icon name={icon} size={24} color="black" />
         <Text
           style={{
             fontWeight: "bold",
-            fontSize: scale(15),
+            fontSize: moderateScale(15),
             fontFamily: theme.fontFamily.bold,
             color: theme.colors.text,
           }}
@@ -201,9 +211,9 @@ const ProfileScreen = ({ navigation }) => {
         <View
           style={{
             flexDirection: "column",
-            gap: 10,
+            gap: verticalScale(10),
             width: "full",
-            marginTop: 10,
+            marginTop: verticalScale(10),
           }}
         >
           <Text style={styles.nameText}>
@@ -295,7 +305,7 @@ const ProfileScreen = ({ navigation }) => {
         >
           <View style={styles.unmatchModal}>
             <Text>Are you sure you want to Logout?</Text>
-            <View style={{ flexDirection: "row", gap: 30 }}>
+            <View style={{ flexDirection: "row", gap: horizontalScale(30) }}>
               <Button
                 buttonColor={theme.colors.primary}
                 textColor={theme.colors.text}
@@ -377,27 +387,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "snow",
     elevation: 3,
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
   },
   profileHeader: {
     flexDirection: "row",
-    gap: 15,
+    gap: horizontalScale(15),
     padding: 15,
   },
   profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: horizontalScale(100),
+    height: verticalScale(100),
+    borderRadius: moderateScale(50),
   },
   placeholderProfileImage: {
-    width: 100,
-    height: 100,
+    width: horizontalScale(100),
+    height: verticalScale(100),
     backgroundColor: "#dfe4ea",
-    borderRadius: 50,
+    borderRadius: moderateScale(50),
   },
   placeholderText: {
     color: theme.colors.text,
-    fontSize: scale(16),
+    fontSize: moderateScale(16),
   },
   nameText: {
     fontSize: theme.fontSizes.large,
@@ -408,20 +418,11 @@ const styles = StyleSheet.create({
 
   section: {
     flexDirection: "column",
-    gap: 25,
-    borderRadius: 10,
-    padding: 15,
-    paddingTop: 20,
-    paddingBottom: 30,
-  },
-
-  photo: {
-    width: 100,
-    height: 100,
-    marginRight: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#dfe6e9",
+    gap: verticalScale(25),
+    borderRadius: moderateScale(10),
+    paddingHorizontal: horizontalScale(15),
+    paddingTop: verticalScale(20),
+    paddingBottom: verticalScale(30),
   },
 
   modalOverlay: {
@@ -433,20 +434,16 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: "#fff",
     padding: 20,
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     alignItems: "center",
   },
-  modalImage: {
-    width: 300,
-    height: 300,
-    borderRadius: 10,
-  },
+
   closeModalButton: {
-    marginTop: 10,
+    marginTop: verticalScale(10),
     backgroundColor: theme.colors.primary,
-    paddingVertical: 5,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: horizontalScale(20),
+    borderRadius: moderateScale(5),
   },
   closeModalText: {
     color: theme.colors.text,

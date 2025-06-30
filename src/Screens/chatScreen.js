@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -9,6 +15,7 @@ import {
   TouchableHighlight,
   TouchableOpacity,
   Image,
+  Keyboard,
 } from "react-native";
 import { GiftedChat } from "react-native-gifted-chat";
 import * as ImagePicker from "expo-image-picker";
@@ -46,7 +53,11 @@ import {
 import { runOnJS } from "react-native-reanimated";
 import { SERVER_URL } from "../constants/api";
 import theme from "../design-system/theme/theme";
-import { scale } from "../design-system/theme/scaleUtils";
+import {
+  verticalScale,
+  horizontalScale,
+  moderateScale,
+} from "../design-system/theme/scaleUtils";
 import ImageView from "react-native-image-viewing";
 
 const ChatDisplay = ({ route, navigation }) => {
@@ -64,14 +75,36 @@ const ChatDisplay = ({ route, navigation }) => {
   const unsubscribeRef = useRef(null);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
   console.log("THIS IS WHAT I GOT as ALL DATA", allData);
+
+  // Add keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => {
+        setKeyboardVisible(true);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   const toggleMenu = () => {
     setMenuVisible((prev) => !prev); // ✅ This correctly toggles the modal
   };
 
   // Handle image picking (just selection, not sending)
-
   const handleImagePick = async () => {
     try {
       // Ask for permission
@@ -114,6 +147,7 @@ const ChatDisplay = ({ route, navigation }) => {
       return [];
     }
   };
+
   // Fetch or create chat between users
   const getChatId = async () => {
     console.log("Fetching chat ID...");
@@ -149,94 +183,6 @@ const ChatDisplay = ({ route, navigation }) => {
     };
     fetchChatId();
   }, []);
-
-  // Handle sending messages (both text and images)
-  // const onSend = useCallback(
-  //   async (newMessages = []) => {
-  //     if (!chatId || newMessages.length === 0) return;
-
-  //     const message = newMessages[0];
-  //     const messagesRef = collection(db, "Chats", chatId, "messages");
-
-  //     try {
-  //       let imageUrl = null;
-
-  //       // If the message contains an image, upload it
-  //       if (message.image && message.pending) {
-  //         console.log("Uploading image with putFile...");
-  //         const tempMessageId = `${Date.now()}_${Math.random()
-  //           .toString(36)
-  //           .substr(2, 9)}`;
-  //         const imagePath = `images/${chatId}/${tempMessageId}.jpg`;
-  //         const storageRef = storage().ref(imagePath);
-  //         console.log("Storage bucket:", storage().app.options.storageBucket);
-
-  //         try {
-  //           console.log("this is sotorageRef", storageRef);
-  //           console.log("This is image path", message.image);
-  //           await storageRef.putFile(message.image);
-  //           console.log("Upload finished.");
-  //           const imageUrl = await storageRef.getDownloadURL();
-  //           console.log(
-  //             "✅ Image uploaded with putFile to Firebase Storage:",
-  //             imageUrl
-  //           );
-  //           return imageUrl;
-  //         } catch (error) {
-  //           console.error("❌ Upload failed:", error);
-  //           throw error;
-  //         }
-  //       } else if (message.image && !message.pending) {
-  //         // Already uploaded (edge case)
-  //         imageUrl = message.image;
-  //       }
-
-  //       // Prepare Firestore message
-  //       const firestoreMessage = {
-  //         content: message.text || "",
-  //         senderID: userId,
-  //         receiverID: allData.id,
-  //         timestamp: serverTimestamp(),
-  //       };
-
-  //       if (imageUrl) {
-  //         firestoreMessage.image = imageUrl;
-  //       }
-
-  //       // Add to Firestore messages
-  //       await addDoc(messagesRef, firestoreMessage);
-
-  //       const lastMessageText = imageUrl ? "📷 Photo" : message.text;
-
-  //       // Update parent chat doc
-  //       await updateDoc(doc(db, "Chats", chatId), {
-  //         lastMessage: lastMessageText,
-  //         timestamp: serverTimestamp(),
-  //         [`unreadCounts.${allData.id}`]: increment(1),
-  //         lastSenderId: userId,
-  //         messageCount: increment(1),
-  //       });
-
-  //       // Send notification to receiver
-  //       const idToken = await auth.currentUser.getIdToken();
-  //       await fetch(`${SERVER_URL}/send-message-notification`, {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //           Authorization: `Bearer ${idToken}`,
-  //         },
-  //         body: JSON.stringify({
-  //           receiverId: allData.id,
-  //           message: lastMessageText,
-  //         }),
-  //       });
-  //     } catch (error) {
-  //       console.error("❌ Error sending message:", error);
-  //       Alert.alert("Error", "Failed to send message. Please try again.");
-  //     }
-  //   },
-  //   [chatId, userId, allData.id]
-  // );
 
   const onSend = useCallback(
     async (newMessages = []) => {
@@ -523,12 +469,12 @@ const ChatDisplay = ({ route, navigation }) => {
         <Actions
           {...props}
           containerStyle={{
-            width: 44,
-            height: 44,
+            width: horizontalScale(44),
+            height: verticalScale(44),
             alignItems: "center",
             justifyContent: "center",
-            marginLeft: 4,
-            marginRight: 4,
+            marginLeft: horizontalScale(4),
+            marginRight: horizontalScale(4),
             marginBottom: 0,
           }}
           icon={() => (
@@ -551,24 +497,27 @@ const ChatDisplay = ({ route, navigation }) => {
     [onSend]
   ); // 💡 include onSend in dependencies
 
-  const CustomInputToolbar = (props) => {
-    return (
-      <View style={styles.inputContainer}>
-        <ScrollView>
-          <InputToolbar
-            {...props}
-            containerStyle={styles.inputToolbar}
-            primaryStyle={{ flex: 1 }}
-            renderSend={() => <View />}
-            renderActions={renderActions}
-          />
-        </ScrollView>
-        {renderSend(props)}
-      </View>
-    );
-  };
+  const CustomInputToolbar = useCallback(
+    (props) => {
+      return (
+        <View style={styles.inputContainer}>
+          <ScrollView>
+            <InputToolbar
+              {...props}
+              containerStyle={styles.inputToolbar}
+              primaryStyle={{ flex: 1 }}
+              renderSend={() => <View />}
+              renderActions={renderActions}
+            />
+          </ScrollView>
+          {renderSend(props)}
+        </View>
+      );
+    },
+    [renderActions, renderSend]
+  );
 
-  const renderMessageImage = (props) => {
+  const renderMessageImage = useCallback((props) => {
     return (
       <TouchableOpacity
         onPress={() => {
@@ -578,12 +527,42 @@ const ChatDisplay = ({ route, navigation }) => {
       >
         <Image
           source={{ uri: props.currentMessage.image }}
-          style={{ width: 200, height: 200, borderRadius: 10 }}
+          style={{
+            width: horizontalScale(200),
+            height: verticalScale(200),
+            borderRadius: moderateScale(10),
+          }}
           resizeMode="cover"
         />
       </TouchableOpacity>
     );
-  };
+  }, []);
+
+  const renderBubble = useCallback(
+    (props) => (
+      <Bubble
+        {...props}
+        wrapperStyle={{
+          right: { backgroundColor: theme.colors.primary }, // Sent messages (you)
+          left: { backgroundColor: theme.colors.text }, // Received messages (other party)
+        }}
+        textStyle={{
+          right: { color: theme.colors.text },
+          left: { color: theme.colors.background },
+        }}
+      />
+    ),
+    []
+  );
+
+  // Memoize the user object to prevent unnecessary re-renders
+  const user = useMemo(
+    () => ({
+      _id: userId,
+      name: "You",
+    }),
+    [userId]
+  );
 
   return (
     <View style={styles.container}>
@@ -593,7 +572,7 @@ const ChatDisplay = ({ route, navigation }) => {
             name="chevron-back"
             size={24}
             color="black"
-            style={{ left: 5 }}
+            style={{ left: horizontalScale(5) }}
           />
         </TouchableOpacity>
         <Text style={styles.headerText}>
@@ -619,7 +598,7 @@ const ChatDisplay = ({ route, navigation }) => {
           flexDirection: "row",
           justifyContent: "space-evenly",
           alignItems: "flex-end",
-          height: 30,
+          height: verticalScale(30),
           backgroundColor: theme.colors.background,
         }}
       >
@@ -627,7 +606,7 @@ const ChatDisplay = ({ route, navigation }) => {
           style={{
             fontWeight: "bold",
             color: theme.colors.text,
-            fontSize: scale(14),
+            fontSize: moderateScale(14),
           }}
         >
           Chat
@@ -641,39 +620,26 @@ const ChatDisplay = ({ route, navigation }) => {
       <GestureHandlerRootView>
         <GestureDetector gesture={swipeGesture}>
           <GiftedChat
-            //key={messages.length}
-            // renderSend={renderSend}
+            messages={messages}
+            onSend={onSend}
+            user={user}
             disableComposer={allData.isDeleted}
-            renderInputToolbar={(props) => <CustomInputToolbar {...props} />}
+            renderInputToolbar={CustomInputToolbar}
+            renderMessageImage={renderMessageImage}
+            renderBubble={renderBubble}
+            renderAvatar={null}
             alwaysShowSend={false}
             keyboardShouldPersistTaps="handled"
-            renderMessageImage={renderMessageImage}
-            renderAvatar={null}
-            messages={messages}
-            onSend={(messages) => onSend(messages)}
-            user={{
-              _id: userId,
-              name: "You",
-            }}
+            minInputToolbarHeight={44}
+            bottomOffset={0}
+            maxInputLength={1000}
             placeholder={
               allData.isDeleted
-                ? "You cant reply to this chat becuase the user deleted their account"
+                ? "You cant reply to this chat because the user deleted their account"
                 : "Type a message..."
             }
             isAnimated={false}
-            renderBubble={(props) => (
-              <Bubble
-                {...props}
-                wrapperStyle={{
-                  right: { backgroundColor: theme.colors.primary }, // Sent messages (you)  //#90EE90 #32CD32 #0BDA51 #98FB98 #00FF7F
-                  left: { backgroundColor: theme.colors.text }, // Received messages (other party)
-                }}
-                textStyle={{
-                  right: { color: theme.colors.text },
-                  left: { color: theme.colors.background },
-                }}
-              />
-            )}
+            extraData={isKeyboardVisible}
           />
         </GestureDetector>
       </GestureHandlerRootView>
@@ -690,7 +656,7 @@ const ChatDisplay = ({ route, navigation }) => {
               Congratulations! This chat can be ascended, would you like to
               ascend?
             </Text>
-            <View style={{ flexDirection: "row", gap: 15 }}>
+            <View style={{ flexDirection: "row", gap: horizontalScale(15) }}>
               <Pressable
                 disabled={isdisabled}
                 style={[styles.button, styles.buttonClose]}
@@ -722,20 +688,19 @@ const ChatDisplay = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: horizontalScale(8),
+    paddingVertical: verticalScale(6),
     alignItems: "center",
-    maxHeight: 120,
+    maxHeight: verticalScale(120),
   },
   inputToolbar: {
     flex: 1,
-    marginRight: 1,
-    borderTopWidth: 1,
+    marginRight: horizontalScale(1),
+    borderTopWidth: moderateScale(1),
     borderTopColor: "#ddd",
     borderRadius: theme.borderRadius.lg,
-    minHeight: 44, // Ensure minimum height
+    minHeight: verticalScale(44), // Ensure minimum height
     maxHeight: "auto",
-    // overflow: "hidden",
   },
   container: {
     flex: 1,
@@ -743,18 +708,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     backgroundColor: theme.colors.background,
-    height: 60,
+    height: verticalScale(60),
     width: "100%",
     elevation: 4,
     justifyContent: "space-between",
     alignItems: "center",
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingLeft: horizontalScale(10),
+    paddingRight: horizontalScale(10),
   },
   headerText: {
-    marginTop: "30",
     fontWeight: "500",
-    fontSize: scale(25),
+    fontSize: moderateScale(25),
   },
   centeredView: {
     flex: 1,
@@ -764,7 +728,7 @@ const styles = StyleSheet.create({
   modalView: {
     margin: 20,
     backgroundColor: "white",
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     padding: 35,
     alignItems: "center",
     shadowColor: "#000",
@@ -777,7 +741,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   button: {
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     padding: 15,
     elevation: 3,
   },
@@ -793,7 +757,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   modalText: {
-    marginBottom: 15,
+    marginBottom: verticalScale(15),
     textAlign: "center",
   },
 });

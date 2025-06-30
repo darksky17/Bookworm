@@ -1,7 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { setPhoneNumber } from "../redux/userSlice";
-import { Text, View, Alert, TextInput, StyleSheet } from "react-native";
+import {
+  Text,
+  View,
+  Alert,
+  TextInput,
+  StyleSheet,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from "react-native";
 import { Button } from "react-native-paper";
 import auth from "@react-native-firebase/auth"; // Import Firebase auth
 
@@ -11,7 +22,10 @@ import Container from "../components/Container";
 import { SERVER_URL } from "../constants/api";
 import Header from "../components/Header.js";
 import theme from "../design-system/theme/theme.js";
-import { scale } from "../design-system/theme/scaleUtils.js";
+import {
+  moderateScale,
+  verticalScale,
+} from "../design-system/theme/scaleUtils.js";
 
 const PhoneauthScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -19,7 +33,23 @@ const PhoneauthScreen = ({ navigation }) => {
   const [verificationId, setVerificationId] = useState(null);
   const [otp, setOtp] = useState("");
   const [countryCode, setCountryCode] = useState("+91"); // Default to +91
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [reSendOtp, setReSendOtp] = useState(true);
+  const [verifyPressed, setverifyPressed] = useState(false);
+  const [counter, setCounter] = useState(31);
 
+  useEffect(() => {
+    if (counter === 0) {
+      setReSendOtp(true);
+      return;
+    } // stop timer at 0
+
+    const intervalId = setInterval(() => {
+      setCounter((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(intervalId); // cleanup on unmount or reset
+  }, [counter]);
   // Function to handle phone authentication
   const handlePhoneAuth = async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
@@ -27,7 +57,8 @@ const PhoneauthScreen = ({ navigation }) => {
       Alert.alert("Invalid Phone Number", "Please enter a valid phone number.");
       return;
     }
-
+    setCounter(30);
+    setReSendOtp(false);
     const fullPhoneNumber = `${countryCode}${phoneNumber}`;
 
     try {
@@ -42,9 +73,14 @@ const PhoneauthScreen = ({ navigation }) => {
   };
 
   const handleVerifyOtp = async () => {
+    setIsVerifying(true);
+    setverifyPressed(true);
+    // setReSendOtp(false);
+
     if (!verificationId) {
       console.log("No verification ID available");
       Alert.alert("Verification Error", "No verification ID found.");
+      setIsVerifying(false);
       return;
     }
 
@@ -75,14 +111,6 @@ const PhoneauthScreen = ({ navigation }) => {
       const data = await response.json();
 
       const usersRef = collection(db, "Users");
-
-      // const querySnapshot = await fetchUserDataByQuery(
-      //   "Users",
-      //   where("phoneNumber", "==", fullPhoneNumber)
-      // );
-      // console.log(querySnapshot.docs.length);
-
-      // if (!querySnapshot.empty && querySnapshot.docs.length > 0){
 
       if (data.exists) {
         // Existing user
@@ -120,119 +148,139 @@ const PhoneauthScreen = ({ navigation }) => {
       console.error("Error during OTP verification:", error);
       Alert.alert("OTP Verification Error", error.message);
     }
+    setIsVerifying(false);
   };
 
   return (
     <Container>
-      <View
-        style={{
-          flex: 1,
-          padding: theme.spacing.sm,
-          paddingBottom: theme.spacing.xl,
-        }}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 30} // tune if needed
       >
-        <View style={{ flex: 1, gap: 70 }}>
-          <Text
-            style={{
-              fontSize: scale(50),
-              fontWeight: "bold",
-              color: theme.colors.text,
-              fontFamily: theme.fontFamily.bold,
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            contentContainerStyle={{
+              flexGrow: 1,
+              padding: theme.spacing.vertical.sm,
+              paddingBottom: theme.spacing.vertical.xl,
+              justifyContent: "space-between",
             }}
+            keyboardShouldPersistTaps="handled"
           >
-            What's your number?
-          </Text>
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <TextInput
-              style={[styles.input, { flex: 0.125 }]}
-              placeholder="+91"
-              value={countryCode}
-              onChangeText={(text) => {
-                setCountryCode(text);
-              }}
-              keyboardType="phone-pad"
-              maxLength={5}
-            />
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Enter phone number"
-              value={phoneNumber}
-              onChangeText={(text) => {
-                setPhoneNumberState(text);
-              }}
-              keyboardType="phone-pad"
-              maxLength={10}
-            />
-          </View>
-          {verificationId && (
-            <>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter OTP"
-                value={otp}
-                onChangeText={(text) => {
-                  setOtp(text);
+            <View style={{ gap: verticalScale(70) }}>
+              <Text
+                style={{
+                  fontSize: moderateScale(50),
+                  fontWeight: "bold",
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold,
                 }}
-                keyboardType="number-pad"
-                maxLength={6}
-              />
-            </>
-          )}
-        </View>
-        <View style={{ gap: 10 }}>
-          <Button
-            onPress={handlePhoneAuth}
-            disabled={!phoneNumber || phoneNumber.length < 10 || !countryCode}
-            mode="contained"
-            buttonColor={theme.colors.primary}
-            labelStyle={{
-              color: theme.colors.text,
-              fontFamily: theme.fontFamily.bold,
-              fontWeight: "bold",
-            }}
-          >
-            SEND OTP
-          </Button>
+              >
+                What's your number?
+              </Text>
+              <View
+                style={{ flexDirection: "row", gap: theme.spacing.vertical.sm }}
+              >
+                <TextInput
+                  style={[styles.input, { flex: 0.125 }]}
+                  placeholder="+91"
+                  value={countryCode}
+                  onChangeText={(text) => setCountryCode(text)}
+                  keyboardType="phone-pad"
+                  maxLength={5}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Enter phone number"
+                  value={phoneNumber}
+                  onChangeText={(text) => setPhoneNumberState(text)}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                />
+              </View>
+              {verificationId && (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChangeText={(text) => setOtp(text)}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              )}
+            </View>
 
-          {verificationId && (
-            <Button
-              onPress={handleVerifyOtp}
-              mode="contained"
-              disabled={
-                !phoneNumber ||
-                phoneNumber.length < 10 ||
-                !countryCode ||
-                !otp ||
-                otp.length < 6
-              }
-              buttonColor={theme.colors.primary}
-              labelStyle={{
-                color: theme.colors.text,
-                fontFamily: theme.fontFamily.bold,
-                fontWeight: "bold",
-              }}
-            >
-              Verify OTP
-            </Button>
-          )}
-        </View>
-      </View>
+            {/* Action Buttons */}
+            <View style={{ gap: theme.spacing.vertical.sm }}>
+              {verifyPressed && (
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontWeight: "bold",
+                    fontSize: theme.fontSizes.small,
+                  }}
+                >
+                  Resend OTP in {counter} seconds
+                </Text>
+              )}
+              <Button
+                onPress={handlePhoneAuth}
+                disabled={
+                  !phoneNumber ||
+                  phoneNumber.length < 10 ||
+                  !countryCode ||
+                  isVerifying ||
+                  !reSendOtp
+                }
+                mode="contained"
+                buttonColor={theme.colors.primary}
+                labelStyle={{
+                  color: theme.colors.text,
+                  fontFamily: theme.fontFamily.bold,
+                  fontWeight: "bold",
+                }}
+              >
+                SEND OTP
+              </Button>
+
+              {verificationId && (
+                <Button
+                  onPress={handleVerifyOtp}
+                  mode="contained"
+                  disabled={
+                    !phoneNumber ||
+                    phoneNumber.length < 10 ||
+                    !countryCode ||
+                    !otp ||
+                    otp.length < 6 ||
+                    isVerifying
+                  }
+                  buttonColor={theme.colors.primary}
+                  labelStyle={{
+                    color: theme.colors.text,
+                    fontFamily: theme.fontFamily.bold,
+                    fontWeight: "bold",
+                  }}
+                >
+                  Verify OTP
+                </Button>
+              )}
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Container>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    flex: 1,
-    justifyContent: "center",
-  },
   input: {
-    padding: 12,
+    padding: moderateScale(12),
     borderWidth: 2,
     borderColor: "black",
-    borderRadius: 15,
-    fontSize: 16,
+    borderRadius: theme.borderRadius.lg,
+    fontSize: theme.fontSizes.medium,
   },
 });
 

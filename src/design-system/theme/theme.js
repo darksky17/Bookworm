@@ -1,4 +1,4 @@
-import { scale } from "./scaleUtils";
+import { horizontalScale, verticalScale, moderateScale } from "./scaleUtils";
 import { Text, View, StatusBar, Image, Platform } from "react-native";
 
 const theme = {
@@ -11,24 +11,34 @@ const theme = {
     error: "#E94E77",
   },
   spacing: {
-    xs: scale(4),
-    sm: scale(8),
-    md: scale(16),
-    lg: scale(24),
-    xl: scale(32),
-    xxl: scale(48),
+    vertical: {
+      xs: verticalScale(4),
+      sm: verticalScale(8),
+      md: verticalScale(16),
+      lg: verticalScale(24),
+      xl: verticalScale(32),
+      xxl: verticalScale(48),
+    },
+    horizontal: {
+      xs: horizontalScale(4),
+      sm: horizontalScale(8),
+      md: horizontalScale(16),
+      lg: horizontalScale(24),
+      xl: horizontalScale(32),
+      xxl: horizontalScale(48),
+    },
   },
   fontSizes: {
-    small: scale(12),
-    medium: scale(16),
-    large: scale(20),
-    xl: scale(24),
-    title: scale(28),
+    small: moderateScale(12),
+    medium: moderateScale(16),
+    large: moderateScale(20),
+    xl: moderateScale(24),
+    title: moderateScale(28),
   },
   borderRadius: {
-    sm: scale(4),
-    md: scale(8),
-    lg: scale(16),
+    sm: moderateScale(4),
+    md: moderateScale(8),
+    lg: moderateScale(16),
   },
   fontFamily: {
     regular: Platform.OS === "ios" ? "Helvetica" : "Roboto",

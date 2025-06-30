@@ -31,6 +31,11 @@ import { GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../constants/api";
 import { Button } from "react-native-paper";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import theme from "../design-system/theme/theme";
+import {
+  moderateScale,
+  verticalScale,
+  horizontalScale,
+} from "../design-system/theme/scaleUtils";
 
 const genres = [
   "Fiction",
@@ -95,8 +100,14 @@ const Userdetails2 = ({ navigation }) => {
   const [bookSummary, setBooksummary] = useState("");
   const [bookOptions, setBookOptions] = useState([]);
   const [showBookModal, setShowBookModal] = useState(false);
+  const [showAuthorModal, setShowAuthorModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [authorSearchQuery, setAuthorSearchQuery] = useState("");
   const [loadingBooks, setLoadingBooks] = useState(false);
+  const [loadingAuthors, setLoadingAuthors] = useState(false);
+  const [filteredGenres, setFilteredGenres] = useState([]);
+  const [genreSearchQuery, setGenreSearchQuery] = useState("");
+  const [showGenreModal, setShowGenreModal] = useState(false);
 
   const fetchBooksWithAuthors = async (query) => {
     if (!query || query.length < 3) {
@@ -145,9 +156,10 @@ const Userdetails2 = ({ navigation }) => {
     }
     setSelectedGenres(selected);
   };
+
   const filterGenres = (query) => {
     if (!query || query.length < 1) {
-      setGenreOptions([]); // or reset to full list if you prefer
+      setGenreOptions([]);
       return;
     }
 
@@ -161,13 +173,65 @@ const Userdetails2 = ({ navigation }) => {
     setGenreOptions(filtered);
   };
 
+  const fetchAuthors = async (query) => {
+    if (!query || query.length < 3) {
+      setAuthorOptions([]);
+      return;
+    }
+
+    setLoadingAuthors(true);
+    try {
+      const response = await fetch(
+        `${GOOGLE_BOOKS_API_URL}?q=inauthor:${encodeURIComponent(
+          query
+        )}&key=${BOOKS_API_KEY}`
+      );
+      const data = await response.json();
+
+      const authorsSet = new Set();
+
+      if (data.items) {
+        data.items.forEach((item) => {
+          const authors = item.volumeInfo.authors || [];
+          authors.forEach((author) => authorsSet.add(author));
+        });
+      }
+
+      const formatted = Array.from(authorsSet).map((author) => ({
+        label: author,
+        value: author,
+      }));
+
+      setAuthorOptions(formatted);
+    } catch (error) {
+      console.error("Error fetching authors:", error);
+      Alert.alert("Error", "Failed to fetch authors. Please try again.");
+    } finally {
+      setLoadingAuthors(false);
+    }
+  };
+
+  const handleAuthorSelection = (author) => {
+    if (selectedAuthors.includes(author)) {
+      // Remove author if already selected
+      setSelectedAuthors(selectedAuthors.filter((a) => a !== author));
+    } else {
+      // Add author if not selected and under limit
+      if (selectedAuthors.length >= 5) {
+        Alert.alert("Limit reached", "You can select up to 5 authors.");
+        return;
+      }
+      setSelectedAuthors([...selectedAuthors, author]);
+    }
+  };
+
   const handleFinish = async () => {
     if (selectedGenres.length < 3) {
       Alert.alert("Error", "Please select at least 3 genres.");
       return;
     }
     if (selectedAuthors.length < 3) {
-      Alert.alert("Error", "Please select atleast 3 authors.");
+      Alert.alert("Error", "Please select at least 3 authors.");
       return;
     }
     if (currentread.length < 1) {
@@ -177,7 +241,7 @@ const Userdetails2 = ({ navigation }) => {
     if (bookSummary.length < 50) {
       Alert.alert(
         "Error",
-        "Please make sure that your book sumamry is atleast 50 charachters long."
+        "Please make sure that your book summary is at least 50 characters long."
       );
       return;
     }
@@ -213,56 +277,47 @@ const Userdetails2 = ({ navigation }) => {
       );
     }
   };
-  const fetchAuthors = async (query) => {
-    if (!query || query.length < 3) return;
 
-    try {
-      const response = await fetch(
-        `${GOOGLE_BOOKS_API_URL}?q=inauthor:${query}&key=${BOOKS_API_KEY}`
-      );
-      const data = await response.json();
-
-      const authorsSet = new Set(selectedAuthors); // preserve current selection
-
-      if (data.items) {
-        data.items.forEach((item) => {
-          const authors = item.volumeInfo.authors || [];
-          authors.forEach((author) => authorsSet.add(author));
-        });
+  const toggleGenreSelection = (genre) => {
+    if (selectedGenres.includes(genre)) {
+      setSelectedGenres(selectedGenres.filter((g) => g !== genre));
+    } else {
+      if (selectedGenres.length >= 5) {
+        Alert.alert("Limit reached", "You can select up to 5 genres.");
+        return;
       }
-
-      const formatted = Array.from(authorsSet).map((author) => ({
-        label: author,
-        value: author,
-      }));
-
-      setAuthorOptions(formatted);
-    } catch (error) {
-      console.error("Error fetching authors:", error);
+      setSelectedGenres([...selectedGenres, genre]);
     }
   };
 
-  const handleAuthorChange = (selected) => {
-    if (selected.length > 5) {
-      Alert.alert("Limit reached", "You can select up to 5 authors.");
-      return setSelectedAuthors([...selectedAuthors]);
-    }
-    setSelectedAuthors(selected);
-    console.log("I rann", selectedAuthors);
+  const openGenreModal = () => {
+    setFilteredGenres(genres);
+    setGenreSearchQuery("");
+    setShowGenreModal(true);
   };
+
+  const closeGenreModal = () => {
+    setShowGenreModal(false);
+    setGenreSearchQuery("");
+    setFilteredGenres([]);
+  };
+
+  // Initialize filtered genres when component mounts
+  useEffect(() => {
+    setFilteredGenres(genres);
+  }, []);
 
   return (
     <KeyboardAwareScrollView
       contentContainerStyle={styles.container}
       enableOnAndroid={true}
-      extraScrollHeight={100} // Increase significantly
+      extraScrollHeight={100}
       keyboardShouldPersistTaps="handled"
       enableAutomaticScroll={true}
       enableResetScrollToCoords={false}
       keyboardOpeningTime={0}
       scrollEnabled={true}
     >
-      {/* Other UI elements */}
       <View style={{ flex: 1 }}>
         <Text style={styles.header}>Complete Your Details</Text>
         <View
@@ -270,102 +325,88 @@ const Userdetails2 = ({ navigation }) => {
             flexDirection: "column",
             flex: 1,
             justifyContent: "space-between",
+            gap: verticalScale(15),
           }}
         >
           <View style={{ gap: 10 }}>
             <Text style={styles.subHeader}>
               Select Your Favorite Genres (max 5):
             </Text>
-            <MultiSelect
-              style={styles.dropdown}
-              data={genres.map((g) => ({ label: g, value: g }))}
-              labelField="label"
-              valueField="value"
-              placeholder="Search and select Genres"
-              search
-              value={selectedGenres}
-              onChange={handleGenreChange}
-              onChangeText={filterGenres}
-              maxSelect={5}
-              selectedTextStyle={styles.selectedText}
-              containerStyle={{
-                backgroundColor: "white",
-                flex: 1,
 
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: "#ddd",
-                padding: 5,
-                marginTop: 5,
-              }}
-              renderItem={(item, selected) => (
-                <View
-                  style={[
-                    styles.itemContainer,
-                    selected && styles.selectedItemList,
-                  ]}
-                >
-                  <Text
-                    style={[styles.itemText, selected && styles.selectedText]}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-              )}
-              selectedStyle={styles.selectedItem}
-              flatListProps={{
-                ItemSeparatorComponent: () => <View style={{ height: 15 }} />,
-              }}
-            />
+            <TouchableOpacity style={styles.dropdown} onPress={openGenreModal}>
+              <Text
+                style={[
+                  styles.dropdownText,
+                  selectedGenres.length === 0 && styles.placeholderText,
+                ]}
+              >
+                {selectedGenres.length > 0
+                  ? `${selectedGenres.length} genre${
+                      selectedGenres.length > 1 ? "s" : ""
+                    } selected`
+                  : "Search and select genres"}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Display selected genres */}
+            {selectedGenres.length > 0 && (
+              <View style={styles.selectedGenresContainer}>
+                {selectedGenres.map((genre, index) => (
+                  <View key={index} style={styles.selectedGenreChip}>
+                    <Text style={styles.selectedGenreText}>{genre}</Text>
+                    <TouchableOpacity
+                      onPress={() => toggleGenreSelection(genre)}
+                      style={styles.removeGenreButton}
+                    >
+                      <Text style={styles.removeGenreButtonText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
+
           <View style={{ gap: 15 }}>
             <Text style={styles.subHeader}>
-              Select Your Favorite Authors (max 5):
+              Select Your Favorite Authors (3-5):
             </Text>
 
-            <MultiSelect
+            <TouchableOpacity
               style={styles.dropdown}
-              data={authorOptions}
-              labelField="label"
-              valueField="value"
-              placeholder="Search and select authors"
-              search
-              value={selectedAuthors}
-              onChange={handleAuthorChange}
-              onChangeText={fetchAuthors} // Key line: fetch authors as user types
-              maxSelect={5}
-              selectedTextStyle={styles.selectedText}
-              dropdownStyle={styles.dropdownList}
-              selectedStyle={styles.selectedItem}
-              containerStyle={{
-                backgroundColor: "white",
-                flex: 1,
+              onPress={() => setShowAuthorModal(true)}
+            >
+              <Text
+                style={[
+                  styles.dropdownText,
+                  selectedAuthors.length === 0 && styles.placeholderText,
+                ]}
+              >
+                {selectedAuthors.length > 0
+                  ? `${selectedAuthors.length} author${
+                      selectedAuthors.length > 1 ? "s" : ""
+                    } selected`
+                  : "Search and select authors"}
+              </Text>
+            </TouchableOpacity>
 
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: "#ddd",
-                padding: 5,
-                marginTop: 5,
-              }}
-              renderItem={(item, selected) => (
-                <View
-                  style={[
-                    styles.itemContainer,
-                    selected && styles.selectedItemList,
-                  ]}
-                >
-                  <Text
-                    style={[styles.itemText, selected && styles.selectedText]}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-              )}
-              flatListProps={{
-                ItemSeparatorComponent: () => <View style={{ height: 15 }} />,
-              }}
-            />
+            {/* Display selected authors */}
+            {selectedAuthors.length > 0 && (
+              <View style={styles.selectedAuthorsContainer}>
+                {selectedAuthors.map((author, index) => (
+                  <View key={index} style={styles.selectedAuthorChip}>
+                    <Text style={styles.selectedAuthorText}>{author}</Text>
+                    <TouchableOpacity
+                      onPress={() => handleAuthorSelection(author)}
+                      style={styles.removeAuthorButton}
+                    >
+                      <Text style={styles.removeAuthorText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
+
           <View style={{ gap: 15 }}>
             <Text style={styles.subHeader}>
               Enter the book that has your attention currently:
@@ -385,6 +426,7 @@ const Userdetails2 = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           </View>
+
           <View style={{ gap: 15 }}>
             <Text style={styles.subHeader}>Summarize your favorite book:</Text>
             <View style={{ gap: 2 }}>
@@ -429,6 +471,199 @@ const Userdetails2 = ({ navigation }) => {
           </Button>
         </View>
       </View>
+
+      <Modal
+        visible={showGenreModal}
+        animationType="slide"
+        onRequestClose={closeGenreModal}
+      >
+        <View style={styles.modalContainer}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Genres</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeGenreModal}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search genres..."
+              placeholderTextColor="#999"
+              value={genreSearchQuery}
+              onChangeText={(text) => {
+                setGenreSearchQuery(text);
+                filterGenres(text);
+              }}
+            />
+          </View>
+
+          {/* Selection Counter */}
+          <View style={styles.selectionCounter}>
+            <Text style={styles.selectionCounterText}>
+              {selectedGenres.length}/5 selected (minimum 3 required)
+            </Text>
+          </View>
+
+          {/* Genre List */}
+          <View style={styles.resultsContainer}>
+            <FlatList
+              data={filteredGenres}
+              keyExtractor={(item, index) => index.toString()}
+              showsVerticalScrollIndicator={false}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.genreItem,
+                    selectedGenres.includes(item) && styles.selectedGenreItem,
+                  ]}
+                  onPress={() => toggleGenreSelection(item)}
+                >
+                  <Text
+                    style={[
+                      styles.genreItemText,
+                      selectedGenres.includes(item) &&
+                        styles.selectedGenreItemText,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                  {selectedGenres.includes(item) && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+
+          {/* Done Button */}
+          <View style={styles.modalFooter}>
+            <Button
+              mode="contained"
+              onPress={closeGenreModal}
+              buttonColor={theme.colors.primary}
+              textColor={theme.colors.text}
+              disabled={selectedGenres.length < 3}
+            >
+              Done ({selectedGenres.length} selected)
+            </Button>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Author Selection Modal */}
+      <Modal
+        visible={showAuthorModal}
+        animationType="slide"
+        onRequestClose={() => setShowAuthorModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Search Authors</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                setShowAuthorModal(false);
+                setAuthorSearchQuery("");
+                setAuthorOptions([]);
+              }}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Type author name..."
+              placeholderTextColor="#999"
+              value={authorSearchQuery}
+              onChangeText={(text) => {
+                setAuthorSearchQuery(text);
+                fetchAuthors(text);
+              }}
+              autoFocus
+              returnKeyType="search"
+            />
+          </View>
+
+          {/* Search Results */}
+          <View style={styles.resultsContainer}>
+            {loadingAuthors ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#4caf50" />
+                <Text style={styles.loadingText}>Searching authors...</Text>
+              </View>
+            ) : authorOptions.length === 0 && authorSearchQuery.length >= 3 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  No authors found for "{authorSearchQuery}"
+                </Text>
+                <Text style={styles.emptySubText}>
+                  Try a different search term
+                </Text>
+              </View>
+            ) : authorOptions.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  Start typing to search for authors...
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={authorOptions}
+                keyExtractor={(item, index) => index.toString()}
+                showsVerticalScrollIndicator={false}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                renderItem={({ item }) => {
+                  const isSelected = selectedAuthors.includes(item.value);
+                  return (
+                    <TouchableOpacity
+                      style={[
+                        styles.bookItem,
+                        isSelected && styles.selectedBookItem,
+                      ]}
+                      onPress={() => handleAuthorSelection(item.value)}
+                    >
+                      <Text
+                        style={[
+                          styles.bookTitle,
+                          isSelected && styles.selectedBookTitle,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                      {isSelected && <Text style={styles.selectedIcon}>✓</Text>}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+          </View>
+
+          {/* Current Selection Footer */}
+          {selectedAuthors.length > 0 && (
+            <View style={styles.selectionFooter}>
+              <Text style={styles.selectionLabel}>
+                Selected authors ({selectedAuthors.length}/5):
+              </Text>
+              <Text style={styles.selectionValue}>
+                {selectedAuthors.join(", ")}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
+
+      {/* Book Selection Modal */}
       <Modal
         visible={showBookModal}
         animationType="slide"
@@ -459,9 +694,6 @@ const Userdetails2 = ({ navigation }) => {
               value={searchQuery}
               onChangeText={(text) => {
                 setSearchQuery(text);
-                // Use debounced version if you installed lodash.debounce
-                // debouncedFetchBooks(text);
-                // Or use direct call:
                 fetchBooksWithAuthors(text);
               }}
               autoFocus
@@ -534,169 +766,80 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "snow",
     flexGrow: 1,
-    paddingBottom: theme.spacing.xxl,
+    paddingBottom: theme.spacing.vertical.md,
   },
   header: {
-    fontSize: 32,
+    fontSize: moderateScale(32),
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
     color: theme.colors.text,
   },
   subHeader: {
-    fontSize: 20,
+    fontSize: theme.fontSizes.large,
     fontWeight: "bold",
   },
   optionsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    marginBottom: 20,
-    paddingTop: 10,
-    gap: 15,
-  },
-  optionBox: {
-    borderWidth: 1,
-    borderColor: "gray",
-    padding: 10,
-
-    borderRadius: 5,
-  },
-  selectedBox: {
-    backgroundColor: "lightgreen",
-  },
-  optionText: {
-    textAlign: "center",
-  },
-  photoContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-  photoBox: {
-    width: 100,
-    height: 100,
-    backgroundColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-    margin: 5,
-    borderRadius: 10,
-  },
-  photoText: {
-    fontSize: 30,
-    color: "white",
-  },
-  photo: {
-    width: 100,
-    height: 100,
-    margin: 5,
-    borderRadius: 10,
-  },
-  finishButton: {
-    backgroundColor: "blue",
-    padding: 15,
-    borderRadius: 10,
-  },
-  finishButtonText: {
-    color: "white",
-    fontSize: 16,
-  },
-  imageWrapper: {
-    position: "relative",
-    width: 100,
-    height: 100,
-    margin: 5,
-    borderRadius: 10,
-  },
-  removeButton: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    backgroundColor: "red",
-    borderRadius: 15,
-    width: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  removeButtonText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  itemContainer: {
-    flex: 1,
-    gap: 20,
-    padding: 15,
-    backgroundColor: "white",
-
-    borderRadius: 8,
-
-    borderWidth: 1,
-    borderColor: "#eee",
+    marginBottom: verticalScale(20),
+    paddingTop: verticalScale(10),
+    gap: horizontalScale(15),
   },
 
   dropdown: {
-    height: 55,
+    height: verticalScale(55),
     borderColor: "#888",
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 15,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: horizontalScale(15),
     backgroundColor: "#fafafa",
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+    justifyContent: "center",
   },
-
   dropdownList: {
     backgroundColor: "green",
-    borderRadius: 12,
+    borderRadius: moderateScale(12),
     borderWidth: 1,
     borderColor: "#ddd",
-    maxHeight: 250,
-    paddingVertical: 5,
-    marginTop: 5,
+    maxHeight: verticalScale(250),
+    paddingVertical: verticalScale(5),
+    marginTop: verticalScale(5),
   },
-
   selectedItem: {
     backgroundColor: "#4caf50",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 5,
+    borderRadius: moderateScale(20),
+    paddingHorizontal: horizontalScale(15),
+    paddingVertical: verticalScale(5),
   },
   selectedItemList: {
     flex: 1,
-    gap: 20,
+    gap: verticalScale(20),
     padding: 15,
     backgroundColor: "green",
-
-    borderRadius: 8,
-
+    borderRadius: moderateScale(8),
     borderWidth: 1,
     borderColor: "#eee",
   },
-
   selectedText: {
     color: "white",
     fontWeight: "600",
-    fontSize: 14,
+    fontSize: moderateScale(14),
   },
   dropdownText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: "#000",
     flex: 1,
-    justifyContent: "center",
-    alignContent: "center",
   },
   placeholderText: {
     color: theme.colors.text,
-    justifyContent: "center",
-    alignContent: "center",
-    paddingTop: theme.spacing.md,
   },
   searchIcon: {
-    fontSize: 18,
+    fontSize: moderateScale(18),
     color: "#666",
   },
   modalContainer: {
@@ -707,109 +850,216 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    paddingTop: 50, // Account for status bar
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(15),
+    paddingTop: verticalScale(50),
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     backgroundColor: "white",
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: moderateScale(20),
     fontWeight: "bold",
     color: "#333",
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: horizontalScale(32),
+    height: verticalScale(32),
+    borderRadius: moderateScale(16),
     backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
   },
   closeButtonText: {
-    fontSize: 20,
+    fontSize: moderateScale(20),
     fontWeight: "bold",
     color: "#666",
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(15),
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
   searchInput: {
-    height: 50,
+    height: verticalScale(50),
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    fontSize: 16,
+    borderRadius: moderateScale(12),
+    paddingHorizontal: horizontalScale(15),
+    fontSize: moderateScale(16),
     backgroundColor: "#fafafa",
   },
   resultsContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: horizontalScale(20),
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: verticalScale(40),
   },
   loadingText: {
-    marginTop: 15,
-    fontSize: 16,
+    marginTop: verticalScale(15),
+    fontSize: theme.fontSizes.medium,
     color: "#666",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: verticalScale(40),
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: theme.fontSizes.medium,
     color: "#666",
     textAlign: "center",
-    marginBottom: 5,
+    marginBottom: verticalScale(5),
   },
   emptySubText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "#999",
     textAlign: "center",
   },
   bookItem: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: horizontalScale(10),
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  selectedBookItem: {
+    backgroundColor: "#e8f5e8",
   },
   bookTitle: {
-    fontSize: 16,
+    fontSize: theme.fontSizes.medium,
     color: "#333",
-    lineHeight: 22,
+    lineHeight: verticalScale(22),
+    flex: 1,
+  },
+  selectedBookTitle: {
+    color: "#2e7d32",
+    fontWeight: "600",
+  },
+  selectedIcon: {
+    fontSize: moderateScale(18),
+    color: "#4caf50",
+    fontWeight: "bold",
+    marginLeft: horizontalScale(10),
   },
   separator: {
     height: 1,
     backgroundColor: "#eee",
-    marginHorizontal: 10,
+    marginHorizontal: horizontalScale(10),
   },
   selectionFooter: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(15),
     backgroundColor: "#f0f8f0",
     borderTopWidth: 1,
     borderTopColor: "#d4edda",
   },
   selectionLabel: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "#28a745",
     fontWeight: "600",
     marginBottom: 3,
   },
   selectionValue: {
-    fontSize: 16,
+    fontSize: theme.fontSizes.medium,
     color: "#155724",
     fontWeight: "bold",
+  },
+  selectedAuthorsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: horizontalScale(8),
+    marginTop: verticalScale(5),
+  },
+  selectedAuthorChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.secondary,
+    borderRadius: moderateScale(20),
+    paddingVertical: verticalScale(6),
+    paddingHorizontal: horizontalScale(12),
+  },
+  selectedAuthorText: {
+    color: "white",
+    fontSize: moderateScale(12),
+    fontWeight: "600",
+    marginRight: verticalScale(6),
+  },
+  removeAuthorButton: {
+    width: horizontalScale(16),
+    height: verticalScale(16),
+    borderRadius: moderateScale(9),
+    backgroundColor: "rgba(255,255,255,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeAuthorText: {
+    color: "white",
+    fontSize: theme.fontSizes.small,
+    fontWeight: "bold",
+  },
+  selectedGenresContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: horizontalScale(8),
+    marginTop: verticalScale(10),
+  },
+  selectedGenreChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.secondary,
+    borderRadius: moderateScale(20),
+    paddingHorizontal: horizontalScale(12),
+    paddingVertical: verticalScale(6),
+    gap: horizontalScale(6),
+  },
+  selectedGenreText: {
+    color: "white",
+    fontSize: moderateScale(12),
+    fontWeight: "500",
+  },
+  removeGenreButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    borderRadius: moderateScale(10),
+    width: horizontalScale(16),
+    height: verticalScale(16),
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeGenreButtonText: {
+    color: "white",
+    fontSize: theme.fontSizes.medium,
+    fontWeight: "bold",
+  },
+  genreItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: horizontalScale(20),
+    backgroundColor: "white",
+  },
+  selectedGenreItem: {
+    backgroundColor: "#e8f5e8",
+  },
+  genreItemText: {
+    fontSize: theme.fontSizes.medium,
+    color: "#333",
+  },
+  selectedGenreItemText: {
+    color: "#2e7d32",
+    fontWeight: "600",
+  },
+  selectionCounterText: {
+    fontSize: moderateScale(14),
+    color: "#666",
+    textAlign: "center",
   },
 });
 

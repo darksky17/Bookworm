@@ -36,7 +36,6 @@ yarn-error.*
 *.tsbuildinfo
 
 backend
-
-eas.json
 google-services.json
+eas.json
 .env

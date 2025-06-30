@@ -14,7 +14,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Feather from "@expo/vector-icons/Feather";
 import Menu from "../components/Menu";
 import theme from "../design-system/theme/theme";
-import { scale } from "../design-system/theme/scaleUtils";
+import {
+  moderateScale,
+  verticalScale,
+  horizontalScale,
+} from "../design-system/theme/scaleUtils";
 const ViewProfile = ({ route, navigation }) => {
   const calculateAge = (dob) => {
     const birthDate = new Date(dob); // Convert string to Date object
@@ -65,7 +69,7 @@ const ViewProfile = ({ route, navigation }) => {
           flexDirection: "row",
           justifyContent: "space-evenly",
           alignItems: "flex-end",
-          height: 30,
+          height: verticalScale(30),
           backgroundColor: theme.colors.background,
         }}
       >
@@ -80,7 +84,7 @@ const ViewProfile = ({ route, navigation }) => {
           style={{
             fontWeight: "bold",
             color: theme.colors.text,
-            fontSize: scale(14),
+            fontSize: moderateScale(14),
           }}
         >
           Profile
@@ -90,19 +94,25 @@ const ViewProfile = ({ route, navigation }) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.wrapper}>
           <View style={styles.Card}>
-            <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+            <Text
+              style={{ fontSize: theme.fontSizes.large, fontWeight: "bold" }}
+            >
               {" "}
               {calculateAge(allData.dateOfBirth)} years old{" "}
             </Text>
           </View>
           <View style={styles.Card}>
-            <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+            <Text
+              style={{ fontSize: theme.fontSizes.large, fontWeight: "bold" }}
+            >
               Your friend is currently reading:
             </Text>
             <Text>{allData.currentlyReading}</Text>
           </View>
           <View style={styles.Card}>
-            <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+            <Text
+              style={{ fontSize: theme.fontSizes.large, fontWeight: "bold" }}
+            >
               Can you guess which book is this ?
             </Text>
             <Text>{allData.bookSummary}</Text>
@@ -115,7 +125,12 @@ const ViewProfile = ({ route, navigation }) => {
                 style={styles.displayImage}
               />
               <View style={styles.Card}>
-                <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+                <Text
+                  style={{
+                    fontSize: theme.fontSizes.large,
+                    fontWeight: "bold",
+                  }}
+                >
                   Authors that got me hooked
                 </Text>
                 <Text>{allData.favAuthors.join(",  ")}</Text>
@@ -127,7 +142,12 @@ const ViewProfile = ({ route, navigation }) => {
               />
 
               <View style={styles.Card}>
-                <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+                <Text
+                  style={{
+                    fontSize: theme.fontSizes.large,
+                    fontWeight: "bold",
+                  }}
+                >
                   Genres that keep me going
                 </Text>
                 <Text>{allData.favGenres.join(",  ")}</Text>
@@ -170,24 +190,24 @@ const styles = StyleSheet.create({
   },
 
   wrapper: {
-    paddingVertical: 30,
-    paddingHorizontal: 15,
-    gap: 20,
+    paddingVertical: verticalScale(30),
+    paddingHorizontal: horizontalScale(15),
+    gap: verticalScale(20),
     backgroundColor: "transparent",
   },
 
   Card: {
     backgroundColor: "white",
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     padding: 30,
     fontWeight: 800,
-    gap: 10,
+    gap: verticalScale(10),
   },
 
   displayImage: {
     width: "auto",
-    height: 400,
-    borderRadius: 10,
+    height: verticalScale(400),
+    borderRadius: moderateScale(10),
     shadowColor: "blue",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -198,14 +218,14 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     backgroundColor: theme.colors.background,
-    height: 60,
+    height: verticalScale(60),
     width: "100%",
     elevation: 4,
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: horizontalScale(10),
   },
   sideContainer: {
-    width: 40, // Matches the icon area (24px icon + touch padding)
+    width: horizontalScale(40), // Matches the icon area (24px icon + touch padding)
     alignItems: "flex-start",
     justifyContent: "center",
   },
@@ -216,7 +236,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontWeight: "500",
-    fontSize: 25,
+    fontSize: moderateScale(25),
   },
 });
 

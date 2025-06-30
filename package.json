@@ -24,6 +24,7 @@
     "@reduxjs/toolkit": "^2.4.0",
     "@shopify/flash-list": "^1.7.3",
     "@supabase/supabase-js": "^2.47.14",
+    "@tanstack/react-query": "^5.81.5",
     "axios": "^1.9.0",
     "body-parser": "^1.20.3",
     "cloudinary": "^2.5.1",

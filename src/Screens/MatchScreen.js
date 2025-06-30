@@ -40,7 +40,11 @@ import Container from "../components/Container.js";
 import Header from "../components/Header.js";
 import theme from "../design-system/theme/theme.js";
 import { Button } from "react-native-paper";
-import { scale } from "../design-system/theme/scaleUtils.js";
+import {
+  verticalScale,
+  moderateScale,
+  horizontalScale,
+} from "../design-system/theme/scaleUtils.js";
 const MatchScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const location = useSelector((state) => state.user.location);
@@ -320,8 +324,8 @@ const MatchScreen = ({ navigation }) => {
           <View
             style={{
               flex: 1,
-              paddingHorizontal: theme.spacing.sm,
-              paddingTop: theme.spacing.md,
+              paddingHorizontal: theme.spacing.horizontal.sm,
+              paddingTop: theme.spacing.vertical.md,
             }}
           >
             <FlatList
@@ -347,7 +351,7 @@ const MatchScreen = ({ navigation }) => {
                       <View
                         style={{
                           flexDirection: "row",
-                          gap: 10,
+                          gap: horizontalScale(10),
                         }}
                       >
                         <Icon
@@ -355,12 +359,17 @@ const MatchScreen = ({ navigation }) => {
                           size={50}
                           color={theme.colors.primary}
                         />
-                        <View style={{ gap: 5, justifyContent: "flex-end" }}>
+                        <View
+                          style={{
+                            gap: verticalScale(5),
+                            justifyContent: "flex-end",
+                          }}
+                        >
                           <Text
                             style={{
                               color: theme.colors.text,
                               fontFamily: theme.fontFamily.regular,
-                              fontSize: scale(14),
+                              fontSize: moderateScale(14),
                             }}
                           >
                             {item.displayName}
@@ -440,20 +449,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "space-between",
-    paddingTop: 50,
+    paddingTop: verticalScale(50),
     backgroundColor: theme.colors.background,
-    paddingBottom: theme.spacing.lg,
+    paddingBottom: theme.spacing.vertical.lg,
   },
   title: {
-    fontSize: scaleFont(22),
+    fontSize: theme.fontSizes.large,
     fontWeight: "bold",
   },
   switchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 15,
-    paddingTop: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
+    gap: horizontalScale(15),
+    paddingTop: theme.spacing.vertical.lg,
+    paddingHorizontal: theme.spacing.horizontal.md,
   },
   switchText: {
     fontSize: theme.fontSizes.medium,
@@ -464,32 +473,32 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   loadingGif: {
-    width: 150,
-    height: 150,
-    top: 45,
+    width: horizontalScale(150),
+    height: verticalScale(150),
+    top: verticalScale(45),
   },
   matchList: {
     backgroundColor: "white",
-    padding: theme.spacing.sm,
+    padding: theme.spacing.horizontal.sm,
     elevation: 3,
     borderRadius: theme.borderRadius.md,
   },
   matchItem: {
     // backgroundColor: "white",
     // elevation: 2,
-    padding: theme.spacing.md,
-    paddingHorizontal: theme.spacing.sm,
+    padding: theme.spacing.vertical.md,
+    paddingHorizontal: theme.spacing.horizontal.sm,
   },
 
   matchDistance: {
-    fontSize: scaleFont(12),
+    fontSize: theme.fontSizes.small,
     color: "gray",
-    left: 10,
+    left: horizontalScale(10),
   },
   noMatches: {
-    fontSize: scaleFont(16),
+    fontSize: theme.fontSizes.medium,
     color: "gray",
-    marginTop: 20,
+    marginTop: verticalScale(20),
   },
   modalBackground: {
     flex: 1,
@@ -499,18 +508,19 @@ const styles = StyleSheet.create({
   },
   chatPrompt: {
     backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
+    paddingVertical: verticalScale(20),
+    paddingHorizontal: verticalScale(20),
+    borderRadius: moderateScale(10),
     alignItems: "center",
     elevation: 5,
   },
   chatPromptText: {
     fontSize: theme.fontSizes.medium,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   chatPromptButton: {
-    fontSize: 16,
+    fontSize: theme.fontSizes.medium,
     color: "blue",
   },
 });

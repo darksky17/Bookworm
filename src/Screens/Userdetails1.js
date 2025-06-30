@@ -32,6 +32,11 @@ import { SERVER_URL } from "../constants/api";
 import Header from "../components/Header.js";
 import Container from "../components/Container.js";
 import theme from "../design-system/theme/theme.js";
+import {
+  verticalScale,
+  horizontalScale,
+  moderateScale,
+} from "../design-system/theme/scaleUtils.js";
 
 const Screen1 = ({ navigation }) => {
   console.log("first log");
@@ -194,7 +199,7 @@ const Screen1 = ({ navigation }) => {
                 style={{
                   alignItems: "center",
                   fontWeight: "bold",
-                  paddingHorizontal: 10,
+                  paddingHorizontal: horizontalScale(10),
                 }}
               >
                 <Text
@@ -208,7 +213,7 @@ const Screen1 = ({ navigation }) => {
                   Tell Us About Yourself
                 </Text>
               </View>
-              <View style={{ flex: 1, gap: 40 }}>
+              <View style={{ flex: 1, gap: verticalScale(40) }}>
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your name"
@@ -290,15 +295,15 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: theme.colors.background,
     gap: 80,
-    paddingBottom: 40,
+    paddingBottom: verticalScale(40),
   },
   input: {
-    height: 70,
+    height: verticalScale(70),
     borderColor: theme.colors.text,
     borderWidth: 2,
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
 
-    paddingLeft: 10,
+    paddingLeft: horizontalScale(10),
   },
   dateInputContainer: {
     flexDirection: "row",
@@ -309,30 +314,30 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.text,
     borderWidth: 2,
     textAlign: "center",
-    height: 50,
+    height: verticalScale(50),
     borderRadius: theme.borderRadius.sm,
   },
   dayInput: {
-    width: 60,
+    width: horizontalScale(60),
   },
   monthInput: {
-    width: 60,
+    width: horizontalScale(60),
   },
   yearInput: {
-    width: 100,
+    width: horizontalScale(100),
   },
   separator: {
-    fontSize: 18,
-    marginHorizontal: 5,
+    fontSize: moderateScale(18),
+    marginHorizontal: horizontalScale(5),
   },
   label: {
-    marginBottom: 5,
+    marginBottom: verticalScale(5),
     fontSize: theme.fontSizes.medium,
     fontWeight: "bold",
   },
   errorText: {
     color: theme.colors.error,
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
 });
 

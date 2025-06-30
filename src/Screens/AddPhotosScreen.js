@@ -21,7 +21,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { Button } from "react-native-paper";
 import theme from "../design-system/theme/theme.js";
-import { scale } from "../design-system/theme/scaleUtils.js";
+import {
+  verticalScale,
+  horizontalScale,
+  moderateScale,
+} from "../design-system/theme/scaleUtils.js";
 
 const AddPhotosScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
@@ -199,7 +203,7 @@ const AddPhotosScreen = ({ navigation }) => {
   const getItemStyle = (index) => ({
     width: photoSize,
     marginRight: (index + 1) % numColumns === 0 ? 0 : itemSpacing,
-    marginBottom: 15,
+    marginBottom: verticalScale(15),
   });
 
   // if (isLoading) {
@@ -214,7 +218,7 @@ const AddPhotosScreen = ({ navigation }) => {
     <View
       style={{
         flex: 1,
-        paddingBottom: 50,
+        paddingBottom: verticalScale(50),
         backgroundColor: theme.colors.background,
       }}
     >
@@ -223,12 +227,12 @@ const AddPhotosScreen = ({ navigation }) => {
       <View
         style={{
           flex: 1,
-          paddingHorizontal: 10,
-          paddingTop: 30,
+          paddingHorizontal: horizontalScale(10),
+          paddingTop: verticalScale(30),
           justifyContent: "space-between",
         }}
       >
-        <View style={{ gap: 30 }}>
+        <View style={{ gap: verticalScale(30) }}>
           <Text style={{ fontSize: 20, fontWeight: "bold" }}>
             Pick your photos now. We won't show them to people whom you do not
             approve.
@@ -237,6 +241,7 @@ const AddPhotosScreen = ({ navigation }) => {
             scrollEnabled={false}
             contentContainerStyle={{
               flexGrow: 1,
+              paddingTop: verticalScale(10),
             }}
             data={selectedPhotos}
             numColumns={3}
@@ -280,10 +285,10 @@ const AddPhotosScreen = ({ navigation }) => {
                     }
                     style={{
                       position: "absolute",
-                      top: -10,
-                      right: -10,
+                      top: verticalScale(-10),
+                      right: horizontalScale(-3),
                       backgroundColor: "white",
-                      borderRadius: 100,
+                      borderRadius: moderateScale(100),
                     }}
                   >
                     <Ionicons
@@ -342,14 +347,14 @@ const AddPhotosScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   photo: {
     borderWidth: 2,
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     borderStyle: "dotted",
   },
   photoBox: {
     backgroundColor: "#ccc",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     borderStyle: "dotted",
     borderWidth: 2,
   },
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     gap: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: horizontalScale(10),
   },
 });
 
