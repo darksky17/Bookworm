@@ -30,12 +30,20 @@ import {
   moderateScale,
   horizontalScale,
 } from "../design-system/theme/scaleUtils";
+import useFetchChats from "../hooks/useFetchChats";
 
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
   const gender = useSelector((state) => state.user.gender);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [initializing, setInitializing] = useState(true);
+  const { data: chats, isLoading, isError, refetch } = useFetchChats();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const toggleFilter = (filter) => {
     setActiveFilters((prev) => {
@@ -97,7 +105,7 @@ const ChatScreenList = ({ navigation }) => {
 
   const userId = auth.currentUser.uid;
 
-  const [chats, setChats] = useState([]);
+  // const [chats, setChats] = useState([]);
 
   const InitialIcon = ({ initials, ascended, photo }) => {
     return (
@@ -151,53 +159,61 @@ const ChatScreenList = ({ navigation }) => {
     } else return;
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     let isActive = true;
 
-      const fetchChatsFromServer = async () => {
-        try {
-          const userId = auth.currentUser.uid;
-          const idToken = await auth.currentUser.getIdToken();
+  //     const fetchChatsFromServer = async () => {
+  //       try {
+  //         const userId = auth.currentUser.uid;
+  //         const idToken = await auth.currentUser.getIdToken();
 
-          const response = await fetch(
-            `${SERVER_URL}/chat-list/${userId}/chats`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${idToken}`,
-              },
-            }
-          );
+  //         const response = await fetch(
+  //           `${SERVER_URL}/chat-list/${userId}/chats`,
+  //           {
+  //             method: "GET",
+  //             headers: {
+  //               "Content-Type": "application/json",
+  //               Authorization: `Bearer ${idToken}`,
+  //             },
+  //           }
+  //         );
 
-          if (!response.ok) {
-            throw new Error("Failed to fetch chat data");
-          }
+  //         if (!response.ok) {
+  //           throw new Error("Failed to fetch chat data");
+  //         }
 
-          const data = await response.json();
+  //         const data = await response.json();
 
-          if (isActive) {
-            setChats(data);
-            setInitializing(false);
-          }
-        } catch (error) {
-          console.error("Error fetching chat data:", error);
-        }
-      };
+  //         if (isActive) {
+  //           setChats(data);
+  //           setInitializing(false);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error fetching chat data:", error);
+  //       }
+  //     };
 
-      fetchChatsFromServer();
+  //     fetchChatsFromServer();
 
-      // Cleanup function to avoid setting state if component is unmounted
-      return () => {
-        isActive = false;
-      };
-    }, [])
-  );
+  //     // Cleanup function to avoid setting state if component is unmounted
+  //     return () => {
+  //       isActive = false;
+  //     };
+  //   }, [])
+  // );
 
   const filters = ["All", "Normal", "Ascended", "Unread"];
 
-  if (initializing) {
+  // if (initializing) {
+  //   return (
+  //     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+  //       <ActivityIndicator size="large" color={theme.colors.secondary} />
+  //     </View>
+  //   );
+  // }
+
+  if (isLoading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color={theme.colors.secondary} />
@@ -385,10 +401,10 @@ const ChatScreenList = ({ navigation }) => {
                       <View
                         style={{
                           backgroundColor: "green",
-                          borderRadius: moderateScale(10),
+                          borderRadius: moderateScale(1000),
                           minWidth: horizontalScale(20),
-                          paddingHorizontal: horizontalScale(6),
-                          paddingVertical: verticalScale(2),
+                          paddingHorizontal: horizontalScale(1),
+                          paddingVertical: verticalScale(1),
                           alignItems: "center",
                           justifyContent: "center",
                           marginRight: horizontalScale(5),
@@ -399,6 +415,8 @@ const ChatScreenList = ({ navigation }) => {
                             color: "white",
                             fontWeight: "bold",
                             fontSize: theme.fontSizes.small,
+                            paddingHorizontal: horizontalScale(1),
+                            paddingVertical: verticalScale(1),
                           }}
                         >
                           {item.unreadCount}
@@ -410,7 +428,7 @@ const ChatScreenList = ({ navigation }) => {
                 </View>
               </View>
             )}
-            contentContainerStyle={{ gap: 1 }}
+            contentContainerStyle={{ gap: verticalScale(1) }}
           />
         </View>
       )}

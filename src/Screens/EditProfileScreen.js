@@ -14,12 +14,10 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { setCurrentlyReading, setBookSummary } from "../redux/userSlice";
 import { setDoc, updateDoc, auth } from "../Firebaseconfig";
-
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
 import Header from "../components/Header";
 import Ionicons from "@expo/vector-icons/Ionicons";
-
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Button } from "react-native-paper";
 import theme from "../design-system/theme/theme";
@@ -28,6 +26,7 @@ import {
   horizontalScale,
   moderateScale,
 } from "../design-system/theme/scaleUtils";
+import BookSelector from "../components/bookSelector";
 
 const EditProfileScreen = ({ navigation }) => {
   const globalSelected = useSelector((state) => state.user);
@@ -247,7 +246,7 @@ const EditProfileScreen = ({ navigation }) => {
                 >
                   {choicebook ? (
                     <View style={{ gap: verticalScale(20) }}>
-                      <TextInput
+                      {/* <TextInput
                         placeholder="Please only mention the name of the Book!"
                         editable
                         backgroundColor="snow"
@@ -261,6 +260,12 @@ const EditProfileScreen = ({ navigation }) => {
                         }}
                         value={currentreade}
                         onChangeText={setCurrentRead}
+                      /> */}
+                      <BookSelector
+                        placeholder="Search by title or author"
+                        value={currentreade}
+                        onBookSelect={setCurrentRead}
+                        required
                       />
                       <View
                         style={{

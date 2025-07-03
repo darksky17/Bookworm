@@ -45,6 +45,8 @@ import {
   moderateScale,
   horizontalScale,
 } from "../design-system/theme/scaleUtils.js";
+import { useNearbyUsers } from "../hooks/useNearbyUsers.js";
+import { useQueryClient } from "@tanstack/react-query";
 const MatchScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const location = useSelector((state) => state.user.location);
@@ -62,6 +64,20 @@ const MatchScreen = ({ navigation }) => {
   useEffect(() => {
     scanningRef.current = scanning;
   }, [scanning]);
+
+  const {
+    data: matche = [],
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useNearbyUsers(
+    Myuser.location,
+    Myuser.distance,
+    Myuser.ageMin,
+    Myuser.ageMax,
+    scanning && !pause
+  );
 
   const onToggleSwitch = async () => {
     const newValue = !pause; // Flip the current value
@@ -134,25 +150,121 @@ const MatchScreen = ({ navigation }) => {
   useEffect(() => {
     if (scanning) {
       if (pause) {
-        setScanning(!scanning);
+        setScanning(false);
         Alert.alert(
           "You have paused matching, please turn on matching to find new friends"
         );
-
         return;
       }
-      startScaleAnimation(); // Start book animation
-      findNearbyUsers();
-      matchInterval = setInterval(findNearbyUsers, 60 * 60 * 1000);
-    } else {
-      clearInterval(matchInterval);
-      scaleAnim.setValue(1); // Reset book to static
-      matchAnim.setValue(0); // Reset match animation
-    }
 
-    return () => clearInterval(matchInterval);
+      // Start the book scaling animation when scanning begins
+      startBookScaleAnimation();
+    } else {
+      // Reset everything when scanning stops
+      resetAnimations();
+    }
   }, [scanning]);
 
+  useEffect(() => {
+    // Handle loading state changes during scanning
+    if (scanning && !pause && !isFetching) {
+      if (!isLoading) {
+        // Data has loaded, but we need to wait for minimum animation time
+        checkAndShowMatches();
+      }
+      // If isLoading is true, keep the book scaled (do nothing)
+    }
+  }, [isLoading, scanning, pause, isFetching]);
+
+  const startBookScaleAnimation = () => {
+    // Reset states
+    setShowMatches(false);
+    setMatches([]);
+    matchAnim.setValue(0);
+
+    // Record the start time for minimum duration enforcement
+    const animationStartTime = Date.now();
+
+    // Start scaling the book
+    scaleAnim.setValue(1);
+    Animated.timing(scaleAnim, {
+      toValue: 1.5,
+      duration: 2500,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start(() => {
+      // Animation completed after 2.5 seconds
+      // Check if we should show matches now
+      if (scanningRef.current && !pause && !isLoading && !isFetching) {
+        showMatchesWithAnimation();
+      }
+    });
+
+    // Store start time for reference
+    scanningRef.animationStartTime = animationStartTime;
+  };
+
+  const checkAndShowMatches = () => {
+    if (!scanningRef.animationStartTime) return;
+
+    const currentTime = Date.now();
+    const elapsedTime = currentTime - scanningRef.animationStartTime;
+    const minimumDuration = 2500; // 2.5 seconds
+
+    if (elapsedTime >= minimumDuration) {
+      // Minimum time has passed, show matches immediately
+      showMatchesWithAnimation();
+    } else {
+      // Wait for remaining time, then show matches
+      const remainingTime = minimumDuration - elapsedTime;
+      setTimeout(() => {
+        if (scanningRef.current && !pause) {
+          showMatchesWithAnimation();
+        }
+      }, remainingTime);
+    }
+  };
+
+  const showMatchesWithAnimation = () => {
+    // Reset book scale
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 500,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start(() => {
+      // Only proceed if still scanning
+      if (scanningRef.current && !pause && !isFetching) {
+        setShowMatches(true);
+        setMatches(matche);
+
+        // Start match animation
+        Animated.timing(matchAnim, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }).start();
+      }
+    });
+  };
+
+  const resetAnimations = () => {
+    // Clear the animation start time
+    scanningRef.animationStartTime = null;
+
+    // Reset book scale immediately
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+
+    // Reset match animation
+    matchAnim.setValue(0);
+    setShowMatches(false);
+    setMatches([]);
+  };
   const requestLocationPermission = async () => {
     try {
       if (Platform.OS === "android") {
@@ -190,64 +302,6 @@ const MatchScreen = ({ navigation }) => {
       (error) => console.error("Error getting location:", error),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
-  };
-
-  const findNearbyUsers = async () => {
-    if (!location || !scanningRef.current) return;
-
-    setShowMatches(false);
-    matchAnim.setValue(0); // Reset match animation
-
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      console.log(SERVER_URL);
-      const response = await fetch(`${SERVER_URL}/nearby-users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          location: Myuser.location,
-          distance: Myuser.distance,
-          ageMin: Myuser.ageMin,
-          ageMax: Myuser.ageMax,
-        }),
-      });
-      const data = await response.json();
-      console.log("Atleast we got the data back", data);
-      if (!scanningRef.current) {
-        console.log("Scan was stopped before response arrived. Ignoring data.");
-        return;
-      }
-
-      setTimeout(() => {
-        if (!scanningRef.current) return;
-        setMatches(data);
-
-        setShowMatches(true);
-        console.log("Is this data allowed to be exposed??", matches);
-        // Start pop-out animation for matches
-        Animated.timing(matchAnim, {
-          toValue: 1,
-          duration: 500,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }).start();
-      }, 2500);
-    } catch (error) {
-      console.error("Error finding nearby users:", error);
-    }
-  };
-
-  const startScaleAnimation = () => {
-    scaleAnim.setValue(1);
-    Animated.timing(scaleAnim, {
-      toValue: 1.5, // Scale to max value
-      duration: 2000,
-      easing: Easing.ease,
-      useNativeDriver: true,
-    }).start();
   };
 
   const openChatModal = (match) => {
@@ -375,7 +429,7 @@ const MatchScreen = ({ navigation }) => {
                             {item.displayName}
                           </Text>
                           <Text style={styles.matchDistance}>
-                            {(item.distance / 1000).toFixed(1)} km |{" "}
+                            {item.distance.toFixed(1)} km |{" "}
                             {item.matchPercentage}% match
                           </Text>
                         </View>

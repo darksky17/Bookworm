@@ -59,6 +59,7 @@ import {
   moderateScale,
 } from "../design-system/theme/scaleUtils";
 import ImageView from "react-native-image-viewing";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
@@ -76,7 +77,7 @@ const ChatDisplay = ({ route, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-
+  const queryClient = useQueryClient();
   console.log("THIS IS WHAT I GOT as ALL DATA", allData);
 
   // Add keyboard listeners
@@ -255,6 +256,7 @@ const ChatDisplay = ({ route, navigation }) => {
             message: lastMessageText,
           }),
         });
+        queryClient.invalidateQueries({ queryKey: ["chats"] });
       } catch (error) {
         console.error("❌ Error sending message:", error);
         Alert.alert("Error", "Failed to send message. Please try again.");
@@ -465,6 +467,9 @@ const ChatDisplay = ({ route, navigation }) => {
   // Custom Actions component for image picker
   const renderActions = useCallback(
     (props) => {
+      if (!allData.ascended) {
+        return;
+      }
       return (
         <Actions
           {...props}

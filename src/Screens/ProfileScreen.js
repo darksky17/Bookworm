@@ -129,12 +129,27 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const Myuser = useSelector((state) => state.user);
+  // const calculateAge = (birthdate) => {
+  //   if (!birthdate) return "N/A";
+  //   const birthMoment = moment(birthdate, "DD/MM/YYYY");
+  //   if (!birthMoment.isValid()) return "N/A";
+  //   const age = moment().diff(birthMoment, "years");
+  //   return age;
+  // };
   const calculateAge = (birthdate) => {
     if (!birthdate) return "N/A";
-    const birthMoment = moment(birthdate, "DD/MM/YYYY");
-    if (!birthMoment.isValid()) return "N/A";
-    const age = moment().diff(birthMoment, "years");
-    return age;
+
+    const [year, month, day] = birthdate.split(/[\/\-.]/);
+    if (!day || !month || !year) return "N/A";
+
+    const birthDate = new Date(
+      `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+    );
+    if (isNaN(birthDate.getTime())) return "N/A";
+
+    const ageDifMs = Date.now() - birthDate.getTime();
+    const ageDate = new Date(ageDifMs);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
   };
 
   if (!Myuser) {

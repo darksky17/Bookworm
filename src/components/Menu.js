@@ -11,7 +11,11 @@ import {
 import { doc, updateDoc, arrayUnion, auth, db } from "../Firebaseconfig";
 import { SERVER_URL } from "../constants/api";
 import theme from "../design-system/theme/theme";
-
+import {
+  verticalScale,
+  horizontalScale,
+  moderateScale,
+} from "../design-system/theme/scaleUtils";
 const Menu = ({
   visible,
   setvisible,
@@ -92,10 +96,20 @@ const Menu = ({
           <View style={styles.unmatchModal}>
             <Text>{description}</Text>
             <View style={{ flexDirection: "row", gap: 30 }}>
-              <Button mode="contained" onPress={onConfirm}>
+              <Button
+                mode="contained"
+                buttonColor={theme.colors.primary}
+                textColor={theme.colors.text}
+                onPress={onConfirm}
+              >
                 <Text>Yes</Text>
               </Button>
-              <Button mode="contained" onPress={onCancel}>
+              <Button
+                mode="contained"
+                buttonColor={theme.colors.primary}
+                textColor={theme.colors.text}
+                onPress={onCancel}
+              >
                 <Text>No</Text>
               </Button>
             </View>
@@ -151,43 +165,6 @@ const Menu = ({
         }}
         onCancel={() => setBlockModal(false)}
       />
-
-      {/* <Modal
-        transparent={true}
-        visible={unmatchModal}
-        animationType="slide"
-        onRequestClose={() => setUnmatchModal(false)}
-      >
-        <View
-          style={{
-            padding: 20,
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <View style={styles.unmatchModal}>
-            <Text>
-              Are you sure you want to Unmatch? Note: You will lose all your
-              text messages
-            </Text>
-            <View style={{ flexDirection: "row", gap: 30 }}>
-              <Button
-                mode="contained"
-                onPress={() => {
-                  Unmatch(chatId);
-                  setUnmatchModal(false);
-                }}
-              >
-                <Text>Yes</Text>
-              </Button>
-              <Button mode="contained" onPress={() => setUnmatchModal(false)}>
-                <Text>No</Text>
-              </Button>
-            </View>
-          </View>
-        </View>
-      </Modal> */}
     </>
   );
 };
@@ -197,8 +174,8 @@ export default Menu;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    top: 60,
-    right: 5,
+    top: verticalScale(60),
+    right: horizontalScale(5),
     justifyContent: "flex-start",
     alignItems: "flex-end",
   },
@@ -210,21 +187,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "snow",
     elevation: 3,
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
   },
   modalContent: {
-    width: 150,
-    height: 200,
+    width: horizontalScale(150),
+    height: verticalScale(200),
     padding: 10,
     flexDirection: "column",
     backgroundColor: theme.colors.background,
-    borderRadius: 10,
+    borderRadius: moderateScale(10),
     alignItems: "flex-start",
     justifyContent: "space-evenly",
   },
   closeButton: {
-    marginTop: 20,
+    marginTop: verticalScale(20),
     color: "blue",
-    fontSize: 18,
+    fontSize: moderateScale(18),
   },
 });

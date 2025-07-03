@@ -36,6 +36,7 @@ import {
   PRIVACY_POLICY,
   TERMS_N_CONDITIONS,
 } from "./constants/api";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import axios from "axios";
 import { Modal, Linking, ActivityIndicator } from "react-native";
 
@@ -119,6 +120,7 @@ function HomeScreen({ navigation }) {
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
+  const queryClient = new QueryClient();
   const [openModal, setOpenModal] = useState(false);
   const [downloadlink, setDownloadLink] = useState(null);
   const notificationPref = useSelector((state) => state.user.notificationpref);
@@ -137,7 +139,6 @@ const AppNavigator = () => {
       const { version, updatelink } = await response.json();
 
       console.log("Here is the version", version);
-      console.log("And the update link", updatelink);
 
       if (version !== APP_VERSION) {
         // Get APK download URL from Firebase Storage
@@ -300,31 +301,33 @@ const AppNavigator = () => {
     );
   }
   return (
-    <NavigationContainer>
-      <StatusBar
-        backgroundColor={theme.colors.background}
-        barStyle="dark-content"
-      />
-      <Stack.Navigator
-        screenOptions={{ headerShown: false }}
-        initialRouteName={initialRoute}
-      >
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Phoneauth" component={PhoneauthScreen} />
-        <Stack.Screen name="Userdeet1" component={Userdetails1} />
-        <Stack.Screen name="Userdeet2" component={Userdetails2} />
-        <Stack.Screen name="MainTabs" component={Tabnav} />
-        <Stack.Screen name="Signup" component={SignupScreen} />
-        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-        <Stack.Screen name="ChatDisplay" component={ChatDisplay} />
-        <Stack.Screen name="ProfileDisplay" component={ViewProfile} />
-        <Stack.Screen name="ChatScreenList" component={ChatScreenList} />
-        <Stack.Screen name="AddPhotos" component={AddPhotosScreen} />
-        <Stack.Screen name="AddAuthors" component={AddAuthorsScreen} />
-        <Stack.Screen name="AddGenres" component={AddGenresScreen} />
-        <Stack.Screen name="AccountSettings" component={AccountSettings} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <QueryClientProvider client={queryClient}>
+      <NavigationContainer>
+        <StatusBar
+          backgroundColor={theme.colors.background}
+          barStyle="dark-content"
+        />
+        <Stack.Navigator
+          screenOptions={{ headerShown: false }}
+          initialRouteName={initialRoute}
+        >
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Phoneauth" component={PhoneauthScreen} />
+          <Stack.Screen name="Userdeet1" component={Userdetails1} />
+          <Stack.Screen name="Userdeet2" component={Userdetails2} />
+          <Stack.Screen name="MainTabs" component={Tabnav} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="ChatDisplay" component={ChatDisplay} />
+          <Stack.Screen name="ProfileDisplay" component={ViewProfile} />
+          <Stack.Screen name="ChatScreenList" component={ChatScreenList} />
+          <Stack.Screen name="AddPhotos" component={AddPhotosScreen} />
+          <Stack.Screen name="AddAuthors" component={AddAuthorsScreen} />
+          <Stack.Screen name="AddGenres" component={AddGenresScreen} />
+          <Stack.Screen name="AccountSettings" component={AccountSettings} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </QueryClientProvider>
   );
 };
 
