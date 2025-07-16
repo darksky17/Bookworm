@@ -30,6 +30,7 @@ import {
   setUserState,
   setUnsubscribeUserListener,
   setPauseMatch,
+  setSavedPosts,
 } from "../redux/userSlice";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
@@ -106,7 +107,7 @@ const MatchScreen = ({ navigation }) => {
     // Check if the phone number is valid
     if (!userPhoneNumber) return;
 
-    userDocRef = doc(db, "Users", userId);
+    let userDocRef = doc(db, "Users", userId);
 
     // Set up a Firestore listener for real-time updates
     const unsubscribe = onSnapshot(
@@ -115,8 +116,9 @@ const MatchScreen = ({ navigation }) => {
         if (docSnap.exists()) {
           setUserDataa(docSnap.data()); // Update local state with real-time data
           //console.log('Real-time user data:', doc.data());
-          const { lastUpdated, deletedAt, ...updatedData } = docSnap.data();
+          const { lastUpdated, deletedAt, savedPosts = [], ...updatedData } = docSnap.data();
           dispatch(setUserState(updatedData));
+          dispatch(setSavedPosts(savedPosts));
         } else {
           console.warn("No user data found for this phone number.");
           setUserDataa(null);

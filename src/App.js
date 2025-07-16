@@ -39,6 +39,10 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import axios from "axios";
 import { Modal, Linking, ActivityIndicator } from "react-native";
+import AddPostScreen from "./Screens/AddPostScreen";
+import PostDetailScreen from "./Screens/PostDetailScreen";
+import EditPostScreen from "./Screens/EditPostScreen";
+import DisplayProfileScreen from "./Screens/DisplayProfileScreen";
 
 function HomeScreen({ navigation }) {
   return (
@@ -325,6 +329,10 @@ const AppNavigator = () => {
           <Stack.Screen name="AddAuthors" component={AddAuthorsScreen} />
           <Stack.Screen name="AddGenres" component={AddGenresScreen} />
           <Stack.Screen name="AccountSettings" component={AccountSettings} />
+          <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+          <Stack.Screen name = "AddPost" component={AddPostScreen} />
+          <Stack.Screen name = "EditPost" component={EditPostScreen} />
+          <Stack.Screen name = "DisplayProfile" component={DisplayProfileScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </QueryClientProvider>

@@ -1,5 +1,5 @@
-// export const SERVER_URL = "http://192.168.1.8:3000";
-export const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URLS;
+export const SERVER_URL = "http://192.168.1.6:3000";
+// export const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URLS;
 export const GOOGLE_BOOKS_API_URL =
   process.env.EXPO_PUBLIC_GOOGLE_BOOKS_API_URLS ??
   "https://www.googleapis.com/books/v1/volumes";

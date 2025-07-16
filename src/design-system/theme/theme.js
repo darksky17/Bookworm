@@ -29,6 +29,7 @@ const theme = {
     },
   },
   fontSizes: {
+    xs:moderateScale(10),
     small: moderateScale(12),
     medium: moderateScale(16),
     large: moderateScale(20),

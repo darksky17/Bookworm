@@ -17,6 +17,7 @@ const initialState = {
   unsubscribeUserListener: null,
   notificationpref: true,
   pauseMatch: false,
+  savedPosts: [],
 };
 
 const userSlice = createSlice({
@@ -52,6 +53,9 @@ const userSlice = createSlice({
     },
     setPhotos: (state, action) => {
       state.photos = action.payload;
+    },
+    setSavedPosts: (state, action) => {
+      state.savedPosts = action.payload;
     },
     setAgeRange(state, action) {
       const { min, max } = action.payload;
@@ -122,6 +126,7 @@ export const {
   clearUserState,
   setNotificationPref,
   setPauseMatch,
+  setSavedPosts,
 } = userSlice.actions;
 
 export default userSlice.reducer;
