@@ -9,6 +9,7 @@ const theme = {
     text: "#1A1A1A",
     muted: "#888888",
     error: "#E94E77",
+
   },
   spacing: {
     vertical: {

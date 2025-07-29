@@ -467,7 +467,7 @@ const ChatDisplay = ({ route, navigation }) => {
   // Custom Actions component for image picker
   const renderActions = useCallback(
     (props) => {
-      if (!allData.ascended) {
+      if (!allData.ascended || allData.isBlocked || allData.hasBlocked) {
         return;
       }
       return (
@@ -569,6 +569,23 @@ const ChatDisplay = ({ route, navigation }) => {
     [userId]
   );
 
+  const placeHolder= ()=>{
+
+    if (allData.isDeleted){
+      return "You cant reply to this chat because the user deleted their account"
+    }
+    else if(allData.isBlocked){
+      return "You cant reply to this chat"
+    }
+
+    else if (allData.hasBlocked){
+      return "You cant reply to this chat because you have blocked this user"
+    }
+
+    else return "Type a message..."
+
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -628,7 +645,7 @@ const ChatDisplay = ({ route, navigation }) => {
             messages={messages}
             onSend={onSend}
             user={user}
-            disableComposer={allData.isDeleted}
+            disableComposer={allData.isDeleted || allData.hasBlocked || allData.isBlocked}
             renderInputToolbar={CustomInputToolbar}
             renderMessageImage={renderMessageImage}
             renderBubble={renderBubble}
@@ -638,16 +655,16 @@ const ChatDisplay = ({ route, navigation }) => {
             minInputToolbarHeight={44}
             bottomOffset={0}
             maxInputLength={1000}
-            placeholder={
-              allData.isDeleted
-                ? "You cant reply to this chat because the user deleted their account"
-                : "Type a message..."
-            }
+            placeholder={ placeHolder()}
             isAnimated={false}
             extraData={isKeyboardVisible}
           />
         </GestureDetector>
       </GestureHandlerRootView>
+
+      {/* // allData.isDeleted
+              //   ? "You cant reply to this chat because the user deleted their account"
+              //   : "Type a message..." */}
 
       <Modal
         animationType="slide"

@@ -13,8 +13,9 @@ import { PostItem } from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
 import ProfileOptionsModal from "../components/profileOptionsModal";
 import { BlockUser } from "../functions/blockuser";
+import Header from "../components/Header";
 
-const DisplayProfileScreen = ({navigation})=>{
+const TabDisplayProfileScreen = ({navigation})=>{
     
     const route = useRoute();
     const { userId } = route.params; 
@@ -33,10 +34,9 @@ const DisplayProfileScreen = ({navigation})=>{
   const [isfollowing, setIsFollowing] =useState(false);
   const [ isBlocked, setIsBlocked] = useState(false);
   const [ hasBlocked, setHasBlocked] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   
 
- 
+  console.log("Wow", userData);
 
   
   const handleShared = async (post) => {
@@ -168,48 +168,6 @@ const DisplayProfileScreen = ({navigation})=>{
     }
 };
 
-const handleDeletePost = async (post) => {
-  Alert.alert(
-    "Delete Post?",
-    "Are you sure you want to delete this post?",
-    [
-      {
-        text: "Cancel", 
-        onPress: () => {}, 
-        style: "cancel" // No action, just closes the alert
-      },
-      {
-        text: "Delete", 
-        onPress: async () => {
-          try {
-            setIsDeleting(true);
-            const idToken = await auth.currentUser.getIdToken();
-            const response = await fetch(`${SERVER_URL}/posts/${post.id}`, {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${idToken}`,
-              },
-            });
-
-            if (!response.ok) {
-              throw new Error("Failed to delete post");
-            }
-
-            setPostMenuVisible(false); // Close the post menu
-            setReRenderTool(prevValue => prevValue + 1);
-
-          } catch (error) {
-            alert("Failed to delete post.");
-            console.log(error);
-          }
-          setIsDeleting(false);
-        },
-      },
-    ]
-  );
-};
-
 
   useEffect(() => {
     
@@ -330,10 +288,8 @@ const handleDeletePost = async (post) => {
     return(
         <Container>
     <View style={styles.headerRow}>
-    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconLeft}>
-      <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-    </TouchableOpacity>
-    <View style={{ flex: 1, flexDirection:"row" }} />
+    <Header title={"Profile"} style={{width:"20%"}} />
+
 
     {userId === auth.currentUser.uid ?(
       <TouchableOpacity 
@@ -398,22 +354,7 @@ const handleDeletePost = async (post) => {
                 </View>
 
                 <View style={{paddingTop:theme.spacing.vertical.md, flexDirection:"row", gap:horizontalScale(20), paddingHorizontal:horizontalScale(16)}}> 
-                   {/* { userId === auth.currentUser.uid ? (
-                    <SelfButtons />
-                    )
-                    :(
-
-                    
-                    
-                    <React.Fragment> 
-                      
-                      { userData.isfollowing ?(
-                      <Button onPress={handleUnfollow}buttonColor= {theme.colors.primary} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Unfollow</Button>)
-                      :(<Button onPress={handleFollow} buttonColor= {theme.colors.primary} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Follow</Button>)}
-                      <Button mode="contained-tonal" onPress={()=>{navigation.navigate("ChatDisplay_new", {senderId:auth.currentUser.uid, receiverId: userId})}} buttonColor={theme.colors.primary} textColor={theme.colors.text} style={{borderRadius:5, flex:0.5}}>Message</Button>
-                      </React.Fragment>
-                      
-                    )} */}
+            
                     {userId === auth.currentUser.uid ? (
   <SelfButtons theme={theme} />
 ) : hasBlocked ? (
@@ -545,9 +486,8 @@ const styles = StyleSheet.create({
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: theme.spacing.horizontal.md,
-      paddingTop: theme.spacing.vertical.md,
-      
+      justifyContent:"space-between",
+      paddingRight:theme.spacing.horizontal.md
   
     },
     headerIconLeft: {
@@ -574,4 +514,4 @@ const styles = StyleSheet.create({
       },
 });
 
-export default DisplayProfileScreen;
+export default TabDisplayProfileScreen;

@@ -24,7 +24,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setSavedPosts } from '../redux/userSlice.js';
 import ImageView from "react-native-image-viewing";
 
-const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
+export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selected, setSelected] = useState();
   const screenWidth = Dimensions.get('window').width;
@@ -231,7 +231,10 @@ const PostsList = ({
   refreshing,
   onRefresh,
   emptyComponent,
-  contentContainerStyle
+  contentContainerStyle,
+  scrollEnabled=true,
+  nestedScrollEnabled=false,
+  ...props
 }) => {
   const dispatch = useDispatch();
   const savedPosts = useSelector(state => state.user.savedPosts) || [];
@@ -282,20 +285,22 @@ const PostsList = ({
       keyExtractor={(item) => item.id}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={contentContainerStyle || styles.feedContainer}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={[theme.colors.primary]}
-          tintColor={theme.colors.primary}
-        />
-      }
+      // refreshControl={
+      //   <RefreshControl
+      //     refreshing={refreshing}
+      //     onRefresh={onRefresh}
+      //     colors={[theme.colors.primary]}
+      //     tintColor={theme.colors.primary}
+      //   />
+      // }
       ListEmptyComponent={emptyComponent || (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No posts yet</Text>
           <Text style={styles.emptySubtext}>Be the first to share a book review!</Text>
         </View>
       )}
+      scrollEnabled={scrollEnabled}
+      nestedScrollEnabled={nestedScrollEnabled}
     />
   );
 };

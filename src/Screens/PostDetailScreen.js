@@ -1,5 +1,5 @@
 import React, {useRef, useState, useCallback, useEffect} from "react";
-import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Pressable, Share, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Share, Alert } from "react-native";
 import Container from "../components/Container";
 import theme from "../design-system/theme/theme";
 import { useRoute } from "@react-navigation/native";
@@ -14,9 +14,12 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setSavedPosts } from '../redux/userSlice';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { BlockUser } from "../functions/blockuser";
+import { Pressable, RectButton } from "react-native-gesture-handler";
 const PostDetailScreen = ({ navigation }) => {
   const route = useRoute();
   const { post: initialPost } = route.params;
+
 
   const [post, setPost] = useState(initialPost);
   const userId = auth.currentUser?.uid;
@@ -341,16 +344,27 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
           {level > 0 && !isLastChild && <View style={styles.nestBar} />}
           <TouchableOpacity onPress={() => toggleCollapse(c.id)} activeOpacity={0.7} style={{ flex: 1 }}>
             <View style={styles.commentMeta}>
-              <View style={{flexDirection:"row", gap:5, alignItems:"flex-start"}}>
-                <View style={styles.avatarContainer}>
+           
+            <Pressable onPress={() => navigation.navigate("DisplayProfile", { userId: c.userId })}>        
+            
+              <View style={{flexDirection:"row", gap:5, alignItems:"flex-start"}} >
+             
+                  <View style={styles.avatarContainer}>
                   <Text style={styles.avatarText}>
                     {(c.displayName || "U").charAt(0).toUpperCase()}
                   </Text>
                 </View>
                 <Text style={styles.commentAuthor}>{c.displayName}</Text>
+               
+       
               </View>
+              </Pressable>
+       
+   
             </View>
           </TouchableOpacity>
+
+
         </View>
       );
     }
@@ -623,7 +637,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
               </TouchableOpacity>
               </>
               <>
-                     <TouchableOpacity onPress={()=>{navigation.navigate("EditPost",{ initialPost })} } style={styles.menuItem}>
+                     <TouchableOpacity onPress={()=>{navigation.navigate("EditPost",{ initialPost }); setPostMenuVisible(false)} } style={styles.menuItem}>
                      <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
                      <Ionicons name="pencil" size={21} color="black" />
                        <Text style={[styles.menuItemText, { color: theme.colors.text, fontWeight:"bold" }]}>Edit Post</Text>
@@ -642,24 +656,29 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
                        <Text style={[styles.menuItemText, { color: theme.colors.text, fontWeight:"bold" }]}>Share Post</Text>
                        </View>
                      </TouchableOpacity>
-                     <TouchableOpacity onPress={()=>{}} style={styles.menuItem}>
+                     <TouchableOpacity onPress={()=>{setPostMenuVisible(false); navigation.navigate("DisplayProfile",{userId:post.authorId})}} style={styles.menuItem}>
                      <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
                      <MaterialCommunityIcons name="account" size={24} color="black" />
                        <Text style={[styles.menuItemText, { color: theme.colors.text, fontWeight:"bold" }]}>View Profile</Text>
                        </View>
                      </TouchableOpacity>
-                     <TouchableOpacity onPress={()=>{}} style={styles.menuItem}>
+
+                     { post.authorId!== auth.currentUser.uid && (
+                      <>
+                     <TouchableOpacity onPress={()=>{setPostMenuVisible(false); BlockUser(post.authorId, {navigation});}} style={styles.menuItem}>
                      <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
                      <MaterialIcons name="block" size={24} color="black" />
-                       <Text style={[styles.menuItemText, { color: theme.colors.text, fontWeight:"bold" }]}>Block Account</Text>
+                       <Text style={[styles.menuItemText, { color: theme.colors.error, fontWeight:"bold" }]}>Block Account</Text>
                        </View>
                      </TouchableOpacity>
                      <TouchableOpacity onPress={()=>{}} style={styles.menuItem}>
                      <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
                      <MaterialIcons name="report" size={24} color="black" />
-                       <Text style={[styles.menuItemText, { color: theme.colors.text, fontWeight:"bold" }]}>Report Post</Text>
+                       <Text style={[styles.menuItemText, { color: theme.colors.error, fontWeight:"bold" }]}>Report Post</Text>
                        </View>
                      </TouchableOpacity>
+                     </>
+                     )}
             <TouchableOpacity onPress={() => setPostMenuVisible(false)} style={styles.menuItem}>
               <Text style={[styles.menuItemText, { color: theme.colors.muted }]}>Cancel</Text>
             </TouchableOpacity>
@@ -686,6 +705,17 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
                 <Text style={[styles.menuItemText, { color: theme.colors.error }]}>Delete</Text>
               </TouchableOpacity>
             )}
+
+{menuComment && (menuComment.userId !== userId) && (
+            <TouchableOpacity style={styles.menuItem} onPress={()=>{BlockUser(menuComment.userId); setMenuVisible(false)}}>              
+           
+               <Text style={[styles.menuItemText, { color: theme.colors.error }]}>Block Account</Text>
+            </TouchableOpacity>
+)}
+    <TouchableOpacity onPress={() =>{navigation.navigate("DisplayProfile", {userId:menuComment.userId}); setMenuVisible(false)}} style={styles.menuItem}>
+              <Text style={[styles.menuItemText, { color: theme.colors.text }]}>View Profile</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity onPress={() => setMenuVisible(false)} style={styles.menuItem}>
               <Text style={[styles.menuItemText, { color: theme.colors.muted }]}>Cancel</Text>
             </TouchableOpacity>

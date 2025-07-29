@@ -31,6 +31,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setSavedPosts } from '../redux/userSlice';
 import ImageView from "react-native-image-viewing";
 import PostOptionsModal from "../components/postOptionsModal.js";
+import { BlockUser } from "../functions/blockuser.js";
 
 const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -481,8 +482,8 @@ const FeedScreen = ({ navigation }) => {
   onDelete={()=>{setPostMenuVisible(false); handleDeletePost(selectedpost)}}
   onEdit={() => {navigation.navigate("EditPost", { initialPost : selectedpost }); setPostMenuVisible(false)}}
   onShare={()=>{handleShared(selectedpost)}}
-  onViewProfile={() =>{}}
-  onBlock={() => console.log("Block user")}
+  onViewProfile={() =>{navigation.navigate("DisplayProfile", {userId: selectedpost.authorId}); setPostMenuVisible(false)}}
+  onBlock={ async ()=> { await BlockUser(selectedpost.authorId, {navigation}); await refetch(); setPostMenuVisible(false)}}
   onReport={() => console.log("Report post")}
   post={selectedpost}
   userId={userId}

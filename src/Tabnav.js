@@ -8,7 +8,11 @@ import theme from "./design-system/theme/theme";
 import FeedScreen from "./Screens/FeedScreen";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import AddPostScreen from "./Screens/AddPostScreen";
+import DisplayProfileScreen from "./Screens/DisplayProfileScreen";
+import TabDisplayProfileScreen from "./Screens/TabDisplayProfile";
 import { TouchableOpacity, Text, View } from "react-native";
+import { auth } from "./Firebaseconfig";
+
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
@@ -66,7 +70,8 @@ const BottomTabNavigator = () => {
         component={ChatScreenList}
         options={{ unmountOnBlur: true }}
       />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      {/* <Tab.Screen name="Profile" component={ProfileScreen} /> */}
+      <Tab.Screen name="Profile" component={TabDisplayProfileScreen} initialParams={{userId: auth.currentUser.uid}} />
     </Tab.Navigator>
   );
 };

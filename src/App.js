@@ -5,6 +5,7 @@ import PhoneauthScreen from "./Screens/PhoneauthScreen";
 import Userdetails1 from "./Screens/Userdetails1";
 import Userdetails2 from "./Screens/Userdetails2";
 import ChatDisplay from "./Screens/chatScreen";
+import ChatDisplay_new from "./Screens/chatScreen_new";
 import Tabnav from "./Tabnav";
 import { useDispatch } from "react-redux";
 import { Text, View, StatusBar, Image, Platform } from "react-native";
@@ -43,6 +44,9 @@ import AddPostScreen from "./Screens/AddPostScreen";
 import PostDetailScreen from "./Screens/PostDetailScreen";
 import EditPostScreen from "./Screens/EditPostScreen";
 import DisplayProfileScreen from "./Screens/DisplayProfileScreen";
+import SettingsScreen from "./Screens/SettingsScreen";
+import SavedPosts from "./Screens/SavedPosts"
+import BlockedUsersScreen from "./Screens/BlockedUsersScreen";
 
 function HomeScreen({ navigation }) {
   return (
@@ -333,6 +337,10 @@ const AppNavigator = () => {
           <Stack.Screen name = "AddPost" component={AddPostScreen} />
           <Stack.Screen name = "EditPost" component={EditPostScreen} />
           <Stack.Screen name = "DisplayProfile" component={DisplayProfileScreen} />
+          <Stack.Screen name="ChatDisplay_new" component={ChatDisplay_new} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="Saved" component={SavedPosts} />
+          <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </QueryClientProvider>

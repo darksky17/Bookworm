@@ -5,9 +5,9 @@ import {
   horizontalScale,
 } from "../design-system/theme/scaleUtils";
 
-export default Header = ({ title }) => {
+export default Header = ({ title, headerstyle }) => {
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, headerstyle]}>
       <Text style={styles.headerText}>{title}</Text>
     </View>
   );
@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: theme.colors.background,
     flexDirection: "row",
-    width: "100%",
+    width: "50%",
     // elevation: 4,
     paddingTop: verticalScale(10),
     paddingBottom: verticalScale(10),

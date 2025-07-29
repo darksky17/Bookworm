@@ -60,7 +60,9 @@ const EditPostScreen = ({navigation}) => {
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
       onBackPress
-    );});
+    );
+    return () => backHandler.remove();
+  }, []);
 
   
 

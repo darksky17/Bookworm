@@ -7,7 +7,7 @@ const fetchPosts = async () => {
   if (!user) throw new Error("User not authenticated");
 
   const idToken = await user.getIdToken();
-  const response = await fetch(`${SERVER_URL}/posts/feed`, {
+  const response = await fetch(`${SERVER_URL}/posts/${user.uid}/feed`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
