@@ -216,14 +216,13 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
           style={styles.actionButton}
           onPress={async () => {
             try {
-              const shareUrl = `${SERVER_URL}/posts/${post.id}`;
+              const shareUrl = `bookworm://posts/${post.id}`;
               const shareTitle = post.type === "BookReview" 
                 ? `Check out "${post.BookTitle}"`
                 : `Check out "${post.title}"`;
-              const message = `${post.Content?.slice(0, 100)}...\n\nCheck this out on MyApp:\n${shareUrl}`;
+                const message = `${shareTitle}\n\n${post.Content?.slice(0, 100)}...\n\n👆 Tap to open in BookWorm: ${shareUrl}`;
               await Share.share({
                 message: message,
-                url: shareUrl,
                 title: shareTitle,
               });
               onShare(post.id); // update Shares count in parent
@@ -252,11 +251,11 @@ const FeedScreen = ({ navigation }) => {
 
   const handleShared = async (post) => {
     try {
-      const shareUrl = `${SERVER_URL}/posts/${post.id}`;
+      const shareUrl = `bookworm://posts/${post.id}`;
       const shareTitle = post.type === "BookReview" 
         ? `Check out "${post.BookTitle}"`
         : `Check out "${post.title}"`;
-      const message = `${post.Content?.slice(0, 100)}...\n\nCheck this out on MyApp:\n${shareUrl}`;
+      const message = `${post.Content?.slice(0, 100)}...\n\nCheck this out on Bookworm:\n${shareUrl}`;
   
       await Share.share({
         message: message,

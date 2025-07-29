@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "BookWorm",
+    "scheme":"bookworm",
     "slug": "Demo1",
     "version": "1.0.0",
     "orientation": "portrait",
