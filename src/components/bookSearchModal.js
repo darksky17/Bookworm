@@ -36,7 +36,7 @@ const BookSearchModal = ({
   };
 
   const handleBookSelect = (book) => {
-    onSelectBook(book.value, book.bookData); // Pass both title and full book data
+    onSelectBook(book.value, book.author); // Pass both title and full book data
     handleClose();
     Keyboard.dismiss();
   };

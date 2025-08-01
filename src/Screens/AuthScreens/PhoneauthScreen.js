@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { setPhoneNumber } from "../redux/userSlice";
+import { setPhoneNumber } from "../../redux/userSlice";
 import {
   Text,
   View,
@@ -16,16 +16,16 @@ import {
 import { Button } from "react-native-paper";
 import auth from "@react-native-firebase/auth"; // Import Firebase auth
 
-import { setDoc, collection, doc, db } from "../Firebaseconfig.js";
+import { setDoc, collection, doc, db } from "../../Firebaseconfig.js";
 
-import Container from "../components/Container";
-import { SERVER_URL } from "../constants/api";
-import Header from "../components/Header.js";
-import theme from "../design-system/theme/theme.js";
+import Container from "../../components/Container.js";
+import { SERVER_URL } from "../../constants/api.js";
+import Header from "../../components/Header.js";
+import theme from "../../design-system/theme/theme.js";
 import {
   moderateScale,
   verticalScale,
-} from "../design-system/theme/scaleUtils.js";
+} from "../../design-system/theme/scaleUtils.js";
 
 const PhoneauthScreen = ({ navigation }) => {
   const dispatch = useDispatch();

@@ -4,13 +4,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   Share,
-  Linking
+  Linking,
+  ActivityIndicator,
+  Text
 } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
-import {
-  setUserState,
-  clearUserState,
-} from "../redux/userSlice";
 import { auth } from "../Firebaseconfig";
 import { SERVER_URL } from "../constants/api";
 import Container from "../components/Container";
@@ -24,6 +22,7 @@ import {
 } from "../design-system/theme/scaleUtils";
 import PostsList from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
+import { DeletePost } from "../functions/deletepost";
 const SavedPosts = ({ navigation }) => {
 
 
@@ -92,6 +91,7 @@ const handleLike = async (postId) => {
 useEffect(()=>{
 
     const fetchSavedPosts = async ()=>{
+      setInitializng(true);
    const idToken = await auth.currentUser.getIdToken();
         try{
             const responses = await Promise.allSettled(
@@ -113,6 +113,8 @@ useEffect(()=>{
                 setPosts(post);
         } catch(error){
           console.log("error", error);
+        } finally {
+          setInitializng(false);
         }
     }
 
@@ -121,59 +123,25 @@ useEffect(()=>{
 
 }, [savedPosts, rerendertool]);
 
-const handleDeletePost = async (post) => {
-  Alert.alert(
-    "Delete Post?",
-    "Are you sure you want to delete this post?",
-    [
-      {
-        text: "Cancel", 
-        onPress: () => {}, 
-        style: "cancel" // No action, just closes the alert
-      },
-      {
-        text: "Delete", 
-        onPress: async () => {
-          try {
-            setIsDeleting(true);
-            const idToken = await auth.currentUser.getIdToken();
-            const response = await fetch(`${SERVER_URL}/posts/${post.id}`, {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${idToken}`,
-              },
-            });
-
-            if (!response.ok) {
-              throw new Error("Failed to delete post");
-            }
-
-            setPostMenuVisible(false); // Close the post menu
-
-          } catch (error) {
-            alert("Failed to delete post.");
-          }
-          setIsDeleting(false);
-        },
-      },
-    ]
-  );
-};
 
 
 
+    if(isDeleting){return (    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      
+    </View>)}
 
+    if(initializing){return (    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      
+    </View>)}
 
 
 
 
   return (
     <Container>
-            {isDeleting &&(    <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>Deleting post...</Text>
-        </View>)}
+   
         <View style={{flexDirection:"row", alignItems:"center"}}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={{paddingLeft:horizontalScale(8)}}>
       <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
@@ -206,9 +174,13 @@ const handleDeletePost = async (post) => {
       <PostOptionsModal
         visible={postMenuVisible}
         onClose={() => setPostMenuVisible(false)}
-        onDelete={() => {
+        onDelete={async () => {
           setPostMenuVisible(false);
-          handleDeletePost(selectedpost);
+          setIsDeleting(true);
+          await DeletePost(selectedpost);
+          setIsDeleting(false);
+          setReRenderTool(prevValue => prevValue + 1);
+          
         }}
         onEdit={() => {
           navigation.navigate("EditPost", { initialPost: selectedpost });
@@ -303,6 +275,12 @@ const styles = StyleSheet.create({
   closeModalText: {
     color: theme.colors.text,
     fontWeight: "bold",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: verticalScale(40),
   },
 });
 

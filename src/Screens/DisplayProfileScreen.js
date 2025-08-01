@@ -13,6 +13,7 @@ import { PostItem } from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
 import ProfileOptionsModal from "../components/profileOptionsModal";
 import { BlockUser } from "../functions/blockuser";
+import { DeletePost } from "../functions/deletepost";
 
 const DisplayProfileScreen = ({navigation})=>{
     
@@ -168,47 +169,6 @@ const DisplayProfileScreen = ({navigation})=>{
     }
 };
 
-const handleDeletePost = async (post) => {
-  Alert.alert(
-    "Delete Post?",
-    "Are you sure you want to delete this post?",
-    [
-      {
-        text: "Cancel", 
-        onPress: () => {}, 
-        style: "cancel" // No action, just closes the alert
-      },
-      {
-        text: "Delete", 
-        onPress: async () => {
-          try {
-            setIsDeleting(true);
-            const idToken = await auth.currentUser.getIdToken();
-            const response = await fetch(`${SERVER_URL}/posts/${post.id}`, {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${idToken}`,
-              },
-            });
-
-            if (!response.ok) {
-              throw new Error("Failed to delete post");
-            }
-
-            setPostMenuVisible(false); // Close the post menu
-            setReRenderTool(prevValue => prevValue + 1);
-
-          } catch (error) {
-            alert("Failed to delete post.");
-            console.log(error);
-          }
-          setIsDeleting(false);
-        },
-      },
-    ]
-  );
-};
 
 
   useEffect(() => {
@@ -319,11 +279,20 @@ const handleDeletePost = async (post) => {
                       
     { userData.isfollowing ?(
     <Button onPress={handleUnfollow}buttonColor= {theme.colors.primary} disabled={isBlocked} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Unfollow</Button>)
-    :(<Button onPress={handleFollow} buttonColor= {theme.colors.primary} disabled={isBlocked} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Follow</Button>)}
+    :(<Button onPress={handleFollow} buttonColor= {theme.colors.primary} disabled={isBlocked} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Follow{userData.hasfollowed? " Back":""}</Button>)}
     <Button mode="contained-tonal" disabled={isBlocked} onPress={()=>{navigation.navigate("ChatDisplay_new", {senderId:auth.currentUser.uid, receiverId: userId})}} buttonColor={theme.colors.primary} textColor={theme.colors.text} style={{borderRadius:5, flex:0.5}}>Message</Button>
     </>
   );
 
+if(isDeleting){
+  return(
+  
+    <View style={{flex:1, justifyContent:"center", alignItems:"center"}}> 
+    <ActivityIndicator color={theme.colors.primary} size={44} />
+
+    </View>
+    
+  )}
 
   
 
@@ -398,22 +367,7 @@ const handleDeletePost = async (post) => {
                 </View>
 
                 <View style={{paddingTop:theme.spacing.vertical.md, flexDirection:"row", gap:horizontalScale(20), paddingHorizontal:horizontalScale(16)}}> 
-                   {/* { userId === auth.currentUser.uid ? (
-                    <SelfButtons />
-                    )
-                    :(
-
-                    
-                    
-                    <React.Fragment> 
-                      
-                      { userData.isfollowing ?(
-                      <Button onPress={handleUnfollow}buttonColor= {theme.colors.primary} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Unfollow</Button>)
-                      :(<Button onPress={handleFollow} buttonColor= {theme.colors.primary} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Follow</Button>)}
-                      <Button mode="contained-tonal" onPress={()=>{navigation.navigate("ChatDisplay_new", {senderId:auth.currentUser.uid, receiverId: userId})}} buttonColor={theme.colors.primary} textColor={theme.colors.text} style={{borderRadius:5, flex:0.5}}>Message</Button>
-                      </React.Fragment>
-                      
-                    )} */}
+           
                     {userId === auth.currentUser.uid ? (
   <SelfButtons theme={theme} />
 ) : hasBlocked ? (
@@ -504,9 +458,12 @@ const handleDeletePost = async (post) => {
 <PostOptionsModal
         visible={postMenuVisible}
         onClose={() => setPostMenuVisible(false)}
-        onDelete={() => {
+        onDelete={ async ()  => {
           setPostMenuVisible(false);
-          handleDeletePost(selectedpost);
+          setIsDeleting(true);
+          await DeletePost(selectedpost);
+          setIsDeleting(false);
+          setReRenderTool(prevValue => prevValue + 1);
         }}
         onEdit={() => {
           navigation.navigate("EditPost", { initialPost: selectedpost });

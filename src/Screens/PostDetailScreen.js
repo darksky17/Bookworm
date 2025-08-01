@@ -4,18 +4,16 @@ import Container from "../components/Container";
 import theme from "../design-system/theme/theme";
 import { useRoute } from "@react-navigation/native";
 import Ionicons from '@expo/vector-icons/Ionicons';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { auth } from "../Firebaseconfig";
 import { SERVER_URL } from "../constants/api";
-import ImageView from "react-native-image-viewing";
 import { horizontalScale, verticalScale, moderateScale } from "../design-system/theme/scaleUtils";
 import { useFetchComments } from "../hooks/useFetchComments";
 import { useSelector, useDispatch } from 'react-redux';
 import { setSavedPosts } from '../redux/userSlice';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { BlockUser } from "../functions/blockuser";
-import { Pressable, RectButton } from "react-native-gesture-handler";
+import { Pressable} from "react-native-gesture-handler";
+import PostCard from "../components/PostCard";
+import PostOptionsModal from "../components/postOptionsModal";
 const PostDetailScreen = ({ navigation }) => {
   const route = useRoute();
   const { post: initialPost } = route.params;
@@ -23,8 +21,6 @@ const PostDetailScreen = ({ navigation }) => {
 
   const [post, setPost] = useState(initialPost);
   const userId = auth.currentUser?.uid;
-  const hasLiked = post.likedBy && Array.isArray(post.likedBy) && post.likedBy.includes(userId);
-  const hasDisliked = post.dislikedBy && Array.isArray(post.dislikedBy) && post.dislikedBy.includes(userId);
   const [comment, setComment] = useState("");
   const [replyTo, setReplyTo] = useState(null);
   const { data: comments = [], isLoading: commentsLoading, error: commentsError, refetch: refetchComments } = useFetchComments(post.id);
@@ -37,8 +33,6 @@ const PostDetailScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const savedPosts = useSelector(state => state.user.savedPosts) || [];
   const isSaved = savedPosts.includes(post.id);
-  const [imageViewerVisible, setImageViewerVisible] = useState(false);
-  const [selected, setSelected] = useState();
   const screenWidth = Dimensions.get('window').width;
   const IMAGE_ASPECT_RATIO = 5 / 4;
   const CONTAINER_WIDTH = screenWidth * 0.85;
@@ -135,9 +129,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
     }
   };
 
-  const handleSave = () => {
-    setPost((prev) => ({ ...prev, Saved: prev.Saved + 1 }));
-  };
+
 
   const handleShare = async () => {
     try {
@@ -438,111 +430,22 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
           <Ionicons name="ellipsis-vertical" size={22} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
-      <ScrollView contentContainerStyle={styles.container}>
-        {post.type === "BookReview" ? (
-          <>
-            <Text style={styles.title}>{post.BookTitle}</Text>
-            <Text style={styles.author}>by {post.BookAuthor}</Text>
-          </>
-        ) : (
-          <Text style={styles.title}>{post.title}</Text>
-        )}
-        <Text style={styles.displayName}>{post.displayName}</Text>
-        <Text style={styles.content}>{post.Content}</Text>
-        {post.images?.length > 0 && (
-        
+
  
-        <> 
-        <FlatList
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ alignItems: 'center', justifyContent:"center", gap:9 }}
-      data={post.images}
-      keyExtractor={(item, index) => `${item}-${index}`}
-      renderItem={({ item, index }) => {
+      <ScrollView contentContainerStyle={styles.container}>
+       
+        <PostCard
+        post={post}
+        onComment={()=> inputRef.current.focus()}
+        onLike={handleLike}
+        OnDislike={handleDislike}
+        onShare={handleShare}
+        width={CONTAINER_WIDTH}
+        height={CONTAINER_HEIGHT}
+        />
 
 
-        return (
-          <View style={{ paddingVertical: theme.spacing.vertical.sm }}>
-          <TouchableOpacity
-            onPress={() => {
-              setSelected(index);
-              setImageViewerVisible(true);
-            }}
-          >
-              <Image
-                source={{ uri: item }}
-                style={{
-                  width: CONTAINER_WIDTH,
-                  height: CONTAINER_HEIGHT,
-                  borderRadius: theme.borderRadius.lg,
-                  
-                }}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-            <View
-          style={{
-            position: 'absolute', // Absolute positioning for exact placement
-            right: 10, // Align to the right edge
-            bottom: 15, // You can adjust vertical positioning
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            paddingHorizontal: 10, // Add some padding for the text
-            borderRadius:theme.borderRadius.lg
-          }}
-        >
-          <Text style={{ color: 'white' }}>{index+1}/{post.images.length}</Text>
-        </View>
-          </View>
-        );
-      }}
-    />
-         
-    
-   <ImageView
-  images={post.images.map((uri) => ({ uri }))}
-  imageIndex={selected}
-  visible={imageViewerVisible}
-  onRequestClose={() => setImageViewerVisible(false)}
 
-/>
-</>
-  
-)}
-        {post.tags && post.tags.length > 0 && (
-          <View style={styles.tagsContainer}>
-            {post.tags.map((tag, idx) => (
-              <Text key={idx} style={styles.tagText}>#{tag} </Text>
-            ))}
-          </View>
-        )}
-        <View style={styles.statsRow}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-            <Ionicons
-              name={hasLiked ? "thumbs-up" : "thumbs-up-outline"}
-              size={20}
-              color={hasLiked ? theme.colors.primary : "black"}
-            />
-            <Text style={styles.stat}>{post.Likes}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleDislike}>
-            <Ionicons
-              name={hasDisliked ? "thumbs-down" : "thumbs-down-outline"}
-              size={20}
-              color={hasDisliked ? theme.colors.primary : "black"}
-            />
-            <Text style={styles.stat}>{post.Dislikes}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={() => inputRef.current.focus()}>
-            <FontAwesome5 name="comment" size={20} color="black" />
-            <Text style={styles.stat}>{post.commentsCount}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-            <Text style={styles.stat}>
-              <Ionicons name="share-social-outline" size={21} color="black" /> </Text>
-      
-          </TouchableOpacity>
-        </View>
         {/* Comments Section */}
         <View style={styles.commentsSection}>
           {/* <Text style={styles.commentsTitle}>Comments</Text> */}
@@ -618,74 +521,31 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
        
       </KeyboardAvoidingView>
       {/* Post Context Menu Modal */}
-      <Modal
-        visible={postMenuVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPostMenuVisible(false)}
-      >
-        <Pressable style={styles.menuOverlay} onPress={() => setPostMenuVisible(false)}>
-          <View style={styles.bottomSheetMenu}>
-            {post.authorId === userId && (
-              <>
-              <>
-              <TouchableOpacity onPress={handleDeletePost} style={styles.menuItem}>
-              <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
-              <Ionicons name="trash" size={21} color="black" />
-                <Text style={[styles.menuItemText, { color: theme.colors.error, fontWeight:"bold" }]}>Delete Post</Text>
-                </View>
-              </TouchableOpacity>
-              </>
-              <>
-                     <TouchableOpacity onPress={()=>{navigation.navigate("EditPost",{ initialPost }); setPostMenuVisible(false)} } style={styles.menuItem}>
-                     <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
-                     <Ionicons name="pencil" size={21} color="black" />
-                       <Text style={[styles.menuItemText, { color: theme.colors.text, fontWeight:"bold" }]}>Edit Post</Text>
-                       </View>
-                     </TouchableOpacity>
-                     </>
-                
-              
-                 
-                   
-                     </>
-            )}
-                 <TouchableOpacity onPress={handleShare} style={styles.menuItem}>
-                     <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
-                     <Ionicons name="share-social-sharp" size={24} color="black" />
-                       <Text style={[styles.menuItemText, { color: theme.colors.text, fontWeight:"bold" }]}>Share Post</Text>
-                       </View>
-                     </TouchableOpacity>
-                     <TouchableOpacity onPress={()=>{setPostMenuVisible(false); navigation.navigate("DisplayProfile",{userId:post.authorId})}} style={styles.menuItem}>
-                     <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
-                     <MaterialCommunityIcons name="account" size={24} color="black" />
-                       <Text style={[styles.menuItemText, { color: theme.colors.text, fontWeight:"bold" }]}>View Profile</Text>
-                       </View>
-                     </TouchableOpacity>
+   
 
-                     { post.authorId!== auth.currentUser.uid && (
-                      <>
-                     <TouchableOpacity onPress={()=>{setPostMenuVisible(false); BlockUser(post.authorId, {navigation});}} style={styles.menuItem}>
-                     <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
-                     <MaterialIcons name="block" size={24} color="black" />
-                       <Text style={[styles.menuItemText, { color: theme.colors.error, fontWeight:"bold" }]}>Block Account</Text>
-                       </View>
-                     </TouchableOpacity>
-                     <TouchableOpacity onPress={()=>{}} style={styles.menuItem}>
-                     <View style={{flexDirection:"row", gap:horizontalScale(10)}}>
-                     <MaterialIcons name="report" size={24} color="black" />
-                       <Text style={[styles.menuItemText, { color: theme.colors.error, fontWeight:"bold" }]}>Report Post</Text>
-                       </View>
-                     </TouchableOpacity>
-                     </>
-                     )}
-            <TouchableOpacity onPress={() => setPostMenuVisible(false)} style={styles.menuItem}>
-              <Text style={[styles.menuItemText, { color: theme.colors.muted }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
-      
+<PostOptionsModal
+  visible={postMenuVisible}
+  onClose={() => setPostMenuVisible(false)}
+  onDelete={handleDeletePost}
+  onEdit={() => {
+    navigation.navigate("EditPost", { initialPost });
+    setPostMenuVisible(false);
+  }}
+  onShare={handleShare}
+  onViewProfile={() => {
+    setPostMenuVisible(false);
+    navigation.navigate("DisplayProfile", { userId: post.authorId });
+  }}
+  onBlock={() => {
+    setPostMenuVisible(false);
+    BlockUser(post.authorId, { navigation });
+  }}
+  onReport={() => {
+    // implement your report logic here
+  }}
+  post={post}
+  userId={auth.currentUser.uid}
+/>
       {/* Comment Context Menu Modal */}
       <Modal
         visible={menuVisible}
@@ -748,46 +608,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.vertical.lg,
     flexGrow:1,
   },
-  title: {
-    fontSize: theme.fontSizes.large,
-    fontFamily: theme.fontFamily.bold,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.vertical.sm,
-  },
-  author: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.muted,
-    marginBottom: theme.spacing.vertical.sm,
-  },
-  displayName: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.vertical.md,
-  },
-  content: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.vertical.md,
-  },
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: theme.spacing.vertical.sm,
-  },
-  tagText: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.secondary,
-    marginRight: 4,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: theme.spacing.vertical.md,
-  },
-  stat: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.muted,
-  },
+
   actionButton: {
     paddingHorizontal: theme.spacing.horizontal.xs,
     paddingVertical: theme.spacing.vertical.xs,

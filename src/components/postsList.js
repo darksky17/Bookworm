@@ -33,16 +33,32 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
   const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
 
   const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "";
+  
     const now = new Date();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return "Just now";
+    const commentTime = new Date(timestamp);
+    const diffInMs = now - commentTime;
+    const diffInSeconds = Math.floor(diffInMs / 1000);
+  
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds}s`;
+    }
+  
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes}m`;
+    }
+  
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if(diffInHours<24){
+    return `${diffInHours}h`;
+    }
+    const diffInDays = Math.floor(diffInHours / 24);
+    if(diffInDays < 7){
+    return `${diffInDays}d`;
+    }
+     const diffInWeeks = Math.floor(diffInDays / 7);
+     return `${diffInWeeks}w`;
   };
 
   const userId = auth.currentUser?.uid;
@@ -296,7 +312,7 @@ const PostsList = ({
       ListEmptyComponent={emptyComponent || (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No posts yet</Text>
-          <Text style={styles.emptySubtext}>Be the first to share a book review!</Text>
+          
         </View>
       )}
       scrollEnabled={scrollEnabled}

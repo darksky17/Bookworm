@@ -1,4 +1,5 @@
 import React, {useRef, useState, useCallback, useEffect} from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Pressable, Share, Alert, ActivityIndicator } from "react-native";
 import Container from "../components/Container";
 import theme from "../design-system/theme/theme";
@@ -13,6 +14,7 @@ import { PostItem } from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
 import ProfileOptionsModal from "../components/profileOptionsModal";
 import { BlockUser } from "../functions/blockuser";
+import { DeletePost } from "../functions/deletepost";
 import Header from "../components/Header";
 
 const TabDisplayProfileScreen = ({navigation})=>{
@@ -34,6 +36,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
   const [isfollowing, setIsFollowing] =useState(false);
   const [ isBlocked, setIsBlocked] = useState(false);
   const [ hasBlocked, setHasBlocked] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
 
   console.log("Wow", userData);
@@ -169,70 +172,82 @@ const TabDisplayProfileScreen = ({navigation})=>{
 };
 
 
-  useEffect(() => {
-    
-    const fetchPosts = async () => {
-      try {
-        const idToken = await auth.currentUser.getIdToken();
-        const res = await fetch(`${SERVER_URL}/posts/profile/${userId}`, {
-          method: "GET",
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`, // make sure idToken is defined
-          },
-        });
-  
-        const data = await res.json();
-        setPosts(data);
-      } catch (error) {
-        console.error('Failed to fetch posts:', error);
-      }
-  
-    };
 
-    const fetchUserData = async () => {
-      try {
-        const idToken = await auth.currentUser.getIdToken();
-        const res = await fetch(`${SERVER_URL}/displayprofile/${userId}`, {
-          method: "PUT",
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`, // make sure idToken is defined
-          },
-          body: JSON.stringify({
-            followerId: auth.currentUser.uid
-          }),
-        });
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
   
-        const data = await res.json();
-        if(data.hasbeenblocked || data.hasblocked){
-          
+      const fetchUserData = async () => {
+        try {
+          const idToken = await auth.currentUser.getIdToken();
+          const res = await fetch(`${SERVER_URL}/displayprofile/${userId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({ followerId: auth.currentUser.uid }),
+          });
+  
+          const data = await res.json();
+          if (!isActive) return;
+  
+          setUserData(data);
           setIsBlocked(data.hasbeenblocked);
           setHasBlocked(data.hasblocked);
-       
-          
-          
+  
+          if (!data.hasbeenblocked && !data.hasblocked) {
+            fetchPosts();
+          } else {
+            setPosts([]); // clear posts if blocked
+          }
+  
+        } catch (err) {
+          console.error('Failed to fetch user data:', err);
+        } finally {
+          if (isActive) setInitializng(false);
         }
-        setUserData(data);
-        
-      } catch (error) {
-        console.error('Failed to fetch posts:', error);
-      }
-      setInitializng(false);
-    };
+      };
   
-    fetchUserData();
-    if(!isBlocked && !hasBlocked){
-    fetchPosts(); // call the async function
-    }
+      const fetchPosts = async () => {
+        try {
+          const idToken = await auth.currentUser.getIdToken();
+          const res = await fetch(`${SERVER_URL}/posts/profile/${userId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+          });
+          const data = await res.json();
+          if (isActive) setPosts(data);
+        } catch (err) {
+          console.error('Failed to fetch posts:', err);
+        }
+      };
   
-  }, [rerendertool]);
+      fetchUserData();
+  
+      return () => {
+        isActive = false;
+      };
+    }, [rerendertool, userId])
+  );
 
   if (initializing) {
     return (
       <Container style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
       </Container>
+    );
+  }
+
+  if (isDeleting) {
+    return (
+      <Container style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <ActivityIndicator color={theme.colors.primary} size="large" />
+    </Container>
     );
   }
 
@@ -445,9 +460,12 @@ const TabDisplayProfileScreen = ({navigation})=>{
 <PostOptionsModal
         visible={postMenuVisible}
         onClose={() => setPostMenuVisible(false)}
-        onDelete={() => {
+        onDelete={async () => {
           setPostMenuVisible(false);
-          handleDeletePost(selectedpost);
+          setIsDeleting(true);
+          await DeletePost(selectedpost);
+          setReRenderTool(prevValue => prevValue + 1);
+          setIsDeleting(false);
         }}
         onEdit={() => {
           navigation.navigate("EditPost", { initialPost: selectedpost });

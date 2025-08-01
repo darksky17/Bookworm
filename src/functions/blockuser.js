@@ -14,7 +14,7 @@ return new Promise((resolve, reject)=>{
         [
           {
             text: "Cancel", 
-            onPress: () => {}, 
+            onPress: async () => {}, 
             style: "cancel" // No action, just closes the alert
           },
           {

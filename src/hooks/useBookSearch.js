@@ -36,6 +36,7 @@ export const useBookSearch = () => {
         return {
           label: `${title} by ${authorNames}`,
           value: title,
+          author:authorNames
         };
       });
 

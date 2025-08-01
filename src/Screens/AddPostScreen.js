@@ -3,7 +3,7 @@ import { View, Text, BackHandler, TextInput, StyleSheet, TouchableOpacity, Alert
 import * as ImagePicker from 'expo-image-picker';
 import { useSelector } from "react-redux";
 import { auth } from "../Firebaseconfig";
-import { SERVER_URL, GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../constants/api";
+import { SERVER_URL} from "../constants/api";
 import Container from "../components/Container";
 import Header from "../components/Header";
 import theme from "../design-system/theme/theme";
@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { horizontalScale, moderateScale, verticalScale } from "../design-system/theme/scaleUtils";
 import { Button, Modal as PModal } from "react-native-paper";
 import storage from "@react-native-firebase/storage";
+import BookSelector from "../components/bookSelector";
 const MAX_IMAGES = 3;
 
 const AddPostScreen = ({navigation}) => {
@@ -25,14 +26,20 @@ const AddPostScreen = ({navigation}) => {
   const [loading, setLoading] = useState(false);
 
   // Book search modal state
-  const [showBookModal, setShowBookModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [bookOptions, setBookOptions] = useState([]);
-  const [loadingBooks, setLoadingBooks] = useState(false);
+;
   const [discardModal, setDiscardModal] = useState(false);
+
 
   // Image picker state
   const [images, setImages] = useState([]); // array of {uri, ...}
+
+  const handleBookSelect=(bookTitle, bookAuthor)=>{
+   setBookTitle(bookTitle);
+   setBookAuthor(bookAuthor);
+   console.log(bookAuthor);
+  
+  }
+
 
   React.useEffect(() => {
     const onBackPress = () => {
@@ -132,38 +139,7 @@ const AddPostScreen = ({navigation}) => {
     }, []);
   
 
-  const fetchBooksWithAuthors = async (query) => {
-    if (!query || query.length < 3) {
-      setBookOptions([]);
-      return;
-    }
-    setLoadingBooks(true);
-    try {
-      const response = await fetch(
-        `${GOOGLE_BOOKS_API_URL}?q=${encodeURIComponent(query)}&key=${BOOKS_API_KEY}`
-      );
-      const data = await response.json();
-      if (!data.items) {
-        setBookOptions([]);
-        return;
-      }
-      const formatted = data.items.map((item) => {
-        const title = item.volumeInfo.title || "Untitled";
-        const authors = item.volumeInfo.authors || ["Unknown Author"];
-        const authorNames = authors.join(", ");
-        return {
-          label: `${title} by ${authorNames}`,
-          value: title,
-          author: authorNames,
-        };
-      });
-      setBookOptions(formatted);
-    } catch (error) {
-      setBookOptions([]);
-    } finally {
-      setLoadingBooks(false);
-    }
-  };
+
 
   const pickImages = async () => {
     try {
@@ -359,14 +335,14 @@ const uploadImage = async (uri, storageRef) => {
           {postType === "BookReview" ? (
             <>
               <Text style={styles.label}>Book Title & Author *</Text>
-              <TouchableOpacity
-                style={styles.input}
-                onPress={() => setShowBookModal(true)}
-              >
-                <Text style={{ color: bookTitle ? theme.colors.text : theme.colors.muted }}>
-                  {bookTitle ? `${bookTitle} by ${bookAuthor}` : "Search and select a book"}
-                </Text>
-              </TouchableOpacity>
+              
+               <BookSelector
+                        placeholder="Search by title or author"
+                        value=
+                          { bookTitle!=="" ?
+                          `${bookTitle} by ${bookAuthor}`:""}
+                        onBookSelect={handleBookSelect}
+                      />
             </>
           ) : (
             <>
@@ -448,112 +424,8 @@ const uploadImage = async (uri, storageRef) => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Book Selection Modal */}
-      <Modal
-        visible={showBookModal}
-        animationType="slide"
-        onRequestClose={() => setShowBookModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          {/* Modal Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Search Books</Text>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => {
-                setShowBookModal(false);
-                setSearchQuery("");
-                setBookOptions([]);
-              }}
-            >
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
+      
 
-          {/* Search Input */}
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Type book title or author..."
-              placeholderTextColor="#999"
-              value={searchQuery}
-              onChangeText={(text) => {
-                setSearchQuery(text);
-                fetchBooksWithAuthors(text);
-              }}
-              autoFocus
-              returnKeyType="search"
-            />
-          </View>
-
-          {/* Search Results */}
-          <View style={styles.resultsContainer}>
-            {loadingBooks ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text style={styles.loadingText}>Searching books...</Text>
-              </View>
-            ) : bookOptions.length === 0 && searchQuery.length >= 3 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  No books found for "{searchQuery}"
-                </Text>
-                <Text style={styles.emptySubText}>
-                  Try a different search term
-                </Text>
-              </View>
-            ) : bookOptions.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  Start typing to search for books...
-                </Text>
-              </View>
-            ) : (
-              <FlatList
-                data={bookOptions}
-                keyExtractor={(item, index) => index.toString()}
-                showsVerticalScrollIndicator={false}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.bookItem}
-                    onPress={() => {
-                      setBookTitle(item.value);
-                      setBookAuthor(item.author);
-                      setShowBookModal(false);
-                      setSearchQuery("");
-                      setBookOptions([]);
-                      Keyboard.dismiss();
-                    }}
-                  >
-                    <Text style={styles.bookTitle}>{item.label}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-          </View>
-
-          {/* Current Selection Footer */}
-          {bookTitle && bookAuthor && (
-            <View style={styles.selectionFooter}>
-              <Text style={styles.selectionLabel}>Currently selected:</Text>
-              <Text style={styles.selectionValue}>{bookTitle} by {bookAuthor}</Text>
-            </View>
-          )}
-        </View>
-      </Modal>
-      <Modal visible={loading} transparent>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0, 0, 0, 0.4)",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      </Modal>
 
       <PModal
         transparent={true}
@@ -686,108 +558,7 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSizes.large,
     fontFamily: theme.fontFamily.bold,
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: theme.spacing.vertical.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.horizontal.md,
-    paddingBottom: theme.spacing.vertical.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  modalTitle: {
-    fontSize: theme.fontSizes.large,
-    fontFamily: theme.fontFamily.bold,
-    color: theme.colors.text,
-  },
-  closeButton: {
-    padding: theme.spacing.horizontal.sm,
-  },
-  closeButtonText: {
-    fontSize: theme.fontSizes.large,
-    color: theme.colors.muted,
-  },
-  searchContainer: {
-    paddingHorizontal: theme.spacing.horizontal.md,
-    paddingBottom: theme.spacing.vertical.sm,
-    paddingTop:theme.spacing.vertical.md,
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.vertical.sm,
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.text,
-    backgroundColor: '#f0f0f0',
-  },
-  resultsContainer: {
-    flex: 1,
-    paddingHorizontal: theme.spacing.horizontal.md,
-    paddingBottom: theme.spacing.vertical.md,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: theme.spacing.vertical.lg,
-  },
-  loadingText: {
-    marginTop: theme.spacing.vertical.sm,
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.muted,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: theme.spacing.vertical.lg,
-  },
-  emptyText: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.muted,
-    textAlign: 'center',
-  },
-  emptySubText: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.muted,
-    marginTop: theme.spacing.vertical.sm,
-  },
-  separator: {
-    height: theme.spacing.vertical.sm,
-  },
-  bookItem: {
-    paddingVertical: theme.spacing.vertical.sm,
-    paddingHorizontal: theme.spacing.horizontal.sm,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: '#f5f5f5',
-  },
-  bookTitle: {
-    fontSize: theme.fontSizes.medium,
-    fontFamily: theme.fontFamily.medium,
-    color: theme.colors.text,
-  },
-  selectionFooter: {
-    paddingHorizontal: theme.spacing.horizontal.md,
-    paddingBottom: theme.spacing.vertical.md,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  selectionLabel: {
-    fontSize: theme.fontSizes.small,
-    color: theme.colors.muted,
-    marginBottom: theme.spacing.vertical.sm,
-  },
-  selectionValue: {
-    fontSize: theme.fontSizes.medium,
-    fontFamily: theme.fontFamily.bold,
-    color: theme.colors.text,
-  },
+
   imagePickerGrid: {
     marginBottom: theme.spacing.vertical.md,
   },

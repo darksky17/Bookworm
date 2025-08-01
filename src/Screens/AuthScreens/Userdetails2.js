@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { firestore, db, setDoc, updateDoc, auth } from "../Firebaseconfig";
+import { firestore, db, setDoc, updateDoc, auth } from "../../Firebaseconfig";
 import {
   View,
   Text,
@@ -21,21 +21,21 @@ import {
   setFavAuthors,
   setCurrentlyReading,
   setBookSummary,
-} from "../redux/userSlice";
+} from "../../redux/userSlice";
 import {
   fetchUserDataByQuery,
   fetchUserDataById,
-} from "../components/FirestoreHelpers";
+} from "../../components/FirestoreHelpers";
 import { MultiSelect, Dropdown } from "react-native-element-dropdown";
-import { GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../constants/api";
+import { GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../../constants/api";
 import { Button } from "react-native-paper";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import theme from "../design-system/theme/theme";
+import theme from "../../design-system/theme/theme";
 import {
   moderateScale,
   verticalScale,
   horizontalScale,
-} from "../design-system/theme/scaleUtils";
+} from "../../design-system/theme/scaleUtils";
 
 const genres = [
   "Fiction",

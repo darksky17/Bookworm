@@ -32,6 +32,7 @@ import { setSavedPosts } from '../redux/userSlice';
 import ImageView from "react-native-image-viewing";
 import PostOptionsModal from "../components/postOptionsModal.js";
 import { BlockUser } from "../functions/blockuser.js";
+import { DeletePost } from "../functions/deletepost.js";
 
 const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -249,6 +250,7 @@ const FeedScreen = ({ navigation }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const userId = auth.currentUser.uid;
 
+
   const handleShared = async (post) => {
     try {
       const shareUrl = `bookworm://posts/${post.id}`;
@@ -270,46 +272,7 @@ const FeedScreen = ({ navigation }) => {
   };
 
   
-  const handleDeletePost = async (post) => {
-    Alert.alert(
-      "Delete Post?",
-      "Are you sure you want to delete this post?",
-      [
-        {
-          text: "Cancel", 
-          onPress: () => {}, 
-          style: "cancel" // No action, just closes the alert
-        },
-        {
-          text: "Delete", 
-          onPress: async () => {
-            try {
-              setIsDeleting(true);
-              const idToken = await auth.currentUser.getIdToken();
-              const response = await fetch(`${SERVER_URL}/posts/${post.id}`, {
-                method: "DELETE",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${idToken}`,
-                },
-              });
-  
-              if (!response.ok) {
-                throw new Error("Failed to delete post");
-              }
-  
-              setPostMenuVisible(false); // Close the post menu
-
-            } catch (error) {
-              alert("Failed to delete post.");
-            }
-            setIsDeleting(false);
-          },
-        },
-      ]
-    );
-  };
-
+ 
 
   // Force refresh function
   const forceRefresh = () => {
@@ -478,7 +441,7 @@ const FeedScreen = ({ navigation }) => {
       <PostOptionsModal
   visible={postMenuVisible}
   onClose={() => setPostMenuVisible(false)}
-  onDelete={()=>{setPostMenuVisible(false); handleDeletePost(selectedpost)}}
+  onDelete={async ()=>{ setPostMenuVisible(false); setIsDeleting(true); await DeletePost(selectedpost); await refetch(); setIsDeleting(false); }}
   onEdit={() => {navigation.navigate("EditPost", { initialPost : selectedpost }); setPostMenuVisible(false)}}
   onShare={()=>{handleShared(selectedpost)}}
   onViewProfile={() =>{navigation.navigate("DisplayProfile", {userId: selectedpost.authorId}); setPostMenuVisible(false)}}

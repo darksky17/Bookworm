@@ -18,25 +18,25 @@ import {
   setEmail,
   setDateOfBirth,
   setGender,
-} from "../redux/userSlice";
+} from "../../redux/userSlice.js";
 import { Picker } from "@react-native-picker/picker";
 
 import moment from "moment";
 
-import { auth, updateDoc, where, setDoc } from "../Firebaseconfig.js";
+import { auth, updateDoc, where, setDoc } from "../../Firebaseconfig.js";
 import {
   fetchUserDataByQuery,
   fetchUserDataById,
-} from "../components/FirestoreHelpers";
-import { SERVER_URL } from "../constants/api";
-import Header from "../components/Header.js";
-import Container from "../components/Container.js";
-import theme from "../design-system/theme/theme.js";
+} from "../../components/FirestoreHelpers.js";
+import { SERVER_URL } from "../../constants/api.js";
+import Header from "../../components/Header.js";
+import Container from "../../components/Container.js";
+import theme from "../../design-system/theme/theme.js";
 import {
   verticalScale,
   horizontalScale,
   moderateScale,
-} from "../design-system/theme/scaleUtils.js";
+} from "../../design-system/theme/scaleUtils.js";
 
 const Screen1 = ({ navigation }) => {
   console.log("first log");

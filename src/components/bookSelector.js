@@ -21,9 +21,9 @@ const BookSelector = ({
 }) => {
   const [showModal, setShowModal] = useState(false);
 
-  const handleBookSelect = (bookTitle, bookData) => {
+  const handleBookSelect = (bookTitle, bookAuthor) => {
     if (onBookSelect) {
-      onBookSelect(bookTitle, bookData);
+      onBookSelect(bookTitle, bookAuthor);
     }
   };
 
