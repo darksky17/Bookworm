@@ -10,7 +10,7 @@ return new Promise((resolve, reject)=>{
 
     Alert.alert(
         "Block User?",
-        "Are you sure you want to block this user? this action is not reversible.",
+        "Are you sure you want to block this user?",
         [
           {
             text: "Cancel", 

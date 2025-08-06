@@ -14,16 +14,22 @@ import { BlockUser } from "../functions/blockuser";
 import { Pressable} from "react-native-gesture-handler";
 import PostCard from "../components/PostCard";
 import PostOptionsModal from "../components/postOptionsModal";
+import { useFetchPostsById } from "../hooks/useFetchPostsById";
 const PostDetailScreen = ({ navigation }) => {
   const route = useRoute();
-  const { post: initialPost } = route.params;
+  // const { post: initialPost } = route.params;
+  const { id: postId } = route.params;
+  
 
+  const {data: postData, isError, error } = useFetchPostsById(postId);
+ const [post, setPost] = useState(null);
 
-  const [post, setPost] = useState(initialPost);
+  // const [post, setPost] = useState(initialPost);
   const userId = auth.currentUser?.uid;
   const [comment, setComment] = useState("");
   const [replyTo, setReplyTo] = useState(null);
-  const { data: comments = [], isLoading: commentsLoading, error: commentsError, refetch: refetchComments } = useFetchComments(post.id);
+  // const { data: comments = [], isLoading: commentsLoading, error: commentsError, refetch: refetchComments } = useFetchComments(post.id);
+  const { data: comments = [], isLoading: commentsLoading, error: commentsError, refetch: refetchComments } = useFetchComments(postId);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuComment, setMenuComment] = useState(null);
   const [postMenuVisible, setPostMenuVisible] = useState(false);
@@ -32,12 +38,19 @@ const PostDetailScreen = ({ navigation }) => {
   const [editingComment, setEditingComment] = useState(null); // {id, text, ...} or null
   const dispatch = useDispatch();
   const savedPosts = useSelector(state => state.user.savedPosts) || [];
-  const isSaved = savedPosts.includes(post.id);
+  // const isSaved = savedPosts.includes(post.id);
+  const isSaved = savedPosts.includes(postId);
   const screenWidth = Dimensions.get('window').width;
   const IMAGE_ASPECT_RATIO = 5 / 4;
   const CONTAINER_WIDTH = screenWidth * 0.85;
 const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
 
+useEffect(() => {
+  if (postData) {
+    console.log("this is PostData", postData);
+    setPost(postData);
+  }
+}, [postData]);
 
   const handleBookmark = async () => {
     try {
@@ -63,6 +76,8 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
   };
 
   const handleLike = async () => {
+
+    if(post === null) return;
     try {
       const idToken = await auth.currentUser.getIdToken();
       await fetch(`${SERVER_URL}/posts/${post.id}/like`, {
@@ -74,6 +89,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
       });
       // Refetch or update post state
       setPost((prev) => {
+        if(!prev) return prev;
         let likedBy = prev.likedBy || [];
         let dislikedBy = prev.dislikedBy || [];
         let Likes = prev.Likes;
@@ -97,6 +113,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
   };
 
   const handleDislike = async () => {
+    if(post === null) return;
     try {
       const idToken = await auth.currentUser.getIdToken();
       await fetch(`${SERVER_URL}/posts/${post.id}/dislike`, {
@@ -107,6 +124,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
         },
       });
       setPost((prev) => {
+        if(!prev) return prev;
         let likedBy = prev.likedBy || [];
         let dislikedBy = prev.dislikedBy || [];
         let Likes = prev.Likes;
@@ -133,7 +151,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
 
   const handleShare = async () => {
     try {
-      const shareUrl = `${SERVER_URL}/posts/${post.id}`;
+      const shareUrl = `https://bookworm.infodata.in/posts/${post.id}`;
       const shareTitle = post.type === "BookReview" 
         ? `Check out "${post.BookTitle}"`
         : `Check out "${post.title}"`;
@@ -174,6 +192,25 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
       }
     }
   };
+
+  if (!post && !isError) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading post...</Text>
+      </View>
+    );
+  }
+
+  if(isError){
+    if(error.message === "Failed to fetch posts"){
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text>This post does not exist anymore.</Text>
+        </View>
+      );
+
+    }
+  }
 
   const getTimeAgo = (timestamp) => {
     if (!timestamp) return "";

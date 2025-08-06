@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, getStateFromPath } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useDispatch } from "react-redux";
 import { Text, View, StatusBar, Image, Platform } from "react-native";
@@ -26,6 +26,8 @@ import MainNavigator from "./navigation/MainNavigator";
 
 
 
+
+
 const AppNavigator = () => {
   const queryClient = new QueryClient();
   const [openModal, setOpenModal] = useState(false);
@@ -38,7 +40,68 @@ const AppNavigator = () => {
   const [user, setUser] = useState();
   const [notificationPrefReady, setNotificationPrefReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [initialState, setInitialState] = useState(undefined);
+  const [isReady, setIsReady] = useState(true);
 
+  
+  const linking = {
+    prefixes: ['https://bookworm.infodata.in', 'bookworm.infodata.in'],
+    config: {
+      screens: {
+        Home: '',
+        PostDetail: 'posts/:id',
+        DisplayProfile:'profile/:userId',
+      },
+    },
+  };
+
+  useEffect(()=>{
+
+    const prepareInitialState = async () => {
+      try {
+        const url = await Linking.getInitialURL();
+        console.log("DIDDDDD REACCCCCHHHH HEREEEEEE");
+        if (url) {
+          console.log("This is url name", url);
+          const path = url.replace(/^https?:\/\/[^/]+\/?/, '');
+          console.log('Extracted path:', path);
+          const parsedState = getStateFromPath(path, linking.config);
+          console.log("This is pasrsedState name", parsedState);
+          const route = parsedState?.routes?.[0];
+          console.log("This is route name", route);
+  
+          // If user deep linked to PostDetail or DisplayProfile
+          if (route?.name === 'PostDetail' || route?.name === 'DisplayProfile') {
+            const fallbackStack = {
+              index: 1,
+              routes: [
+                { name: 'MainTabs' }, // <-- Inject Home into back stack
+                {
+                  name: route.name,
+                  params: route.params,
+                },
+              ],
+            };
+            console.log("these are routes", fallbackStack);
+            setInitialState(fallbackStack);
+          } else {
+            console.log("tired of being run all the time lawl");
+            setInitialState(parsedState); // normal deep link (like to Home)
+          }
+        } else{
+          console.log("tired of being run all the time");
+        }
+      } catch (e) {
+        console.warn('Error preparing initial navigation state', e);
+      } finally {
+        setIsReady(true);
+      }
+    };
+ 
+  
+    prepareInitialState();
+
+  }, []);
   const checkForUpdates = async () => {
     try {
       // Check version from your server
@@ -155,7 +218,7 @@ const AppNavigator = () => {
     initializeNotificationPref();
   }, []);
 
-  if (initializing) {
+  if (initializing || !isReady) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color={theme.colors.secondary} />
@@ -211,7 +274,7 @@ const AppNavigator = () => {
   }
   return (
     <QueryClientProvider client={queryClient}>
-      <NavigationContainer>
+      <NavigationContainer linking={linking} initialState={initialState}>
         <StatusBar
           backgroundColor={theme.colors.background}
           barStyle="dark-content"

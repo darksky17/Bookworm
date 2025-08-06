@@ -22,10 +22,14 @@ const fetchPosts = async (id) => {
   const postsData = await response.json();
   
   // Convert timestamp strings back to Date objects for the formatTimestamp function
-  return postsData.map(post => ({
-    ...post,
-    timestamp: post.timestamp ? new Date(post.timestamp) : new Date()
-  }));
+  // return postsData.map(post => ({
+  //   ...post,
+  //   timestamp: post.timestamp ? new Date(post.timestamp) : new Date()
+  // }));
+  return {
+    ...postsData,
+    timestamp: postsData.timestamp ? new Date(postsData.timestamp) : new Date()
+  };
 
 };
 

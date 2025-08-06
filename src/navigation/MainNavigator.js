@@ -18,10 +18,12 @@ import ChatDisplay_new from '../Screens/chatScreen_new';
 import SettingsScreen from '../Screens/SettingsScreen';
 import SavedPosts from '../Screens/SavedPosts';
 import BlockedUsersScreen from '../Screens/BlockedUsersScreen';
+import useUnreadCountListener from "../hooks/useUnreadCountListener";
 
 const MainStack = createNativeStackNavigator();
 
 const MainNavigator = () => {
+  useUnreadCountListener();
   return (
     <MainStack.Navigator 
       screenOptions={{ headerShown: false }}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   FlatList,
@@ -17,8 +17,7 @@ import theme from "../design-system/theme/theme";
 import Container from "../components/Container";
 import Header from "../components/Header";
 import { useFetchPosts } from "../hooks/useFetchPosts";
-import { useQueryClient } from "@tanstack/react-query";
-import { auth } from "../Firebaseconfig";
+import { auth, getDoc, doc, db } from "../Firebaseconfig";
 import { SERVER_URL } from "../constants/api";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {
@@ -33,6 +32,8 @@ import ImageView from "react-native-image-viewing";
 import PostOptionsModal from "../components/postOptionsModal.js";
 import { BlockUser } from "../functions/blockuser.js";
 import { DeletePost } from "../functions/deletepost.js";
+import FilterChip from "../components/FilterChip.js";
+import { SHARE_PREFIX } from "../constants/api";
 
 const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -215,22 +216,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
       
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={async () => {
-            try {
-              const shareUrl = `bookworm://posts/${post.id}`;
-              const shareTitle = post.type === "BookReview" 
-                ? `Check out "${post.BookTitle}"`
-                : `Check out "${post.title}"`;
-                const message = `${shareTitle}\n\n${post.Content?.slice(0, 100)}...\n\n👆 Tap to open in BookWorm: ${shareUrl}`;
-              await Share.share({
-                message: message,
-                title: shareTitle,
-              });
-              onShare(post.id); // update Shares count in parent
-            } catch (error) {
-              alert("Failed to share the post.");
-            }
-          }}
+          onPress={onShare}
         >
         <Ionicons name="share-social-outline" size={24} color="black" />
         </TouchableOpacity>
@@ -241,7 +227,6 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
 
 const FeedScreen = ({ navigation }) => {
   const { data: posts = [], isLoading, error, refetch, isRefetching } = useFetchPosts();
-  const queryClient = useQueryClient();
   const [isPullingToRefresh, setIsPullingToRefresh] = useState(false);
   const dispatch = useDispatch();
   const savedPosts = useSelector(state => state.user.savedPosts) || [];
@@ -249,11 +234,78 @@ const FeedScreen = ({ navigation }) => {
   const [selectedpost, setSelectedPost] = useState();
   const [isDeleting, setIsDeleting] = useState(false);
   const userId = auth.currentUser.uid;
+  const [activeFilters, setActiveFilters] = useState("");
+  const filters = ["Following", "Controversial", "Most Liked"];
+  const [userData, setUserData] = useState(null);
+
+  const toggleFilter = async (filter) => {
+
+     if (activeFilters !== filter){
+      setActiveFilters(filter);
+     }
+     else{
+      setActiveFilters("");
+     }
+
+  
+  };
+
+
+useFocusEffect(
+  useCallback(() => {
+    const fetchUserData = async () => {
+      const docRef = doc(db, "Users", auth.currentUser.uid);
+      const docRefsnap = await getDoc(docRef);
+      const data = docRefsnap.data();
+      setUserData(data);
+    };
+
+    fetchUserData();
+  }, []) 
+);
+
+  const filteredPosts = useMemo(() => {
+    if (!userData) return posts; 
+  
+    switch (activeFilters) {
+      case 'Following':
+        return posts.filter((item) => userData.following?.includes(item.authorId));
+      
+      case 'Controversial':
+        return [...posts].sort((a, b) => {
+         
+          if (a.Dislikes > 0 && b.Dislikes > 0) {
+            const scoreA = (a.Likes || 0) + (a.Dislikes || 0);
+            const scoreB = (b.Likes || 0) + (b.Dislikes || 0);
+            return scoreB - scoreA;  
+          }
+          
+          
+          if (a.Dislikes > 0 && b.Dislikes === 0) {
+            return -1; 
+          }
+          
+          
+          if (a.Dislikes === 0 && b.Dislikes > 0) {
+            return 1; 
+          }
+      
+          return 0; 
+        });
+  
+      case 'Most Liked':
+        return [...posts].sort((a, b) => b.Likes - a.Likes);
+  
+      default:
+        return posts; 
+    }
+  }, [posts, activeFilters, userData]); 
+
 
 
   const handleShared = async (post) => {
     try {
-      const shareUrl = `bookworm://posts/${post.id}`;
+      const shareUrl = `${SHARE_PREFIX}/posts/${post.id}`;
       const shareTitle = post.type === "BookReview" 
         ? `Check out "${post.BookTitle}"`
         : `Check out "${post.title}"`;
@@ -274,11 +326,7 @@ const FeedScreen = ({ navigation }) => {
   
  
 
-  // Force refresh function
-  const forceRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["posts"] });
-    refetch();
-  };
+
 
   const handlePullToRefresh = async () => {
     setIsPullingToRefresh(true);
@@ -326,14 +374,7 @@ const FeedScreen = ({ navigation }) => {
     );
   };
 
-  const handleShare = (postId) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) =>
-        post.id === postId ? { ...post, Shares: post.Shares + 1 } : post
-      )
-    );
-  };
-
+  
   useFocusEffect(
     useCallback(() => {
       refetch();  // Refetch when screen is focused
@@ -341,7 +382,7 @@ const FeedScreen = ({ navigation }) => {
   );
 
   const handleContentPress = (post) => {
-    navigation.navigate('PostDetail', { post });
+    navigation.navigate('PostDetail', { id: post.id });
   };
 
   const handleBookmark = async (postId) => {
@@ -374,7 +415,7 @@ const FeedScreen = ({ navigation }) => {
       onLike={handleLike}
       onDislike={handleDislike}
       onSave={handleSave}
-      onShare={handleShare}
+      onShare={()=>{handleShared(item)}}
       onContentPress={handleContentPress}
       isSaved={savedPosts.includes(item.id)}
       onBookmark={handleBookmark}
@@ -417,8 +458,18 @@ const FeedScreen = ({ navigation }) => {
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Deleting post...</Text>
         </View>)}
+        <View style={{paddingHorizontal:theme.spacing.horizontal.xs, justifyContent:"space-evenly",  flexDirection:"row", marginVertical:theme.spacing.vertical.md}}>
+        {filters.map(filter => (
+    <FilterChip
+      key={filter}
+      label={filter}
+      isActive={activeFilters === filter}
+      onPress={() => toggleFilter(filter)}
+    />
+  ))}
+          </View>
       <FlatList
-        data={posts}
+        data={filteredPosts}
         renderItem={renderPost}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}

@@ -209,23 +209,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={async () => {
-            try {
-              const shareUrl = `${SERVER_URL}/posts/${post.id}`;
-              const shareTitle = post.type === "BookReview"
-                ? `Check out "${post.BookTitle}"`
-                : `Check out "${post.title}"`;
-              const message = `${post.Content?.slice(0, 100)}...\n\nCheck this out on MyApp:\n${shareUrl}`;
-              await Share.share({
-                message: message,
-                url: shareUrl,
-                title: shareTitle,
-              });
-              onShare(post.id);
-            } catch (error) {
-              alert("Failed to share the post.");
-            }
-          }}
+          onPress={()=>{onShare(post)}}
         >
           <Ionicons name="share-social-outline" size={24} color="black" />
         </TouchableOpacity>

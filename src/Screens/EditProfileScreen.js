@@ -156,6 +156,7 @@ const EditProfileScreen = ({ navigation }) => {
             </View>
 
             <InfoRow label="Name" value={globalSelected.name} />
+            <InfoRow label="Display Name" value={globalSelected.displayName} />
             <InfoRow label="Phone" value={globalSelected.phoneNumber} />
             <InfoRow label="Gender" value={globalSelected.gender} />
             <InfoRow label="Date of Birth" value={globalSelected.dateOfBirth} />
@@ -246,21 +247,6 @@ const EditProfileScreen = ({ navigation }) => {
                 >
                   {choicebook ? (
                     <View style={{ gap: verticalScale(20) }}>
-                      {/* <TextInput
-                        placeholder="Please only mention the name of the Book!"
-                        editable
-                        backgroundColor="snow"
-                        numberOfLines={3}
-                        maxLength={50}
-                        style={{
-                          borderColor: "grey",
-                          borderWidth: 2,
-                          borderRadius: moderateScale(10),
-                          paddingHorizontal: horizontalScale(10),
-                        }}
-                        value={currentreade}
-                        onChangeText={setCurrentRead}
-                      /> */}
                       <BookSelector
                         placeholder="Search by title or author"
                         value={currentreade}

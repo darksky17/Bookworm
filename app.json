@@ -23,7 +23,20 @@
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/play_store_512.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "bookworm.infodata.in"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./src/assets/play_store_512.png"

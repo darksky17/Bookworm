@@ -23,6 +23,7 @@ import {
 import PostsList from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
 import { DeletePost } from "../functions/deletepost";
+import { SHARE_PREFIX } from "../constants/api";
 const SavedPosts = ({ navigation }) => {
 
 
@@ -39,7 +40,7 @@ console.log("Okay so these are saved", posts.length);
 
 const handleShared = async (post) => {
   try {
-    const shareUrl = `${SERVER_URL}/posts/${post.id}`;
+    const shareUrl = `${SHARE_PREFIX}/posts/${post.id}`;
     const shareTitle = post.type === "BookReview" 
       ? `Check out "${post.BookTitle}"`
       : `Check out "${post.title}"`;
@@ -157,7 +158,7 @@ useEffect(()=>{
         navigation={navigation}
         onLike={handleLike}
         onDislike={handleDislike}
-        onShare={()=>{handleShared}}
+        onShare={handleShared}
         onContentPress={(post) => navigation.navigate("PostDetail", { post })}
         onPressOptions={(item) => {
             setSelectedPost(item);

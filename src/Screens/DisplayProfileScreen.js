@@ -14,6 +14,7 @@ import PostOptionsModal from "../components/postOptionsModal";
 import ProfileOptionsModal from "../components/profileOptionsModal";
 import { BlockUser } from "../functions/blockuser";
 import { DeletePost } from "../functions/deletepost";
+import { SHARE_PREFIX } from "../constants/api";
 
 const DisplayProfileScreen = ({navigation})=>{
     
@@ -42,7 +43,7 @@ const DisplayProfileScreen = ({navigation})=>{
   
   const handleShared = async (post) => {
     try {
-      const shareUrl = `${SERVER_URL}/posts/${post.id}`;
+      const shareUrl = `${SHARE_PREFIX}/posts/${post.id}`;
       const shareTitle = post.type === "BookReview" 
         ? `Check out "${post.BookTitle}"`
         : `Check out "${post.title}"`;
@@ -55,6 +56,24 @@ const DisplayProfileScreen = ({navigation})=>{
       });
     } catch (error) {
       alert("Failed to share the post.");
+    }
+  };
+
+  const handleSharedProfile = async (profile) => {
+    try {
+      const shareUrl = `${SHARE_PREFIX}/profile/${userId}`;
+      const shareTitle =  `Check out "${profile.displayName}"`
+
+      const message = `\n\nCheck this profile on BookWorm:\n${shareUrl}`;
+  
+      await Share.share({
+        message: message,
+        url: shareUrl,
+        title: shareTitle,
+      });
+    } catch (error) {
+      alert("Failed to share the post.");
+      console.log(error);
     }
   };
 
@@ -444,7 +463,7 @@ if(isDeleting){
           onLike={handleLike}
           onDislike={handleDislike}
           onSave={()=>{}}
-          onShare={()=>{handleShared}}
+          onShare={handleShared}
           navigation={navigation}
           onContentPress={(post) => navigation.navigate("PostDetail", { post })}
           onPressOptions={(item) => {
@@ -481,7 +500,7 @@ if(isDeleting){
         visible={profileMenuVisible}
         onClose={() => setProfileMenuVisible(false)}
         onUnfollow={()=> {handleUnfollow(auth.currentUser.uid, userId); setProfileMenuVisible(false)}}
-        onShare={() => {}}
+        onShare={() => {handleSharedProfile(userData); setProfileMenuVisible(false)}}
         onBlock={() =>{ BlockUser(userId, {navigation}); setProfileMenuVisible(false)} }
         onReport={() => console.log("Report post")}
         hasfollowed={userData.hasfollowed}

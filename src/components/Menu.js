@@ -158,7 +158,7 @@ const Menu = ({
       <ReusableModal
         visible={blockModal}
         title="Block"
-        description="Are you sure you want to Block this user? This action is not reversible."
+        description="Are you sure you want to Block this user? Note: You will lose all your text messages."
         onConfirm={() => {
           Blocked(chatId);
           setBlockModal(false);

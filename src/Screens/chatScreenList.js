@@ -15,7 +15,6 @@ import {
   ActivityIndicator,
   Animated,
 } from "react-native";
-
 import { auth } from "../Firebaseconfig";
 import Header from "../components/Header";
 import Feather from "@expo/vector-icons/Feather";
@@ -32,12 +31,16 @@ import {
 } from "../design-system/theme/scaleUtils";
 import useFetchChats from "../hooks/useFetchChats";
 
+
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
   const gender = useSelector((state) => state.user.gender);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [initializing, setInitializing] = useState(true);
   const { data: chats, isLoading, isError, refetch } = useFetchChats();
+  const unread = useSelector(state => state.user.unreadCount);
+  let unreadCount = unread;
+  
 
   useFocusEffect(
     useCallback(() => {
@@ -354,8 +357,12 @@ const ChatScreenList = ({ navigation }) => {
                         flexShrink: 1,
                         flexGrow: 1,
                       }}
-                      onPress={() =>
-                        navigation.navigate("ChatDisplay", { allData: item })
+                      onPress={async () =>{
+                      
+                        
+                        navigation.navigate("ChatDisplay", { allData: item });
+                        
+                      }
                       }
                     >
                       <View

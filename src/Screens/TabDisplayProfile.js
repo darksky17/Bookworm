@@ -16,13 +16,21 @@ import ProfileOptionsModal from "../components/profileOptionsModal";
 import { BlockUser } from "../functions/blockuser";
 import { DeletePost } from "../functions/deletepost";
 import Header from "../components/Header";
+import { SHARE_PREFIX } from "../constants/api";
+import {
+  GestureHandlerRootView,
+  Gesture,
+  GestureDetector,
+} from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
+import PagerView from 'react-native-pager-view';
 
 const TabDisplayProfileScreen = ({navigation})=>{
     
     const route = useRoute();
     const { userId } = route.params; 
     const [renderAbout, setRenderAbout] = useState(false);
-  console.log(userId);
+
   const [posts, setPosts] = useState([]);
   const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
   const [postMenuVisible, setPostMenuVisible] = useState(false);
@@ -39,12 +47,12 @@ const TabDisplayProfileScreen = ({navigation})=>{
   const [isDeleting, setIsDeleting] = useState(false);
   
 
-  console.log("Wow", userData);
+  
 
   
   const handleShared = async (post) => {
     try {
-      const shareUrl = `${SERVER_URL}/posts/${post.id}`;
+      const shareUrl = `${SHARE_PREFIX}/posts/${post.id}`;
       const shareTitle = post.type === "BookReview" 
         ? `Check out "${post.BookTitle}"`
         : `Check out "${post.title}"`;
@@ -57,6 +65,24 @@ const TabDisplayProfileScreen = ({navigation})=>{
       });
     } catch (error) {
       alert("Failed to share the post.");
+    }
+  };
+
+  const handleSharedProfile = async (profile) => {
+    try {
+      const shareUrl = `${SHARE_PREFIX}/profile/${auth.currentUser.uid}`;
+      const shareTitle =  `Check out "${profile.displayName}"`
+
+      const message = `\n\nCheck this profile on BookWorm:\n${shareUrl}`;
+  
+      await Share.share({
+        message: message,
+        url: shareUrl,
+        title: shareTitle,
+      });
+    } catch (error) {
+      alert("Failed to share the post.");
+      console.log(error);
     }
   };
 
@@ -138,7 +164,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
       });
      
       const data = await res.json();
-      console.log("Unfollow response:", data);
+      
       setReRenderTool(prevValue => prevValue + 1);
 
     } catch (error) {
@@ -191,7 +217,9 @@ const TabDisplayProfileScreen = ({navigation})=>{
           });
   
           const data = await res.json();
+         
           if (!isActive) return;
+         
   
           setUserData(data);
           setIsBlocked(data.hasbeenblocked);
@@ -221,6 +249,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
             },
           });
           const data = await res.json();
+          data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           if (isActive) setPosts(data);
         } catch (err) {
           console.error('Failed to fetch posts:', err);
@@ -258,6 +287,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
         textColor={theme.colors.text}
         mode="contained-tonal"
         style={{ borderRadius: 5, flex: 0.5 }}
+        onPress={()=>{handleSharedProfile(userData)}}
       >
         Share Profile
       </Button>
@@ -273,29 +303,17 @@ const TabDisplayProfileScreen = ({navigation})=>{
     </>
   );
 
-  const BlockedButtons = () => (
-    <>
-      <Button
-        buttonColor={theme.colors.primary}
-        textColor={theme.colors.text}
-        mode="contained-tonal"
-        style={{ borderRadius: 5, flex: 1 }}
-      >
-        Unblock User
-      </Button>
- 
-    </>
-  );
+  const swipeGesture = Gesture.Pan()
+  .onEnd((event) => {
+    if (event.translationX < -50) {
+      console.log("Swiped Left");
+      runOnJS(setRenderAbout)(true);
+    } else if (event.translationX > 50) {
+      runOnJS(setRenderAbout)(false);
+    }
+  }).activeOffsetX([-10, 10]);
 
-  const OtherUserButtons = ({userData}) => (
-    <> 
-                      
-    { userData.isfollowing ?(
-    <Button onPress={handleUnfollow}buttonColor= {theme.colors.primary} disabled={isBlocked} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Unfollow</Button>)
-    :(<Button onPress={handleFollow} buttonColor= {theme.colors.primary} disabled={isBlocked} textColor={theme.colors.text}mode="contained-tonal" style={{borderRadius:5, flex:0.5}}>Follow</Button>)}
-    <Button mode="contained-tonal" disabled={isBlocked} onPress={()=>{navigation.navigate("ChatDisplay_new", {senderId:auth.currentUser.uid, receiverId: userId})}} buttonColor={theme.colors.primary} textColor={theme.colors.text} style={{borderRadius:5, flex:0.5}}>Message</Button>
-    </>
-  );
+
 
 
   
@@ -306,42 +324,16 @@ const TabDisplayProfileScreen = ({navigation})=>{
     <Header title={"Profile"} style={{width:"20%"}} />
 
 
-    {userId === auth.currentUser.uid ?(
+   
       <TouchableOpacity 
     style={styles.headerIconRight}
     onPress={() => {navigation.navigate("Settings")}}
   >
     <Ionicons name="menu" size={22} color={theme.colors.text} />
   </TouchableOpacity>
-    ):
+  
     
-    (
-      <>
-
-   {trigger && userData.isfollowing===false && userId!==auth.currentUser.uid ? (
-     
-    <Button onPress={handleFollow} buttonColor= {theme.colors.primary} textColor={theme.colors.text}mode="contained-tonal"   style={{
-      borderRadius: moderateScale(5),
-      width: horizontalScale(95),
-    }}
-    disabled={isBlocked}
-    contentStyle={{
-      height: verticalScale(39),
-      paddingHorizontal: horizontalScale(1),
-    }}> Follow </Button>
    
-   ):(
-    
-    <TouchableOpacity 
-    style={styles.headerIconRight}
-    onPress={() => {setProfileMenuVisible(true)}}
-  >
-    <Ionicons name="ellipsis-vertical" size={22} color={theme.colors.text} />
-  </TouchableOpacity>
-   )
-  }
-  </>
-)}
   </View>
   <ScrollView stickyHeaderIndices={[1]} showsVerticalScrollIndicator={false} scrollEventThrottle={15} onScroll={handleScroll}>
   <View style={{alignItems:"center", justifyContent:"center", paddingTop:theme.spacing.vertical.md, gap:verticalScale(10)}} onLayout={onProfileSectionLayout}>
@@ -370,13 +362,11 @@ const TabDisplayProfileScreen = ({navigation})=>{
 
                 <View style={{paddingTop:theme.spacing.vertical.md, flexDirection:"row", gap:horizontalScale(20), paddingHorizontal:horizontalScale(16)}}> 
             
-                    {userId === auth.currentUser.uid ? (
+              
   <SelfButtons theme={theme} />
-) : hasBlocked ? (
-  <BlockedButtons theme={theme} />
-) : (
-  <OtherUserButtons theme={theme} userData={userData} />
-)}
+
+ 
+
                 </View>
                 
   </View>
@@ -392,15 +382,14 @@ const TabDisplayProfileScreen = ({navigation})=>{
 </View>
 </View>
 
-{isBlocked || hasBlocked? (
-      <View style={{ justifyContent: "center", alignItems: "center" }}>
-        <Text>No Information available</Text>
-      </View>
-    ):(
-<View>
+
+{/* <View>
+
+  
 {renderAbout ? (
-  <View style={{    paddingHorizontal: theme.spacing.horizontal.sm,
-    paddingTop: theme.spacing.vertical.sm, gap:20}}>
+
+        <View style={{    paddingHorizontal: theme.spacing.horizontal.sm,
+    paddingTop: theme.spacing.vertical.sm, gap:20}} key={1}>
 
   <View style={{gap:5, elevation:3, backgroundColor:"snow", padding:theme.spacing.horizontal.md, borderRadius:10}}>
     <Text style={{fontWeight:"bold"}}> Currently Reading:</Text>
@@ -417,9 +406,11 @@ const TabDisplayProfileScreen = ({navigation})=>{
 
 
 </View>
-) : (
+
+ ) : ( 
+
   <View style={{    paddingHorizontal: theme.spacing.horizontal.xs,
-    paddingBottom: theme.spacing.vertical.xs,}}>
+    paddingBottom: theme.spacing.vertical.xs,}} key={2}> */}
 
 {/* <PostsList
         posts={posts}
@@ -438,7 +429,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
       /> */}
 
 
-{posts.map((post, index) => (
+{/* {posts.map((post, index) => (
  
         <PostItem
           key={post.id}
@@ -479,21 +470,105 @@ const TabDisplayProfileScreen = ({navigation})=>{
         userId={auth.currentUser.uid}
       />
 
-<ProfileOptionsModal
-        visible={profileMenuVisible}
-        onClose={() => setProfileMenuVisible(false)}
-        onUnfollow={()=> {handleUnfollow(auth.currentUser.uid, userId); setProfileMenuVisible(false)}}
-        onShare={() => {}}
-        onBlock={() =>{ BlockUser(userId, {navigation}); setProfileMenuVisible(false)} }
+
+
+
+</View>
+
+
+ )} 
+  
+
+  </View> */}
+
+<PagerView 
+  style={{flex:1}} 
+  initialPage={0}
+ 
+>
+  
+  {/* Posts Page */}
+  <View 
+    style={{    
+      paddingHorizontal: theme.spacing.horizontal.xs,
+      paddingBottom: theme.spacing.vertical.xs,
+      flex:1
+    }} 
+    key={1}
+  >
+
+{posts.map((post, index) => (
+        <PostItem
+          key={post.id}
+          post={post}
+          onLike={handleLike}
+          onDislike={handleDislike}
+          onSave={()=>{}}
+          onShare={()=>{handleShared}}
+          navigation={navigation}
+          onContentPress={(post) => navigation.navigate("PostDetail", { post })}
+          onPressOptions={(item) => {
+              setSelectedPost(item);
+              setPostMenuVisible(true);
+            }}
+         
+        />
+      ))}
+    
+<PostOptionsModal
+        visible={postMenuVisible}
+        onClose={() => setPostMenuVisible(false)}
+        onDelete={async () => {
+          setPostMenuVisible(false);
+          setIsDeleting(true);
+          await DeletePost(selectedpost);
+          setReRenderTool(prevValue => prevValue + 1);
+          setIsDeleting(false);
+        }}
+        onEdit={() => {
+          navigation.navigate("EditPost", { initialPost: selectedpost });
+          setPostMenuVisible(false);
+        }}
+        onShare={() => { handleShared(selectedpost) }}
+        onViewProfile={() => {}}
+        onBlock={() =>{ BlockUser(userId, {navigation}); setPostMenuVisible(false)} }
         onReport={() => console.log("Report post")}
-        hasfollowed={userData.hasfollowed}
+        post={selectedpost}
+        userId={auth.currentUser.uid}
       />
 
+</View>
 
-</View>)}
+  {/* About Page */}
+  <View 
+    style={{    
+      paddingHorizontal: theme.spacing.horizontal.sm,
+      paddingTop: theme.spacing.vertical.sm, 
+      gap:20,
+      flex:1
+    }} 
+    key={2}
+  >
 
+  <View style={{gap:5, elevation:3, backgroundColor:"snow", padding:theme.spacing.horizontal.md, borderRadius:10}}>
+    <Text style={{fontWeight:"bold"}}> Currently Reading:</Text>
+   <Text style={{fontSizes:theme.fontSizes.medium}}>{userData.currentlyReading}</Text>
   </View>
-    )}
+  <View style={{gap:5, elevation:3, backgroundColor:"snow", padding:theme.spacing.horizontal.md, borderRadius:10}}>
+    <Text style={{fontWeight:"bold"}}> Favorite Authors:</Text>
+   <Text style={{fontSizes:theme.fontSizes.medium}}>{userData.favAuthors?.join(",  ") || "None listed"}</Text>
+  </View>
+  <View style={{gap:5, elevation:3, backgroundColor:"snow", padding:theme.spacing.horizontal.md, borderRadius:10}}>
+    <Text style={{fontWeight:"bold"}}> Favorite  Genres:</Text>
+   <Text style={{fontSizes:theme.fontSizes.medium}}>{userData.favGenres?.join(",  ") || "None listed"}</Text>
+  </View>
+
+</View>
+
+  </PagerView>
+
+
+   
   </ScrollView>
   </Container>
     

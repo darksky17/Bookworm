@@ -12,10 +12,15 @@ import DisplayProfileScreen from "./Screens/DisplayProfileScreen";
 import TabDisplayProfileScreen from "./Screens/TabDisplayProfile";
 import { TouchableOpacity, Text, View } from "react-native";
 import { auth } from "./Firebaseconfig";
+import { useSelector } from "react-redux";
+
+
+
 
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
+  const unread = useSelector(state => state.user.unreadCount);
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -68,7 +73,7 @@ const BottomTabNavigator = () => {
       <Tab.Screen
         name="Chats"
         component={ChatScreenList}
-        options={{ unmountOnBlur: true }}
+        options={{ unmountOnBlur: true, tabBarBadge: unread > 0?unread:undefined, tabBarBadgeStyle:{color:theme.colors.text, backgroundColor:theme.colors.primary} }}
       />
       {/* <Tab.Screen name="Profile" component={ProfileScreen} /> */}
       <Tab.Screen name="Profile" component={TabDisplayProfileScreen} initialParams={{userId: auth.currentUser.uid}} />
