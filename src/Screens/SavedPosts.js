@@ -24,6 +24,7 @@ import PostsList from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
 import { DeletePost } from "../functions/deletepost";
 import { SHARE_PREFIX } from "../constants/api";
+import ReportProfileModal from "../components/reportProfileModal";
 const SavedPosts = ({ navigation }) => {
 
 
@@ -31,9 +32,10 @@ const SavedPosts = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
   const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
   const [postMenuVisible, setPostMenuVisible] = useState(false);
-  const [selectedpost, setSelectedPost] = useState();
+  const [selectedpost, setSelectedPost] = useState([]);
   const [initializing, setInitializng] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const[reportModalVisible, setReportModalVisible] = useState(false);
 
 
 console.log("Okay so these are saved", posts.length);
@@ -159,7 +161,7 @@ useEffect(()=>{
         onLike={handleLike}
         onDislike={handleDislike}
         onShare={handleShared}
-        onContentPress={(post) => navigation.navigate("PostDetail", { post })}
+        onContentPress={(post) => navigation.navigate("PostDetail", { id: post.id })}
         onPressOptions={(item) => {
             setSelectedPost(item);
             setPostMenuVisible(true);
@@ -190,9 +192,16 @@ useEffect(()=>{
         onShare={()=>{handleShared(selectedpost)}}
         onViewProfile={() => {setPostMenuVisible(false); navigation.navigate("DisplayProfile", {userId: selectedpost.authorId})}}
         onBlock={() =>{ BlockUser(userId, {navigation}); setPostMenuVisible(false)} }
-        onReport={() => console.log("Report post")}
+        onReport={() => {setPostMenuVisible(false); setReportModalVisible(true)}}
         post={selectedpost}
         userId={auth.currentUser.uid}
+      />
+
+<ReportProfileModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        targetId={selectedpost.id}
+        type={"Post"}
       />
  
     </Container>

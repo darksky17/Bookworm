@@ -34,6 +34,7 @@ import { BlockUser } from "../functions/blockuser.js";
 import { DeletePost } from "../functions/deletepost.js";
 import FilterChip from "../components/FilterChip.js";
 import { SHARE_PREFIX } from "../constants/api";
+import ReportProfileModal from "../components/reportProfileModal";
 
 const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -44,13 +45,18 @@ const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, is
 const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
 
 
+
   const formatTimestamp = (timestamp) => {
     const now = new Date();
     const diff = now - timestamp;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
+    const months = Math.floor(diff / (30 * 86400000));  
+    const years = Math.floor(diff / (365 * 86400000));
 
+    if(years> 0) return `${years}mo ago`;
+    if(months> 0) return `${months}mo ago`;
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     if (minutes > 0) return `${minutes}m ago`;
@@ -231,12 +237,13 @@ const FeedScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const savedPosts = useSelector(state => state.user.savedPosts) || [];
   const [postMenuVisible, setPostMenuVisible] = useState(false);
-  const [selectedpost, setSelectedPost] = useState();
+  const [selectedpost, setSelectedPost] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const userId = auth.currentUser.uid;
   const [activeFilters, setActiveFilters] = useState("");
   const filters = ["Following", "Controversial", "Most Liked"];
   const [userData, setUserData] = useState(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   const toggleFilter = async (filter) => {
 
@@ -497,11 +504,17 @@ useFocusEffect(
   onShare={()=>{handleShared(selectedpost)}}
   onViewProfile={() =>{navigation.navigate("DisplayProfile", {userId: selectedpost.authorId}); setPostMenuVisible(false)}}
   onBlock={ async ()=> { await BlockUser(selectedpost.authorId, {navigation}); await refetch(); setPostMenuVisible(false)}}
-  onReport={() => console.log("Report post")}
+  onReport={() =>{setReportModalVisible(true)}}
   post={selectedpost}
   userId={userId}
 
 />
+<ReportProfileModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        targetId={selectedpost.id}
+        type={"Post"}
+      />
     </Container>
     
   );

@@ -15,6 +15,7 @@ import { Pressable} from "react-native-gesture-handler";
 import PostCard from "../components/PostCard";
 import PostOptionsModal from "../components/postOptionsModal";
 import { useFetchPostsById } from "../hooks/useFetchPostsById";
+import ReportProfileModal from "../components/reportProfileModal";
 const PostDetailScreen = ({ navigation }) => {
   const route = useRoute();
   // const { post: initialPost } = route.params;
@@ -44,6 +45,7 @@ const PostDetailScreen = ({ navigation }) => {
   const IMAGE_ASPECT_RATIO = 5 / 4;
   const CONTAINER_WIDTH = screenWidth * 0.85;
 const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
+const [reportModalVisible, setReportModalVisible] = useState(false);
 
 useEffect(() => {
   if (postData) {
@@ -578,7 +580,8 @@ useEffect(() => {
     BlockUser(post.authorId, { navigation });
   }}
   onReport={() => {
-    // implement your report logic here
+    setReportModalVisible(true);
+    setPostMenuVisible(false);
   }}
   post={post}
   userId={auth.currentUser.uid}
@@ -619,6 +622,12 @@ useEffect(() => {
           </View>
         </Pressable>
       </Modal>
+      <ReportProfileModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        targetId={post.id}
+        type={"Post"}
+      />
     </Container>
   );
 };

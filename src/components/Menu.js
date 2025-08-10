@@ -16,6 +16,7 @@ import {
   horizontalScale,
   moderateScale,
 } from "../design-system/theme/scaleUtils";
+import ReportProfileModal from "./reportProfileModal";
 const Menu = ({
   visible,
   setvisible,
@@ -29,6 +30,7 @@ const Menu = ({
 }) => {
   const [unmatchModal, setUnmatchModal] = useState(false);
   const [blockModal, setBlockModal] = useState(false);
+  const[reportModalVisible, setReportModalVisible] = useState(false);
   const userId = auth.currentUser.uid;
   console.log(chatId);
 
@@ -138,9 +140,12 @@ const Menu = ({
                 Block
               </Text>
             </TouchableOpacity>
-            <Text style={{ fontWeight: "bold", color: theme.colors.text }}>
+            <TouchableOpacity onPress={()=>{setReportModalVisible(true);onClose();}}>            
+              <Text style={{ fontWeight: "bold", color: theme.colors.text }}>
               Report
             </Text>
+            </TouchableOpacity>
+
           </View>
         </TouchableOpacity>
       </Modal>
@@ -165,6 +170,13 @@ const Menu = ({
         }}
         onCancel={() => setBlockModal(false)}
       />
+      <ReportProfileModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        targetId={allData.id}
+        type={"Profile"}
+      />
+
     </>
   );
 };
