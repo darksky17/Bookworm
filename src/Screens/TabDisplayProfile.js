@@ -13,8 +13,8 @@ import PostsList from "../components/postsList";
 import { PostItem } from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
 import ProfileOptionsModal from "../components/profileOptionsModal";
-import { BlockUser } from "../functions/blockuser";
-import { DeletePost } from "../functions/deletepost";
+import { BlockUser } from "../utils/blockuser";
+import { DeletePost } from "../utils/deletepost";
 import Header from "../components/Header";
 import { SHARE_PREFIX } from "../constants/api";
 import {

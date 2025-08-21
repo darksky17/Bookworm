@@ -30,11 +30,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setSavedPosts } from '../redux/userSlice';
 import ImageView from "react-native-image-viewing";
 import PostOptionsModal from "../components/postOptionsModal.js";
-import { BlockUser } from "../functions/blockuser.js";
-import { DeletePost } from "../functions/deletepost.js";
+import { BlockUser } from "../utils/blockuser.js";
+import { DeletePost } from "../utils/deletepost.js";
 import FilterChip from "../components/FilterChip.js";
 import { SHARE_PREFIX } from "../constants/api";
 import ReportProfileModal from "../components/reportProfileModal";
+import Icon from "react-native-vector-icons/Ionicons"; // For tab icons
+import { markNotificationsAsSeen } from "../utils/markbellpres.js";
+import { setUnreadNotifCount } from "../redux/userSlice";
 
 const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -244,6 +247,8 @@ const FeedScreen = ({ navigation }) => {
   const filters = ["Following", "Controversial", "Most Liked"];
   const [userData, setUserData] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const unseenCount = useSelector(state=>state.user.unreadNotifCount)
+  console.log("this is the unseeencount", unseenCount);
 
   const toggleFilter = async (filter) => {
 
@@ -460,7 +465,40 @@ useFocusEffect(
 
   return (
     <Container>
+      <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center"}}>
       <Header title={"Feed"} />
+      <View style={{   paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(10),
+    paddingRight: horizontalScale(20),}}>
+      <TouchableOpacity style={{ position:"relative"}} onPress={async ()=>{ navigation.navigate("Notifications"); await markNotificationsAsSeen(); dispatch(setUnreadNotifCount(0));}}> 
+        
+      {unseenCount>0 &&(
+      <View
+      style={{
+        position: "absolute",
+        top: -4,
+        right: -4,
+        zIndex: 1,
+        height: 18,
+        minWidth: 18,
+        borderRadius: 9,
+        backgroundColor: theme.colors.primary,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 4,
+      }}
+    >
+      <Text style={{ color: theme.colors.text, fontSize: 10, fontWeight: "bold" }}>
+        {unseenCount}
+      </Text>
+    </View>    
+    )}
+        <Ionicons  name="notifications-outline" size={26 } color={theme.colors.text}  />
+        
+      </TouchableOpacity>
+
+      </View>
+      </View>
       {isDeleting &&(    <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Deleting post...</Text>

@@ -280,7 +280,7 @@ const AppNavigator = () => {
           barStyle="dark-content"
         />
  
-        {isAuthenticated?<MainNavigator /> : <AuthNavigator initialRoute={initialRoute} />}
+        {isAuthenticated? <MainNavigator /> : <AuthNavigator initialRoute={initialRoute} onAuthComplete={() => setIsAuthenticated(true)} />}
       </NavigationContainer>
     </QueryClientProvider>
   );

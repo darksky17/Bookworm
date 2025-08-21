@@ -18,12 +18,15 @@ import ChatDisplay_new from '../Screens/chatScreen_new';
 import SettingsScreen from '../Screens/SettingsScreen';
 import SavedPosts from '../Screens/SavedPosts';
 import BlockedUsersScreen from '../Screens/BlockedUsersScreen';
+import NotificationScreen from '../Screens/NotificationScreen';
 import useUnreadCountListener from "../hooks/useUnreadCountListener";
+import useNotificationCountListener from '../hooks/useNotificationCountListener';
 
 const MainStack = createNativeStackNavigator();
 
 const MainNavigator = () => {
   useUnreadCountListener();
+  useNotificationCountListener();
   return (
     <MainStack.Navigator 
       screenOptions={{ headerShown: false }}
@@ -48,6 +51,7 @@ const MainNavigator = () => {
       <MainStack.Screen name="Settings" component={SettingsScreen} />
       <MainStack.Screen name="Saved" component={SavedPosts} />
       <MainStack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
+      <MainStack.Screen name="Notifications" component={NotificationScreen} />
 
     </MainStack.Navigator>
   );

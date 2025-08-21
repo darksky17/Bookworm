@@ -18,7 +18,8 @@ const initialState = {
   notificationpref: true,
   pauseMatch: false,
   savedPosts: [],
-  unreadCount:0
+  unreadCount:0,
+  unreadNotifCount:0,
 };
 
 const userSlice = createSlice({
@@ -61,6 +62,9 @@ const userSlice = createSlice({
     setUnreadCount: (state, action) => {
       state.unreadCount = action.payload;
     },
+    setUnreadNotifCount: (state, action) => {
+      state.unreadNotifCount = action.payload;
+    },
     setAgeRange(state, action) {
       const { min, max } = action.payload;
       state.ageMin = min;
@@ -76,7 +80,7 @@ const userSlice = createSlice({
 
     setUserState: (state, action) => {
       // Destructure the payload to exclude lastUpdated
-      const { lastUpdated, deletedAt, ...updatedData } = action.payload;
+      const { lastSeenNotificationsAt, lastUpdated, deletedAt, ...updatedData } = action.payload;
 
       // Log the updatedData to verify it's excluding lastUpdated
 
@@ -132,6 +136,7 @@ export const {
   setPauseMatch,
   setSavedPosts,
   setUnreadCount,
+  setUnreadNotifCount,
 } = userSlice.actions;
 
 export default userSlice.reducer;

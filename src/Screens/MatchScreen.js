@@ -116,7 +116,7 @@ const MatchScreen = ({ navigation }) => {
         if (docSnap.exists()) {
           setUserDataa(docSnap.data()); // Update local state with real-time data
           //console.log('Real-time user data:', doc.data());
-          const { lastUpdated, deletedAt, savedPosts = [], ...updatedData } = docSnap.data();
+          const { lastUpdated, lastSeenNotificationsAt, deletedAt, savedPosts = [], ...updatedData } = docSnap.data();
           dispatch(setUserState(updatedData));
           dispatch(setSavedPosts(savedPosts));
         } else {
@@ -516,12 +516,13 @@ const styles = StyleSheet.create({
   switchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: horizontalScale(15),
+    justifyContent:"space-between",
     paddingTop: theme.spacing.vertical.lg,
-    paddingHorizontal: theme.spacing.horizontal.md,
+    paddingHorizontal: theme.spacing.horizontal.sm,
   },
   switchText: {
     fontSize: theme.fontSizes.medium,
+    flexShrink:1,
   },
   loadingContainer: {
     position: "absolute",

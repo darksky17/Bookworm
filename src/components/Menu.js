@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Text, Modal, TouchableOpacity } from "react-native";
-import ViewProfile from "../Screens/ViewProfile";
 import {
   Modal as PaperModal,
   Portal,
   Button,
   PaperProvider,
 } from "react-native-paper";
-
 import { doc, updateDoc, arrayUnion, auth, db } from "../Firebaseconfig";
 import { SERVER_URL } from "../constants/api";
 import theme from "../design-system/theme/theme";
@@ -32,7 +30,7 @@ const Menu = ({
   const [blockModal, setBlockModal] = useState(false);
   const[reportModalVisible, setReportModalVisible] = useState(false);
   const userId = auth.currentUser.uid;
-  console.log(chatId);
+  
 
   const Unmatch = async (chatId) => {
     if (unsubscribeRef.current) {
@@ -50,7 +48,7 @@ const Menu = ({
         Authorization: `Bearer ${idToken}`,
       },
       body: JSON.stringify({
-        friendId: allData.id,
+        friendId: allData,
       }),
     })
       .then((response) => response.json()) // Parse JSON directly
@@ -69,7 +67,7 @@ const Menu = ({
 
     const userDocRef = doc(db, "Users", userId);
     await updateDoc(userDocRef, {
-      blockedUsers: arrayUnion(allData.id),
+      blockedUsers: arrayUnion(allData),
     });
   };
 
@@ -145,6 +143,11 @@ const Menu = ({
               Report
             </Text>
             </TouchableOpacity>
+            <TouchableOpacity onPress={()=>{onClose();navigation.navigate("DisplayProfile", {userId:allData})}}>            
+              <Text style={{ fontWeight: "bold", color: theme.colors.text }}>
+              View Profile
+            </Text>
+            </TouchableOpacity>
 
           </View>
         </TouchableOpacity>
@@ -173,7 +176,7 @@ const Menu = ({
       <ReportProfileModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
-        targetId={allData.id}
+        targetId={allData}
         type={"Profile"}
       />
 

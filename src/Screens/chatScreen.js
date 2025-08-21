@@ -607,7 +607,7 @@ const ChatDisplay = ({ route, navigation }) => {
           visible={isMenuVisible}
           setvisible={setMenuVisible}
           onClose={toggleMenu}
-          allData={allData}
+          allData={allData.id}
           chatId={chatId}
           stopload={stopLoad}
           setstopload={setStopLoad}

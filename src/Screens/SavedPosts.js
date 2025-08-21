@@ -22,9 +22,10 @@ import {
 } from "../design-system/theme/scaleUtils";
 import PostsList from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
-import { DeletePost } from "../functions/deletepost";
+import { DeletePost } from "../utils/deletepost";
 import { SHARE_PREFIX } from "../constants/api";
 import ReportProfileModal from "../components/reportProfileModal";
+import { BlockUser } from "../utils/blockuser";
 const SavedPosts = ({ navigation }) => {
 
 

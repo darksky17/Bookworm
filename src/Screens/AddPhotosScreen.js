@@ -26,8 +26,11 @@ import {
   horizontalScale,
   moderateScale,
 } from "../design-system/theme/scaleUtils.js";
+import { useRoute } from "@react-navigation/native";
 
 const AddPhotosScreen = ({ navigation }) => {
+  const route = useRoute();
+  const { onAuthComplete } = route.params || {};
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const userId = auth.currentUser.uid;
@@ -189,7 +192,7 @@ const AddPhotosScreen = ({ navigation }) => {
       dispatch(setPhotos(photoUrls));
       setIsLoading(false);
       await updateDoc(userDocRef, { step2Completed: true });
-      navigation.replace("MainTabs");
+      onAuthComplete?.();
     } catch (error) {
       setIsLoading(false);
       console.error("Error saving user data to Firestore:", error);
@@ -206,13 +209,7 @@ const AddPhotosScreen = ({ navigation }) => {
     marginBottom: verticalScale(15),
   });
 
-  // if (isLoading) {
-  //   return (
-  //     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-  //       <ActivityIndicator size="large" color="#0000ff" />
-  //     </View>
-  //   );
-  // }
+
 
   return (
     <View

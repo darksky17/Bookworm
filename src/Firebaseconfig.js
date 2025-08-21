@@ -16,6 +16,7 @@ import {
   addDoc,
   arrayUnion,
   arrayRemove,
+  deleteDoc,
 } from "@react-native-firebase/firestore";
 import {
   getStorage,
@@ -56,4 +57,5 @@ export {
   ref,
   uploadBytesResumable,
   getDownloadURL,
+  deleteDoc
 };

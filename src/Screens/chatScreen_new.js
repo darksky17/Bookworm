@@ -625,7 +625,7 @@ import React, {
             visible={isMenuVisible}
             setvisible={setMenuVisible}
             onClose={toggleMenu}
-            allData={allData}
+            allData={otherId}
             chatId={chatId}
             stopload={stopLoad}
             setstopload={setStopLoad}

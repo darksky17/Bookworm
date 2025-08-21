@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, BackHandler, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Modal, FlatList, Keyboard, Pressable } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { useSelector } from "react-redux";
@@ -10,6 +10,7 @@ import theme from "../design-system/theme/theme";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { horizontalScale, moderateScale, verticalScale } from "../design-system/theme/scaleUtils";
 import { Button, Modal as PModal } from "react-native-paper";
+import { useFocusEffect } from "@react-navigation/native";
 
 
 const EditPostScreen = ({navigation}) => {
@@ -43,27 +44,28 @@ const EditPostScreen = ({navigation}) => {
   const [loadingBooks, setLoadingBooks] = useState(false);
   const [discardModal, setDiscardModal] = useState(false);
 
-
-  useEffect(() => {
-    const onBackPress = () => {
-      Alert.alert(
-        "Discard Changes?",
-        "Are you sure you want to discard your changes?",
-        [
-          { text: "Cancel", onPress: () => {}, style: "cancel" }, // Do nothing, stay on screen
-          { text: "Discard", onPress: () => navigation.goBack() } // Go back to previous screen
-        ]
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert(
+          "Discard Changes?",
+          "Are you sure you want to discard your changes?",
+          [
+            { text: "Cancel", onPress: () => {}, style: "cancel" },
+            { text: "Discard", onPress: () => navigation.goBack() }
+          ]
+        );
+        return true;
+      };
+  
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
       );
-      return true; // Prevent default back action
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      onBackPress
-    );
-    return () => backHandler.remove();
-  }, []);
-
+  
+      return () => backHandler.remove(); // ✅ Removes it when screen is unfocused
+    }, [navigation])
+  );
   
 
   const fetchBooksWithAuthors = async (query) => {
@@ -164,7 +166,7 @@ const EditPostScreen = ({navigation}) => {
 
       Alert.alert("Success", "Your post has been added!");
 
-      navigation.navigate("MainTabs", { screen: "Feed"});
+      navigation.replace("MainTabs", { screen: "Feed"});
     } catch (error) {
       Alert.alert("Error", error.message || "Failed to add post");
     } finally {

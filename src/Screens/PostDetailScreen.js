@@ -10,7 +10,7 @@ import { horizontalScale, verticalScale, moderateScale } from "../design-system/
 import { useFetchComments } from "../hooks/useFetchComments";
 import { useSelector, useDispatch } from 'react-redux';
 import { setSavedPosts } from '../redux/userSlice';
-import { BlockUser } from "../functions/blockuser";
+import { BlockUser } from "../utils/blockuser";
 import { Pressable} from "react-native-gesture-handler";
 import PostCard from "../components/PostCard";
 import PostOptionsModal from "../components/postOptionsModal";

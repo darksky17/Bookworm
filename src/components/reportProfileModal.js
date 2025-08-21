@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Modal, TextInput } from "react-native";
 import { Button } from "react-native-paper";
-import { ReportProfile } from "../functions/makereport";
+import { ReportProfile } from "../utils/makereport";
 import { moderateScale, horizontalScale, verticalScale} from "../design-system/theme/scaleUtils";
 import theme from "../design-system/theme/theme";
 const ReportProfileModal = ({ visible, onClose, targetId, type }) => {
