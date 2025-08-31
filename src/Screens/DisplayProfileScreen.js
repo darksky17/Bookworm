@@ -1,4 +1,4 @@
-import React, {useRef, useState, useCallback, useEffect} from "react";
+import React, {useRef, useState, useCallback, useEffect, useMemo} from "react";
 import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Pressable, Share, Alert, ActivityIndicator } from "react-native";
 import Container from "../components/Container";
 import theme from "../design-system/theme/theme";
@@ -7,7 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRoute } from "@react-navigation/native";
 import { Button } from "react-native-paper";
 import { SERVER_URL } from "../constants/api";
-import { auth, db, doc, updateDoc, arrayRemove } from "../Firebaseconfig";
+import { auth, db, doc, updateDoc, arrayRemove, getDoc } from "../Firebaseconfig";
 import PostsList from "../components/postsList";
 import { PostItem } from "../components/postsList";
 import PostOptionsModal from "../components/postOptionsModal";
@@ -17,7 +17,11 @@ import { DeletePost } from "../utils/deletepost";
 import { SHARE_PREFIX } from "../constants/api";
 import SwipeableTabs from "../components/SwipeableTabs";
 import ReportProfileModal from "../components/reportProfileModal";
-
+import { useFetchPostsForProfile } from "../hooks/useFetchPostsForProfile";
+import { useQueryClient } from "@tanstack/react-query";
+import { handleDislike, handleLike } from "../utils/postactions";
+import _ from 'lodash';
+import ChatRequestModal from "../components/chatRequestModal";
 
 const DisplayProfileScreen = ({navigation})=>{
     
@@ -25,8 +29,7 @@ const DisplayProfileScreen = ({navigation})=>{
     const { userId } = route.params; 
     const [renderAbout, setRenderAbout] = useState(false);
   console.log(userId);
-  const [posts, setPosts] = useState([]);
-  const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
+    const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
   const [postMenuVisible, setPostMenuVisible] = useState(false);
   const [profileMenuVisible, setProfileMenuVisible] = useState(false);
   const [selectedpost, setSelectedPost] = useState([]);
@@ -41,9 +44,23 @@ const DisplayProfileScreen = ({navigation})=>{
   const [isDeleting, setIsDeleting] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [type, setType] = useState("Post");
+  const renderLimit = useRef(5);
+  const queryClient = useQueryClient();
+  const [chatRequestsModal, setChatRequestsModal] = useState(false);
 
 
+  const {
+    data:datap,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useFetchPostsForProfile(userId);
   useEffect(() => {
+   
     const fetchAllData = async () => {
       try {
         const idToken = await auth.currentUser.getIdToken();
@@ -64,20 +81,7 @@ const DisplayProfileScreen = ({navigation})=>{
         setIsBlocked(data.hasbeenblocked);
         setHasBlocked(data.hasblocked);
         setUserData(data);
-  
-        // Only fetch posts if user is not blocked
-        if (!data.hasbeenblocked && !data.hasblocked) {
-          const postRes = await fetch(`${SERVER_URL}/posts/profile/${userId}`, {
-            method: "GET",
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${idToken}`,
-            },
-          });
-          const postsData = await postRes.json();
-          setPosts(postsData);
-        }
-  
+    
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -87,6 +91,18 @@ const DisplayProfileScreen = ({navigation})=>{
   
     fetchAllData();
   }, [rerendertool]);
+
+  console.log(userData);
+
+  const posts = useMemo(() => {
+    if (!datap || isBlocked || hasBlocked) return [];
+    return datap.pages.flatMap(page => page.posts) || [];
+  }, [datap, isBlocked, hasBlocked]);
+
+  const visiblePosts = useMemo(() => {
+    if(!posts) return;
+    return posts.slice(0, renderLimit.current);
+}, [posts, renderLimit.current]);
 
   const handleShared = async (post) => {
     try {
@@ -124,39 +140,11 @@ const DisplayProfileScreen = ({navigation})=>{
     }
   };
 
-  const handleDislike = async (postId) => {
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      await fetch(`${SERVER_URL}/posts/${postId}/dislike`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      setReRenderTool(prevValue => prevValue + 1);
-    } catch (error) {
-      alert("Failed to dislike post.");
-    }
-  };
 
-  const handleLike = async (postId) => {
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      await fetch(`${SERVER_URL}/posts/${postId}/like`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      setReRenderTool(prevValue => prevValue + 1);
-    } catch (error) {
-      alert("Failed to like post.");
-    }
-  };
 
   handleFollow = async ()=>{
+
+    
 
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -254,6 +242,54 @@ const DisplayProfileScreen = ({navigation})=>{
 
  
  
+}
+
+const checkChatRequest= async (targetId) =>{
+
+  const userDocref = doc(db, "Users", auth.currentUser.uid);
+  const usersnap = await getDoc(userDocref);
+  const userChatRequests = usersnap.data().chatRequests;
+  const exists = userChatRequests.some(
+    (request) => request.requestorId === targetId
+  );
+
+  if(exists){
+    navigation.navigate("ChatRequests");
+    return;
+  }
+
+  const idToken = await auth.currentUser.getIdToken();
+
+  try{
+    
+     const response = await fetch(`${SERVER_URL}/chat-request`,{
+      method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            targetId: targetId,
+            introMessage: "",
+          }),
+
+     });
+     console.log(response.created);
+if(response.status === 201){
+  navigation.navigate("ChatDisplay_new", {
+    senderId: auth.currentUser.uid,
+    receiverId: targetId
+  })
+}
+
+else{
+  setChatRequestsModal(true);
+}
+
+  } catch(e){
+     console.log("Problem with chatrequestfunction", e);
+  }
+
 }
 
 
@@ -379,12 +415,13 @@ const DisplayProfileScreen = ({navigation})=>{
             )}
             <Button
               mode="contained-tonal"
-              disabled={isBlocked}
+              disabled={isBlocked || userData.hasRequestedChat}
               onPress={() =>
-                navigation.navigate("ChatDisplay_new", {
-                  senderId: auth.currentUser.uid,
-                  receiverId: userId
-                })
+                // navigation.navigate("ChatDisplay_new", {
+                //   senderId: auth.currentUser.uid,
+                //   receiverId: userId
+                // })
+                checkChatRequest(userId)
               }
               buttonColor={theme.colors.primary}
               textColor={theme.colors.text}
@@ -404,12 +441,12 @@ const DisplayProfileScreen = ({navigation})=>{
     </View>
   ) : (
     <View>
-      {posts.map((post, index) => (
+      {visiblePosts.map((post, index) => (
         <PostItem
           key={post.id}
           post={post}
-          onLike={handleLike}
-          onDislike={handleDislike}
+          onLike={(post)=>handleLike(post,["postsforprofile", userId], queryClient)}
+          onDislike={(post)=>handleDislike(post,["postsforprofile", userId], queryClient)}
           onSave={() => {}}
           onShare={handleShared}
           navigation={navigation}
@@ -420,6 +457,13 @@ const DisplayProfileScreen = ({navigation})=>{
           }}
         />
       ))}
+
+{isFetchingNextPage && (
+                <View style={{alignItems: 'center', marginVertical: 20}}>
+                  <ActivityIndicator color={theme.colors.primary} size="small" />
+                  <Text style={{color: theme.colors.muted, marginTop: 10}}>Loading more posts...</Text>
+                </View>
+              )}
       
       {/* Modals */}
       <PostOptionsModal
@@ -464,6 +508,13 @@ const DisplayProfileScreen = ({navigation})=>{
         }}
         onReport={() => {setType("Profile");setProfileMenuVisible(false); setReportModalVisible(true)}}
         hasfollowed={userData.hasfollowed}
+      />
+      <ChatRequestModal
+      targetId={userId}
+      visible={chatRequestsModal} 
+      onClose={()=>setChatRequestsModal(false)}
+      reRender={()=>setReRenderTool(8)}
+      displayName={userData.displayName}
       />
   
     </View>
@@ -533,7 +584,7 @@ const DisplayProfileScreen = ({navigation})=>{
     const { height } = event.nativeEvent.layout;
     setProfileHeight(height);
 };
-  const handleScroll = (event) => {
+  const handleScroll = useCallback((event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
     const threshold = profileHeight - verticalScale(1);
     
@@ -550,7 +601,39 @@ const DisplayProfileScreen = ({navigation})=>{
            setTrigger(false);
         }
     }
-};
+    event.persist();
+
+    thhrottleScroll(event);
+}, [profileHeight, isSticky]);
+
+const thhrottleScroll = useCallback(
+  _.throttle((event)=>{
+    const scrollY = event.nativeEvent.contentOffset.y;
+        const contentHeight = event.nativeEvent.contentSize.height;
+        const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+
+        
+            
+            
+            
+            const isNearBottom = scrollY + scrollViewHeight >= contentHeight - 300;
+            if (isNearBottom && hasNextPage && !isFetchingNextPage) {
+              console.log("Will fethch");
+                fetchNextPage();
+            }
+
+            
+            const scrollProgress = scrollY / Math.max(contentHeight - scrollViewHeight, 1);
+            if (scrollProgress > 0.5 && renderLimit.current < posts.length) {
+              setReRenderTool(10);
+              renderLimit.current = Math.min(renderLimit.current + 3, posts.length);
+      
+        }
+    }, 50), 
+    [hasNextPage, isFetchingNextPage, fetchNextPage, posts.length]
+);
+
+
 
 
 

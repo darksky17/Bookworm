@@ -38,6 +38,8 @@ import ReportProfileModal from "../components/reportProfileModal";
 import Icon from "react-native-vector-icons/Ionicons"; // For tab icons
 import { markNotificationsAsSeen } from "../utils/markbellpres.js";
 import { setUnreadNotifCount } from "../redux/userSlice";
+import { handleLike, handleDislike } from "../utils/postactions.js";
+import { useQueryClient } from "@tanstack/react-query";
 
 const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -235,7 +237,18 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
 };
 
 const FeedScreen = ({ navigation }) => {
-  const { data: posts = [], isLoading, error, refetch, isRefetching } = useFetchPosts();
+  // const { data: posts = [], isLoading, error, refetch, isRefetching } = useFetchPosts();
+  const [activeFilters, setActiveFilters] = useState("");
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch, 
+    isRefetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useFetchPosts(activeFilters);
   const [isPullingToRefresh, setIsPullingToRefresh] = useState(false);
   const dispatch = useDispatch();
   const savedPosts = useSelector(state => state.user.savedPosts) || [];
@@ -243,11 +256,11 @@ const FeedScreen = ({ navigation }) => {
   const [selectedpost, setSelectedPost] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const userId = auth.currentUser.uid;
-  const [activeFilters, setActiveFilters] = useState("");
   const filters = ["Following", "Controversial", "Most Liked"];
   const [userData, setUserData] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
-  const unseenCount = useSelector(state=>state.user.unreadNotifCount)
+  const unseenCount = useSelector(state=>state.user.unreadNotifCount);
+  const queryClient = useQueryClient();
   console.log("this is the unseeencount", unseenCount);
 
   const toggleFilter = async (filter) => {
@@ -260,6 +273,16 @@ const FeedScreen = ({ navigation }) => {
      }
 
   
+  };
+
+  const posts = useMemo(() => {
+    return data?.pages.flatMap(page => page.posts) || [];
+  }, [data]);
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
   };
 
 
@@ -276,42 +299,7 @@ useFocusEffect(
   }, []) 
 );
 
-  const filteredPosts = useMemo(() => {
-    if (!userData) return posts; 
   
-    switch (activeFilters) {
-      case 'Following':
-        return posts.filter((item) => userData.following?.includes(item.authorId));
-      
-      case 'Controversial':
-        return [...posts].sort((a, b) => {
-         
-          if (a.Dislikes > 0 && b.Dislikes > 0) {
-            const scoreA = (a.Likes || 0) + (a.Dislikes || 0);
-            const scoreB = (b.Likes || 0) + (b.Dislikes || 0);
-            return scoreB - scoreA;  
-          }
-          
-          
-          if (a.Dislikes > 0 && b.Dislikes === 0) {
-            return -1; 
-          }
-          
-          
-          if (a.Dislikes === 0 && b.Dislikes > 0) {
-            return 1; 
-          }
-      
-          return 0; 
-        });
-  
-      case 'Most Liked':
-        return [...posts].sort((a, b) => b.Likes - a.Likes);
-  
-      default:
-        return posts; 
-    }
-  }, [posts, activeFilters, userData]); 
 
 
 
@@ -346,37 +334,6 @@ useFocusEffect(
     setIsPullingToRefresh(false);
   };
 
-  const handleLike = async (postId) => {
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      await fetch(`${SERVER_URL}/posts/${postId}/like`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      refetch();
-    } catch (error) {
-      alert("Failed to like post.");
-    }
-  };
-
-  const handleDislike = async (postId) => {
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      await fetch(`${SERVER_URL}/posts/${postId}/dislike`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      refetch();
-    } catch (error) {
-      alert("Failed to dislike post.");
-    }
-  };
 
   const handleSave = (postId) => {
     setPosts((prevPosts) =>
@@ -424,8 +381,10 @@ useFocusEffect(
   const renderPost = ({ item }) => (
     <PostItem
       post={item}
-      onLike={handleLike}
-      onDislike={handleDislike}
+      onLike={(postId) => 
+        handleLike(postId, ["posts", activeFilters], queryClient)}
+      onDislike={(postId) => 
+        handleDislike(postId, ["posts", activeFilters], queryClient)}
       onSave={handleSave}
       onShare={()=>{handleShared(item)}}
       onContentPress={handleContentPress}
@@ -435,6 +394,17 @@ useFocusEffect(
       navigation={navigation}
     />
   );
+
+  const renderFooter = () => {
+    if (!isFetchingNextPage || activeFilters !== "") return null;
+    
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <Text style={styles.footerLoaderText}>Loading more posts...</Text>
+      </View>
+    );
+  };
 
   if (isLoading && posts.length === 0 && !isRefetching) {
     // Only show loading indicator if it's the initial load and not a background refetch
@@ -513,7 +483,7 @@ useFocusEffect(
     />
   ))}
           </View>
-      <FlatList
+      {/* <FlatList
         data={filteredPosts}
         renderItem={renderPost}
         keyExtractor={(item) => item.id}
@@ -527,6 +497,31 @@ useFocusEffect(
             tintColor={theme.colors.primary}
           />
         }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No posts yet</Text>
+            <Text style={styles.emptySubtext}>Be the first to share a book review!</Text>
+          </View>
+        }
+      /> */}
+
+<FlatList
+        data={posts}
+        renderItem={renderPost}
+        keyExtractor={(item, index) => String(index)}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.feedContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={isPullingToRefresh}
+            onRefresh={handlePullToRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={renderFooter}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No posts yet</Text>

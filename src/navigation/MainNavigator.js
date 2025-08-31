@@ -21,6 +21,7 @@ import BlockedUsersScreen from '../Screens/BlockedUsersScreen';
 import NotificationScreen from '../Screens/NotificationScreen';
 import useUnreadCountListener from "../hooks/useUnreadCountListener";
 import useNotificationCountListener from '../hooks/useNotificationCountListener';
+import ChatRequestsScreen from '../Screens/ChatRequestsScreen';
 
 const MainStack = createNativeStackNavigator();
 
@@ -52,6 +53,7 @@ const MainNavigator = () => {
       <MainStack.Screen name="Saved" component={SavedPosts} />
       <MainStack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
       <MainStack.Screen name="Notifications" component={NotificationScreen} />
+      <MainStack.Screen name="ChatRequests" component={ChatRequestsScreen} />
 
     </MainStack.Navigator>
   );

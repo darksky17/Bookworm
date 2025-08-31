@@ -35,11 +35,14 @@ import useFetchChats from "../hooks/useFetchChats";
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
   const gender = useSelector((state) => state.user.gender);
+  const chatRequests = useSelector((state) => state.user.chatRequestsCount);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [initializing, setInitializing] = useState(true);
   const { data: chats, isLoading, isError, refetch } = useFetchChats();
   const unread = useSelector(state => state.user.unreadCount);
   let unreadCount = unread;
+
+  console.log("hello",chatRequests);
   
 
   useFocusEffect(
@@ -162,49 +165,9 @@ const ChatScreenList = ({ navigation }) => {
     } else return;
   };
 
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     let isActive = true;
+  
 
-  //     const fetchChatsFromServer = async () => {
-  //       try {
-  //         const userId = auth.currentUser.uid;
-  //         const idToken = await auth.currentUser.getIdToken();
 
-  //         const response = await fetch(
-  //           `${SERVER_URL}/chat-list/${userId}/chats`,
-  //           {
-  //             method: "GET",
-  //             headers: {
-  //               "Content-Type": "application/json",
-  //               Authorization: `Bearer ${idToken}`,
-  //             },
-  //           }
-  //         );
-
-  //         if (!response.ok) {
-  //           throw new Error("Failed to fetch chat data");
-  //         }
-
-  //         const data = await response.json();
-
-  //         if (isActive) {
-  //           setChats(data);
-  //           setInitializing(false);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error fetching chat data:", error);
-  //       }
-  //     };
-
-  //     fetchChatsFromServer();
-
-  //     // Cleanup function to avoid setting state if component is unmounted
-  //     return () => {
-  //       isActive = false;
-  //     };
-  //   }, [])
-  // );
 
   const filters = ["All", "Normal", "Ascended", "Unread"];
 
@@ -226,7 +189,17 @@ const ChatScreenList = ({ navigation }) => {
 
   return (
     <Container>
+      <View style={{flexDirection:"row", justifyContent:"space-between"}}>
       <Header title={"Chats"} />
+      {chatRequests>=0 &&(
+      <View style={{justifyContent:"center", marginRight:theme.spacing.horizontal.sm}}>
+      <Pressable onPress={()=>navigation.navigate("ChatRequests")}>
+   
+      <Text style={{color:theme.colors.secondary, fontWeight:"bold"}}>Requests({chatRequests>9? `9+` :chatRequests}) </Text>
+      </Pressable>
+      </View>
+      )}
+      </View>
       {pause && (
         <View
           style={{

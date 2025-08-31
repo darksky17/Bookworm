@@ -20,6 +20,7 @@ const initialState = {
   savedPosts: [],
   unreadCount:0,
   unreadNotifCount:0,
+  chatRequestsCount:0,
 };
 
 const userSlice = createSlice({
@@ -64,6 +65,9 @@ const userSlice = createSlice({
     },
     setUnreadNotifCount: (state, action) => {
       state.unreadNotifCount = action.payload;
+    },
+    setChatRequestsCount: (state, action) => {
+      state.chatRequestsCount = action.payload;
     },
     setAgeRange(state, action) {
       const { min, max } = action.payload;
@@ -137,6 +141,7 @@ export const {
   setSavedPosts,
   setUnreadCount,
   setUnreadNotifCount,
+  setChatRequestsCount
 } = userSlice.actions;
 
 export default userSlice.reducer;

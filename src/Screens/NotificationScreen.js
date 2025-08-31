@@ -214,8 +214,26 @@ const NotificationScreen = ({navigation})=>{
     const [optionsModal, setOptionsModal] = useState(false);
     const [user, setUser] = useState(null);
     
-    const { data, isLoading, error } = useFetchNotifications();
+    const {
+      data,
+      isLoading,
+      isError,
+      error,
+      fetchNextPage,
+      hasNextPage,
+      isFetchingNextPage,
+    } = useFetchNotifications();
+
     
+
+    const datap = data?.pages.flatMap(page => page.notifications) || [];
+    
+    
+    const handleLoadMore = () => {
+      if (hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    };
 
 
 
@@ -228,7 +246,7 @@ const NotificationScreen = ({navigation})=>{
       />
     );
 
-    const keyExtractor = (item, index) => item.id || index.toString();
+    const keyExtractor = (item, index) => item.id;
 
     if(data === null || isLoading){
         return (
@@ -243,10 +261,12 @@ const NotificationScreen = ({navigation})=>{
             <Header title={"Notifications"} />
             <View style={styles.listContainer}>
               <FlatList
-                data={data || []}
+                data={datap || []}
                 renderItem={renderNotificationItem}
                 keyExtractor={keyExtractor}
                 showsVerticalScrollIndicator={false}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.1}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>No notifications yet</Text>

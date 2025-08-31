@@ -1,5 +1,5 @@
 import React, {useRef, useState, useCallback, useEffect, useMemo} from "react";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, isFocused } from "@react-navigation/native";
 import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, Share, ActivityIndicator } from "react-native";
 import Container from "../components/Container";
 import theme from "../design-system/theme/theme";
@@ -24,13 +24,17 @@ import {
 } from "react-native-gesture-handler";
 import { runOnJS, runOnUI, useSharedValue, useAnimatedStyle, withSpring} from "react-native-reanimated";
 import Animated from 'react-native-reanimated';
-
+import { useFetchPostsForProfile } from "../hooks/useFetchPostsForProfile";
+import _ from 'lodash';
+import { useQueryClient } from "@tanstack/react-query";
+import { handleLike, handleDislike } from "../utils/postactions";
 
 const TabDisplayProfileScreen = ({navigation})=>{
     
     const route = useRoute();
     const { userId } = route.params; 
-  const [posts, setPosts] = useState([]);
+    const queryClient = useQueryClient();
+  // const [posts, setPosts] = useState([]);
   const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
   const [postMenuVisible, setPostMenuVisible] = useState(false);
   const [selectedpost, setSelectedPost] = useState();
@@ -43,18 +47,46 @@ const TabDisplayProfileScreen = ({navigation})=>{
   const [ hasBlocked, setHasBlocked] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
+  const currentTabRef = useRef(currentTab);
   const screenWidth = Dimensions.get('window').width;
   const translateX = useSharedValue(0);
   const AnimatedView = Animated.createAnimatedComponent(View);
   const scrollRef = useRef(null);
-  const [scrollPos, setScrollPos] = useState(null);
+  const [scrollPos, setScrollPos] = useState(null)  ;
   const scrollYSwipe = useRef(0);
+  const renderLimit = useRef(5);
 
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFetchPostsForProfile(userId);
+
+  const posts = useMemo(() => {
+    return data?.pages.flatMap(page => page.posts) || [];
+}, [data]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('blur', () => {
+      // Clear the ref when the tab loses focus
+      renderLimit.current = 5;
+    });
+  
+    return unsubscribe; // Clean up the listener
+  }, [navigation]);
+
+  const visiblePosts = useMemo(() => {
+    return posts.slice(0, renderLimit.current);
+}, [posts, renderLimit.current]);
 
   
 
   
-  const handleShared = async (post) => {
+  const handleShared = useCallback( async (post) => {
     try {
       const shareUrl = `${SHARE_PREFIX}/posts/${post.id}`;
       const shareTitle = post.type === "BookReview" 
@@ -70,9 +102,9 @@ const TabDisplayProfileScreen = ({navigation})=>{
     } catch (error) {
       alert("Failed to share the post.");
     }
-  };
+  }, []);
 
-  const handleSharedProfile = async (profile) => {
+  const handleSharedProfile = useCallback( async (profile) => {
     try {
       const shareUrl = `${SHARE_PREFIX}/profile/${auth.currentUser.uid}`;
       const shareTitle =  `Check out "${profile.displayName}"`
@@ -88,41 +120,12 @@ const TabDisplayProfileScreen = ({navigation})=>{
       alert("Failed to share the post.");
       console.log(error);
     }
-  };
+  }, []);
 
-  const handleDislike = async (postId) => {
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      await fetch(`${SERVER_URL}/posts/${postId}/dislike`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      setReRenderTool(prevValue => prevValue + 1);
-    } catch (error) {
-      alert("Failed to dislike post.");
-    }
-  };
 
-  const handleLike = async (postId) => {
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      await fetch(`${SERVER_URL}/posts/${postId}/like`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      setReRenderTool(prevValue => prevValue + 1);
-    } catch (error) {
-      alert("Failed to like post.");
-    }
-  };
 
-  handleFollow = async ()=>{
+
+  handleFollow = useCallback(async ()=>{
 
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -143,9 +146,9 @@ const TabDisplayProfileScreen = ({navigation})=>{
       console.error('Failed to Follow:', error);
     }
 
-  };
+  }, []);
 
-  handleUnfollow = async (overrideuser, overridefollower)=>{
+  handleUnfollow = useCallback(async (overrideuser, overridefollower)=>{
 
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -175,20 +178,18 @@ const TabDisplayProfileScreen = ({navigation})=>{
       console.error('Failed to UnFollow:', error);
     }
 
-  };
+  }, [userId]);
 
 
   const onProfileSectionLayout = (event) => {
     const { height } = event.nativeEvent.layout;
     setProfileHeight(height);
 };
-  const handleScroll = (event) => {
+  const handleScroll = useCallback((event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
 
-    if(currentTab ===0){
-    scrollYSwipe.current = scrollY;
-    }
-    
+
+ 
     const threshold = profileHeight - verticalScale(1);
     
     const shouldStick = scrollY >= threshold;
@@ -198,7 +199,68 @@ const TabDisplayProfileScreen = ({navigation})=>{
         
 
     }
-};
+
+   
+
+    event.persist();
+
+    // const contentHeight = event.nativeEvent.contentSize.height;
+    // const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+
+    // if(currentTab ===0){
+    //   scrollYSwipe.current = scrollY;
+    //   const isNearBottom = scrollY + scrollViewHeight >= contentHeight - 100;
+  
+     
+    // if (isNearBottom && hasNextPage && !isFetchingNextPage) {
+      
+    //   fetchNextPage();
+    // }
+  
+    // const scrollProgress = scrollY / Math.max(contentHeight - scrollViewHeight, 1);
+    // if (scrollProgress > 0.7 && renderLimit.current < posts.length) {
+    //   renderLimit.current= Math.min(renderLimit.current +  1, posts.length);
+    // }
+    //   }
+
+    thhrottleScroll(event);
+ 
+      
+}, [profileHeight, isSticky]);
+
+useEffect(() => {
+  currentTabRef.current = currentTab;
+}, [currentTab]);
+
+const thhrottleScroll = useCallback(
+  _.throttle((event)=>{
+    const scrollY = event.nativeEvent.contentOffset.y;
+        const contentHeight = event.nativeEvent.contentSize.height;
+        const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+
+        if(currentTabRef.current === 0){
+          console.log("Im tab 0");
+            scrollYSwipe.current = scrollY;
+            console.log(scrollYSwipe);
+            
+            
+            const isNearBottom = scrollY + scrollViewHeight >= contentHeight - 300;
+            if (isNearBottom && hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+            }
+
+            
+            const scrollProgress = scrollY / Math.max(contentHeight - scrollViewHeight, 1);
+            if (scrollProgress > 0.5 && renderLimit.current < posts.length) {
+              setReRenderTool(10);
+                renderLimit.current = Math.min(renderLimit.current + 3, posts.length);
+            }
+        }
+    }, 50), 
+    [currentTab, hasNextPage, isFetchingNextPage, fetchNextPage, posts.length]
+);
+
+
 
 
 
@@ -227,7 +289,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
           setUserData(data);
      
   
-            fetchPosts();
+            // fetchPosts();
           
   
         } catch (err) {
@@ -237,23 +299,23 @@ const TabDisplayProfileScreen = ({navigation})=>{
         }
       };
   
-      const fetchPosts = async () => {
-        try {
-          const idToken = await auth.currentUser.getIdToken();
-          const res = await fetch(`${SERVER_URL}/posts/profile/${userId}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${idToken}`,
-            },
-          });
-          const data = await res.json();
-          data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-          if (isActive) setPosts(data);
-        } catch (err) {
-          console.error('Failed to fetch posts:', err);
-        }
-      };
+      // const fetchPosts = async () => {
+      //   try {
+      //     const idToken = await auth.currentUser.getIdToken();
+      //     const res = await fetch(`${SERVER_URL}/posts/profile/${userId}`, {
+      //       method: 'GET',
+      //       headers: {
+      //         'Content-Type': 'application/json',
+      //         Authorization: `Bearer ${idToken}`,
+      //       },
+      //     });
+      //     const data = await res.json();
+         
+      //     if (isActive) setPosts(data);
+      //   } catch (err) {
+      //     console.error('Failed to fetch posts:', err);
+      //   }
+      // };
   
       fetchUserData();
   
@@ -296,6 +358,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
     scrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
     }
     else{
+      console.log("I m getting hit yes", scrollYSwipe.current);
       scrollRef.current?.scrollTo({ x: 0, y: scrollYSwipe.current, animated: true });
    
     }
@@ -333,6 +396,7 @@ if(newTab !== currentTab){
     
 
 runOnJS(setCurrentTab)(newTab);
+
 }
 
 
@@ -361,6 +425,7 @@ const handleTabPress = (tabIndex) => {
     scrollRef.current?.scrollTo({ x: 0, y: scrollYSwipe.current, animated: true });
   }
   runOnJS(setCurrentTab)(tabIndex);
+ 
  
 };
 
@@ -407,7 +472,7 @@ if (isDeleting) {
 
   <View style={styles.avatarContainer}>
                   <Text style={styles.avatarText}>
-                    {("U").charAt(0).toUpperCase()}
+                    {userData.displayName.charAt(0).toUpperCase()}
                   </Text>
                 </View>
                 <Text style={{color:theme.colors.text, fontWeight:"bold", fontSize:theme.fontSizes.medium}}>{userData.displayName}</Text>
@@ -455,13 +520,13 @@ if (isDeleting) {
   <GestureDetector gesture={swipeGesture}>
     <AnimatedView style={[{ flex:1, flexDirection:"row", width:screenWidth *2}, animatedStyle]}>
    <View style={{flex:1, width:screenWidth, paddingHorizontal:theme.spacing.horizontal.xs}}>
-   {posts.map((post, index) => (
+   {visiblePosts.map((post, index) => (
  
  <PostItem
    key={post.id}
    post={post}
-   onLike={handleLike}
-   onDislike={handleDislike}
+   onLike={(post)=>handleLike(post,["postsforprofile", userId], queryClient)}
+   onDislike={(post)=>handleDislike(post,["postsforprofile", userId], queryClient)}
    onSave={()=>{}}
    onShare={()=>{handleShared(post)}}
    navigation={navigation}
@@ -473,6 +538,14 @@ if (isDeleting) {
   
  />
 ))}
+
+{isFetchingNextPage && (
+                <View style={{alignItems: 'center', marginVertical: 20}}>
+                  <ActivityIndicator color={theme.colors.primary} size="small" />
+                  <Text style={{color: theme.colors.muted, marginTop: 10}}>Loading more posts...</Text>
+                </View>
+              )}
+
 
 <PostOptionsModal
  visible={postMenuVisible}

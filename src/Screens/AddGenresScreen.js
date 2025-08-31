@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert, ScrollView, Text } from "react-native";
+import { 
+  View, 
+  StyleSheet, 
+  Alert, 
+  ScrollView, 
+  Text, 
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  FlatList
+} from "react-native";
 
 import { useDispatch, useSelector } from "react-redux";
 import { setFavGenres } from "../redux/userSlice";
@@ -8,8 +18,6 @@ import { setDoc, updateDoc, auth } from "../Firebaseconfig";
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
 import Header from "../components/Header";
-
-import { MultiSelect } from "react-native-element-dropdown";
 
 import { Button } from "react-native-paper";
 import theme from "../design-system/theme/theme";
@@ -76,21 +84,20 @@ const AddGenresScreen = ({ navigation }) => {
     ...globalSelected.favGenres,
   ]);
 
-  const [genreOptions, setGenreOptions] = useState([]);
+  const [filteredGenres, setFilteredGenres] = useState([]);
+  const [genreSearchQuery, setGenreSearchQuery] = useState("");
+  const [showGenreModal, setShowGenreModal] = useState(false);
 
-  userId = auth.currentUser.uid;
+  const userId = auth.currentUser.uid;
 
+  // Initialize filtered genres when component mounts
   useEffect(() => {
-    const initialOptions = globalSelected.favGenres.map((genre) => ({
-      label: genre,
-      value: genre,
-    }));
-    setGenreOptions(initialOptions);
+    setFilteredGenres(genres);
   }, []);
 
   const handleSave = async () => {
     if (selectedGenres.length < 3) {
-      Alert.alert("Error", "Please select 3 genres.");
+      Alert.alert("Error", "Please select at least 3 genres.");
       return;
     }
 
@@ -118,26 +125,38 @@ const AddGenresScreen = ({ navigation }) => {
 
   const filterGenres = (query) => {
     if (!query || query.length < 1) {
-      setGenreOptions([]); // or reset to full list if you prefer
+      setFilteredGenres(genres);
       return;
     }
 
-    const filtered = genres
-      .filter((genre) => genre.toLowerCase().includes(query.toLowerCase()))
-      .map((genre) => ({
-        label: genre,
-        value: genre,
-      }));
-
-    setGenreOptions(filtered);
+    const filtered = genres.filter((genre) => 
+      genre.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredGenres(filtered);
   };
 
-  const handleGenreChange = (selected) => {
-    if (selected.length > 5) {
-      Alert.alert("Limit reached", "You can select up to 5 genres.");
-      return setSelectedGenres([...selectedGenres]);
+  const toggleGenreSelection = (genre) => {
+    if (selectedGenres.includes(genre)) {
+      setSelectedGenres(selectedGenres.filter((g) => g !== genre));
+    } else {
+      if (selectedGenres.length >= 5) {
+        Alert.alert("Limit reached", "You can select up to 5 genres.");
+        return;
+      }
+      setSelectedGenres([...selectedGenres, genre]);
     }
-    setSelectedGenres(selected);
+  };
+
+  const openGenreModal = () => {
+    setFilteredGenres(genres);
+    setGenreSearchQuery("");
+    setShowGenreModal(true);
+  };
+
+  const closeGenreModal = () => {
+    setShowGenreModal(false);
+    setGenreSearchQuery("");
+    setFilteredGenres([]);
   };
 
   return (
@@ -145,49 +164,41 @@ const AddGenresScreen = ({ navigation }) => {
       <Header title={"Add Genres"} />
       <ScrollView>
         <View style={styles.container}>
-          <MultiSelect
-            style={styles.dropdown}
-            data={genres.map((g) => ({ label: g, value: g }))}
-            labelField="label"
-            valueField="value"
-            placeholder="Search and select Genres"
-            search
-            value={selectedGenres}
-            onChange={handleGenreChange}
-            onChangeText={filterGenres}
-            maxSelect={5}
-            selectedTextStyle={styles.selectedText}
-            containerStyle={{
-              backgroundColor: "white",
-              flex: 1,
+          <Text style={styles.subHeader}>
+            Select Your Favorite Genres (3-5):
+          </Text>
 
-              borderRadius: moderateScale(12),
-              borderWidth: 1,
-              borderColor: "#ddd",
-              padding: 5,
-              marginTop: verticalScale(5),
-            }}
-            renderItem={(item, selected) => (
-              <View
-                style={[
-                  styles.itemContainer,
-                  selected && styles.selectedItemList,
-                ]}
-              >
-                <Text
-                  style={[styles.itemText, selected && styles.selectedText]}
-                >
-                  {item.label}
-                </Text>
-              </View>
-            )}
-            selectedStyle={styles.selectedItem}
-            flatListProps={{
-              ItemSeparatorComponent: () => (
-                <View style={{ height: verticalScale(15) }} />
-              ),
-            }}
-          />
+          <TouchableOpacity style={styles.dropdown} onPress={openGenreModal}>
+            <Text
+              style={[
+                styles.dropdownText,
+                selectedGenres.length === 0 && styles.placeholderText,
+              ]}
+            >
+              {selectedGenres.length > 0
+                ? `${selectedGenres.length} genre${
+                    selectedGenres.length > 1 ? "s" : ""
+                  } selected`
+                : "Search and select genres"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Display selected genres */}
+          {selectedGenres.length > 0 && (
+            <View style={styles.selectedGenresContainer}>
+              {selectedGenres.map((genre, index) => (
+                <View key={index} style={styles.selectedGenreChip}>
+                  <Text style={styles.selectedGenreText}>{genre}</Text>
+                  <TouchableOpacity
+                    onPress={() => toggleGenreSelection(genre)}
+                    style={styles.removeGenreButton}
+                  >
+                    <Text style={styles.removeGenreButtonText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.buttonContainer}>
             <Button
@@ -210,6 +221,92 @@ const AddGenresScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Genre Selection Modal */}
+      <Modal
+        visible={showGenreModal}
+        animationType="slide"
+        onRequestClose={closeGenreModal}
+      >
+        <View style={styles.modalContainer}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Genres</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeGenreModal}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search genres..."
+              placeholderTextColor="#999"
+              value={genreSearchQuery}
+              onChangeText={(text) => {
+                setGenreSearchQuery(text);
+                filterGenres(text);
+              }}
+            />
+          </View>
+
+          {/* Selection Counter */}
+          <View style={styles.selectionCounter}>
+            <Text style={styles.selectionCounterText}>
+              {selectedGenres.length}/5 selected (minimum 3 required)
+            </Text>
+          </View>
+
+          {/* Genre List */}
+          <View style={styles.resultsContainer}>
+            <FlatList
+              data={filteredGenres}
+              keyExtractor={(item, index) => index.toString()}
+              showsVerticalScrollIndicator={false}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.genreItem,
+                    selectedGenres.includes(item) && styles.selectedGenreItem,
+                  ]}
+                  onPress={() => toggleGenreSelection(item)}
+                >
+                  <Text
+                    style={[
+                      styles.genreItemText,
+                      selectedGenres.includes(item) &&
+                        styles.selectedGenreItemText,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                  {selectedGenres.includes(item) && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+
+          {/* Done Button */}
+          <View style={styles.modalFooter}>
+            <Button
+              mode="contained"
+              onPress={closeGenreModal}
+              buttonColor={theme.colors.primary}
+              textColor={theme.colors.text}
+              disabled={selectedGenres.length < 3}
+            >
+              Done ({selectedGenres.length} selected)
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </Container>
   );
 };
@@ -221,17 +318,10 @@ const styles = StyleSheet.create({
     gap: verticalScale(30),
     backgroundColor: theme.colors.background,
   },
-  itemContainer: {
-    flex: 1,
-    gap: 20,
-    padding: 15,
-
-    borderRadius: 8,
-
-    borderWidth: 1,
-    borderColor: "#eee",
+  subHeader: {
+    fontSize: theme.fontSizes.large,
+    fontWeight: "bold",
   },
-
   dropdown: {
     height: verticalScale(55),
     borderColor: "#888",
@@ -244,47 +334,149 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
+    justifyContent: "center",
   },
-
-  dropdownList: {
-    backgroundColor: "green",
-    borderRadius: moderateScale(12),
-    borderWidth: 1,
-    borderColor: "#ddd",
-    maxHeight: verticalScale(250),
-    paddingVertical: verticalScale(5),
-    marginTop: verticalScale(5),
-  },
-
-  selectedItem: {
-    backgroundColor: theme.colors.secondary,
-
-    borderRadius: moderateScale(20),
-    paddingHorizontal: horizontalScale(15),
-    paddingVertical: verticalScale(5),
-    marginTop: verticalScale(20),
-  },
-  selectedItemList: {
+  dropdownText: {
+    fontSize: moderateScale(16),
+    color: "#000",
     flex: 1,
-    gap: 20,
-    padding: 15,
-    backgroundColor: "green",
-
-    borderRadius: moderateScale(8),
-
-    borderWidth: 1,
-    borderColor: "#eee",
   },
-
-  selectedText: {
+  placeholderText: {
+    color: theme.colors.text,
+  },
+  selectedGenresContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: horizontalScale(8),
+    marginTop: verticalScale(10),
+  },
+  selectedGenreChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.secondary,
+    borderRadius: moderateScale(20),
+    paddingHorizontal: horizontalScale(12),
+    paddingVertical: verticalScale(6),
+    gap: horizontalScale(6),
+  },
+  selectedGenreText: {
     color: "white",
-    fontWeight: "600",
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(12),
+    fontWeight: "500",
   },
-
+  removeGenreButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    borderRadius: moderateScale(10),
+    width: horizontalScale(16),
+    height: verticalScale(16),
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeGenreButtonText: {
+    color: "white",
+    fontSize: theme.fontSizes.medium,
+    fontWeight: "bold",
+  },
   buttonContainer: {
     gap: 10,
     justifyContent: "space-between",
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(15),
+    paddingTop: verticalScale(50),
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    backgroundColor: "white",
+  },
+  modalTitle: {
+    fontSize: moderateScale(20),
+    fontWeight: "bold",
+    color: "#333",
+  },
+  closeButton: {
+    width: horizontalScale(32),
+    height: verticalScale(32),
+    borderRadius: moderateScale(16),
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButtonText: {
+    fontSize: moderateScale(20),
+    fontWeight: "bold",
+    color: "#666",
+  },
+  searchContainer: {
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(15),
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  searchInput: {
+    height: verticalScale(50),
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: moderateScale(12),
+    paddingHorizontal: horizontalScale(15),
+    fontSize: moderateScale(16),
+    backgroundColor: "#fafafa",
+  },
+  selectionCounter: {
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(10),
+  },
+  selectionCounterText: {
+    fontSize: moderateScale(14),
+    color: "#666",
+    textAlign: "center",
+  },
+  resultsContainer: {
+    flex: 1,
+    paddingHorizontal: horizontalScale(20),
+  },
+  genreItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: horizontalScale(20),
+    backgroundColor: "white",
+  },
+  selectedGenreItem: {
+    backgroundColor: "#e8f5e8",
+  },
+  genreItemText: {
+    fontSize: theme.fontSizes.medium,
+    color: "#333",
+  },
+  selectedGenreItemText: {
+    color: "#2e7d32",
+    fontWeight: "600",
+  },
+  checkmark: {
+    fontSize: moderateScale(18),
+    color: "#4caf50",
+    fontWeight: "bold",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#eee",
+    marginHorizontal: horizontalScale(10),
+  },
+  modalFooter: {
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(15),
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
   },
 });
 

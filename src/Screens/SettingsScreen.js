@@ -53,7 +53,7 @@ const SettingsScreen = ({ navigation }) => {
   const notificationPref = useSelector((state) => state.user.notificationpref);
 
   const handleReportPress = () => {
-    const subject = encodeURIComponent("Bug Report - [Your App Name]");
+    const subject = encodeURIComponent("Bug Report - BookWorm");
     const body = encodeURIComponent(
       "Describe the issue here...\n\nDevice Info:"
     );

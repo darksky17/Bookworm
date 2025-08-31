@@ -234,6 +234,8 @@ const PostsList = ({
   contentContainerStyle,
   scrollEnabled=true,
   nestedScrollEnabled=false,
+  onEndReached = undefined,
+  onEndReachedThreshold=undefined,
   ...props
 }) => {
   const dispatch = useDispatch();
@@ -301,6 +303,8 @@ const PostsList = ({
       )}
       scrollEnabled={scrollEnabled}
       nestedScrollEnabled={nestedScrollEnabled}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={onEndReachedThreshold}
     />
   );
 };

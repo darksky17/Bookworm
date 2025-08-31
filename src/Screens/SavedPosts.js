@@ -26,20 +26,31 @@ import { DeletePost } from "../utils/deletepost";
 import { SHARE_PREFIX } from "../constants/api";
 import ReportProfileModal from "../components/reportProfileModal";
 import { BlockUser } from "../utils/blockuser";
+import { useFetchSavedPosts } from "../hooks/useFetchSavedPosts";
+import { useQueryClient } from "@tanstack/react-query";
+import { handleLike, handleDislike } from "../utils/postactions";
+
 const SavedPosts = ({ navigation }) => {
 
+  const queryClient = useQueryClient();
 
-  const savedPosts = useSelector((state) => state.user.savedPosts);
-  const [posts, setPosts] = useState([]);
-  const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
   const [postMenuVisible, setPostMenuVisible] = useState(false);
-  const [selectedpost, setSelectedPost] = useState([]);
-  const [initializing, setInitializng] = useState(true);
+  const [selectedpost, setSelectedPost] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const[reportModalVisible, setReportModalVisible] = useState(false);
 
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFetchSavedPosts();
 
-console.log("Okay so these are saved", posts.length);
+
+  const posts = data?.pages.flatMap(page => page.posts) || [];
 
 const handleShared = async (post) => {
   try {
@@ -60,72 +71,15 @@ const handleShared = async (post) => {
   }
 };
 
-const handleDislike = async (postId) => {
-  try {
-    const idToken = await auth.currentUser.getIdToken();
-    await fetch(`${SERVER_URL}/posts/${postId}/dislike`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
-    setReRenderTool(prevValue => prevValue + 1);
-  } catch (error) {
-    alert("Failed to dislike post.");
+
+
+const handleLoadMore = () => {
+
+  if (hasNextPage && !isFetchingNextPage) {
+    fetchNextPage();
   }
 };
 
-const handleLike = async (postId) => {
-  try {
-    const idToken = await auth.currentUser.getIdToken();
-    await fetch(`${SERVER_URL}/posts/${postId}/like`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
-    setReRenderTool(prevValue => prevValue + 1);
-  } catch (error) {
-    alert("Failed to like post.");
-  }
-};
-
-useEffect(()=>{
-
-    const fetchSavedPosts = async ()=>{
-      setInitializng(true);
-   const idToken = await auth.currentUser.getIdToken();
-        try{
-            const responses = await Promise.allSettled(
-                savedPosts.map(async (id) =>
-                  fetch(`${SERVER_URL}/posts/${id}`, {
-                    method: "GET",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${idToken}`,
-                    },
-                  }).then((res) => res.ok ? res.json() : null)
-                )
-              );
-              
-              // Filter successful results
-               const post = responses
-                .filter((res) => res.status === "fulfilled" && res.value)
-                .map((res) => res.value);
-                setPosts(post);
-        } catch(error){
-          console.log("error", error);
-        } finally {
-          setInitializng(false);
-        }
-    }
-
-    fetchSavedPosts();
-
-
-}, [savedPosts, rerendertool]);
 
 
 
@@ -135,7 +89,7 @@ useEffect(()=>{
       
     </View>)}
 
-    if(initializing){return (    <View style={styles.loadingContainer}>
+    if(isLoading || !posts){return (    <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color={theme.colors.primary} />
       
     </View>)}
@@ -159,22 +113,32 @@ useEffect(()=>{
 <PostsList
         posts={posts}
         navigation={navigation}
-        onLike={handleLike}
-        onDislike={handleDislike}
+        onLike={(postId) => 
+          handleLike(postId, ["savedPosts"], queryClient)}
+        
+        onDislike={(postId) => 
+          handleDislike(postId, ["savedPosts"], queryClient)}
         onShare={handleShared}
         onContentPress={(post) => navigation.navigate("PostDetail", { id: post.id })}
         onPressOptions={(item) => {
             setSelectedPost(item);
             setPostMenuVisible(true);
           }}
-      
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.4}
+
           
       />
     
      
       </View>
+      {
+        isFetchingNextPage&&(
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        )
+      }
 
-
+      {selectedpost &&(
       <PostOptionsModal
         visible={postMenuVisible}
         onClose={() => setPostMenuVisible(false)}
@@ -183,7 +147,7 @@ useEffect(()=>{
           setIsDeleting(true);
           await DeletePost(selectedpost);
           setIsDeleting(false);
-          setReRenderTool(prevValue => prevValue + 1);
+         
           
         }}
         onEdit={() => {
@@ -197,14 +161,15 @@ useEffect(()=>{
         post={selectedpost}
         userId={auth.currentUser.uid}
       />
-
+      )}
+{selectedpost &&(
 <ReportProfileModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         targetId={selectedpost.id}
         type={"Post"}
       />
- 
+)}
     </Container>
   );
 };

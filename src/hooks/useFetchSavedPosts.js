@@ -4,13 +4,14 @@ import { SERVER_URL } from "../constants/api";
 import { auth } from "../Firebaseconfig";
 
 
-const fetchNotifs = async  ({pageParam=null})=>{
+const fetchSavedPosts = async  ({pageParam=null})=>{
     const idToken = await auth.currentUser.getIdToken();
-    const url = new URL(`${SERVER_URL}/notifications/display/${auth.currentUser.uid}`);
+    const url = new URL(`${SERVER_URL}/posts/saved`);
     if(pageParam){
       url.searchParams.append('cursor', pageParam.cursor)
     }
     url.searchParams.append('limit', '10');
+   
     const data = await fetch(url.toString(),{
         method:"GET",
         headers: {
@@ -23,16 +24,16 @@ const fetchNotifs = async  ({pageParam=null})=>{
    
 
 
-      return {notifications:response.notifications, hasMore:response.hasMore, cursor:response.cursor };
+      return {posts:response.posts, hasMore:response.hasMore, cursor:response.cursor };
    
       
 };
 
-export const useFetchNotifications = () =>{
+export const useFetchSavedPosts = () =>{
      
     return useInfiniteQuery({
-        queryKey: ["notifications"],
-        queryFn: fetchNotifs,
+        queryKey: ["savedPosts"],
+        queryFn: fetchSavedPosts,
         getNextPageParam: (lastPage) => {
           if (!lastPage.hasMore) return undefined;
           return {

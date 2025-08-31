@@ -31,6 +31,7 @@ import {
   setUnsubscribeUserListener,
   setPauseMatch,
   setSavedPosts,
+  setChatRequestsCount
 } from "../redux/userSlice";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
@@ -119,6 +120,7 @@ const MatchScreen = ({ navigation }) => {
           const { lastUpdated, lastSeenNotificationsAt, deletedAt, savedPosts = [], ...updatedData } = docSnap.data();
           dispatch(setUserState(updatedData));
           dispatch(setSavedPosts(savedPosts));
+          dispatch(setChatRequestsCount(docSnap.data().chatRequests?.length))
         } else {
           console.warn("No user data found for this phone number.");
           setUserDataa(null);
