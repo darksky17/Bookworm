@@ -22,6 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { handleDislike, handleLike } from "../utils/postactions";
 import _ from 'lodash';
 import ChatRequestModal from "../components/chatRequestModal";
+import ShareBottomSheet from "../components/ShareBottomSheet";
 
 const DisplayProfileScreen = ({navigation})=>{
     
@@ -47,6 +48,9 @@ const DisplayProfileScreen = ({navigation})=>{
   const renderLimit = useRef(5);
   const queryClient = useQueryClient();
   const [chatRequestsModal, setChatRequestsModal] = useState(false);
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
+  const [sharedPost, setSharedPost] = useState(null);
 
 
   const {
@@ -121,6 +125,14 @@ const DisplayProfileScreen = ({navigation})=>{
       alert("Failed to share the post.");
     }
   };
+
+  const handleSend = (post) => {
+
+    setSharedPost(post);
+    setBottomSheetVisible(true);
+    bottomSheetRef.current?.expand(); // Opens the bottom sheet
+  };
+
 
   const handleSharedProfile = async (profile) => {
     try {
@@ -274,12 +286,24 @@ const checkChatRequest= async (targetId) =>{
           }),
 
      });
-     console.log(response.created);
+ 
 if(response.status === 201){
-  navigation.navigate("ChatDisplay_new", {
-    senderId: auth.currentUser.uid,
-    receiverId: targetId
-  })
+  try{
+  const idToken = await auth.currentUser.getIdToken();
+  const response = await fetch(`${SERVER_URL}/chat-list/${auth.currentUser.uid}/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ participantId: targetId }),
+  });
+  const allData = await response.json();
+  navigation.navigate("ChatDisplay", {allData
+  });
+} catch(e){
+  console.log("there an error going to chats from displayprofile", e);
+}
 }
 
 else{
@@ -417,10 +441,7 @@ else{
               mode="contained-tonal"
               disabled={isBlocked || userData.hasRequestedChat}
               onPress={() =>
-                // navigation.navigate("ChatDisplay_new", {
-                //   senderId: auth.currentUser.uid,
-                //   receiverId: userId
-                // })
+                
                 checkChatRequest(userId)
               }
               buttonColor={theme.colors.primary}
@@ -448,7 +469,7 @@ else{
           onLike={(post)=>handleLike(post,["postsforprofile", userId], queryClient)}
           onDislike={(post)=>handleDislike(post,["postsforprofile", userId], queryClient)}
           onSave={() => {}}
-          onShare={handleShared}
+          onShare={()=>handleSend(post)}
           navigation={navigation}
           onContentPress={(post) => navigation.navigate("PostDetail", { id: post.id })}
           onPressOptions={(item) => {
@@ -721,6 +742,13 @@ if(isDeleting){
         targetId={type==="Profile"?userId:selectedpost.id}
         type={type}
       />
+        <ShareBottomSheet
+   post={sharedPost}
+   bottomSheetRef={bottomSheetRef}
+   bottomSheetVisible={bottomSheetVisible}
+   onClose={ ()=>{
+    setBottomSheetVisible(false);}}
+   />
 
   </Container>
   

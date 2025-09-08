@@ -26,7 +26,7 @@ import ChatRequestsScreen from '../Screens/ChatRequestsScreen';
 const MainStack = createNativeStackNavigator();
 
 const MainNavigator = () => {
-  useUnreadCountListener();
+  // useUnreadCountListener();
   useNotificationCountListener();
   return (
     <MainStack.Navigator 

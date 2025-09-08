@@ -17,7 +17,7 @@ import {
   Image,
   Keyboard,
 } from "react-native";
-import { GiftedChat } from "react-native-gifted-chat";
+import { GiftedChat, Message } from "react-native-gifted-chat";
 import * as ImagePicker from "expo-image-picker";
 import Menu from "../components/Menu";
 import {
@@ -35,6 +35,7 @@ import {
   increment,
   db,
   auth,
+  limit,
   ref,
   uploadBytesResumable,
   getDownloadURL,
@@ -60,6 +61,9 @@ import {
 } from "../design-system/theme/scaleUtils";
 import ImageView from "react-native-image-viewing";
 import { useQueryClient } from "@tanstack/react-query";
+import { useFetchMessages } from "../hooks/useFetchMessages";
+import { useFocusEffect } from "@react-navigation/native";
+import { useFetchPostsById } from "../hooks/useFetchPostsById";
 
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
@@ -78,6 +82,19 @@ const ChatDisplay = ({ route, navigation }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const queryClient = useQueryClient();
+  const { 
+    data, 
+    isLoading, 
+    isError, 
+    error, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage ,
+    refetch
+  } = useFetchMessages(chatId);
+
+
+
   console.log("THIS IS WHAT I GOT as ALL DATA", allData);
 
   // Add keyboard listeners
@@ -181,6 +198,7 @@ const ChatDisplay = ({ route, navigation }) => {
     const fetchChatId = async () => {
       const id = await getChatId();
       setChatId(id);
+     
     };
     fetchChatId();
   }, []);
@@ -188,8 +206,13 @@ const ChatDisplay = ({ route, navigation }) => {
   const onSend = useCallback(
     async (newMessages = []) => {
       if (!chatId || newMessages.length === 0) return;
-
+      
       const message = newMessages[0];
+
+   
+      setMessages((previousMessages) =>
+        GiftedChat.append(previousMessages, message)
+      );
       const messagesRef = collection(db, "Chats", chatId, "messages");
 
       try {
@@ -256,7 +279,7 @@ const ChatDisplay = ({ route, navigation }) => {
             message: lastMessageText,
           }),
         });
-        queryClient.invalidateQueries({ queryKey: ["chats"] });
+    
       } catch (error) {
         console.error("❌ Error sending message:", error);
         Alert.alert("Error", "Failed to send message. Please try again.");
@@ -269,129 +292,131 @@ const ChatDisplay = ({ route, navigation }) => {
     if (stopLoad) return;
     console.log("useEffect triggered with chatId:", chatId);
 
-    if (!chatId) {
-      console.log("No chatId yet, returning...");
+    if (!chatId || !data) {
+     
       return;
     }
+    
+  
+    // Flatten all pages of messages and transform to your expected format
+    const allMessages = data.pages.flatMap(page => 
+      page.messages.map(msg => ({
+        _id: msg._id || msg.id, // Adjust based on your API response structure
+        text: msg.content || msg.text,
+        type:msg.type || undefined,
+        createdAt: new Date(msg.timestamp._seconds * 1000),
+        user: {
+          _id: msg.senderID || msg.senderId,
+        },
+        // Add image if it exists
+        ...(msg.image && { image: msg.image }),
+        ...(msg.postId && {postId: msg.postId})
+      }))
+    );
+  
+    setMessages(allMessages);
+    
 
-    const loadMessages = async () => {
-      try {
-        const chatDocRef = doc(db, "Chats", chatId);
-        const chatSnap = await getDoc(chatDocRef);
-        if (!chatSnap.exists()) {
-          console.warn("Chat document no longer exists.");
-          return;
-        }
-        const messagesRef = collection(db, "Chats", chatId, "messages");
-        const messagesQuery = query(messagesRef, orderBy("timestamp", "desc"));
-
-        console.log("Setting up onSnapshot for messages...");
-        if (stopLoad) return;
-        unsubscribeRef.current = onSnapshot(
-          messagesQuery,
-          (snapshot) => {
-            console.log(
-              "onSnapshot triggered. Docs count:",
-              snapshot.docs.length
-            );
-
-            const loadedMessages = snapshot.docs.map((doc) => {
-              const datas = doc.data();
-
-              const messageObj = {
-                _id: doc.id,
-                text: datas.content,
-                createdAt: datas.timestamp?.toDate() || new Date(),
-                user: {
-                  _id: datas.senderID,
-                },
-              };
-
-              // Add image if it exists
-              if (datas.image) {
-                messageObj.image = datas.image;
-              }
-
-              return messageObj;
-            });
-
-            setMessages([...loadedMessages]);
-          },
-          (error) => {
-            console.error("Error in onSnapshot for messages:", error);
-          }
-        );
-      } catch (err) {
-        console.error("loadMessages() failed:", err);
-      }
-    };
-
-    loadMessages();
-
-    return () => {
-      if (unsubscribeRef.current) {
-        console.log("Cleaning up Firestore listener...");
-        unsubscribeRef.current(); // unsubscribe
-        unsubscribeRef.current = null; // reset ref
-      }
-    };
-  }, [chatId]);
+    
+  }, [chatId, data, stopLoad]);
 
   useEffect(() => {
     if (!chatId) return;
-
-    const messagesDocRef = doc(db, "Chats", chatId);
+    
     const messagesRef = collection(db, "Chats", chatId, "messages");
-    let chatData = {};
-    const unsubscribeMessages = onSnapshot(messagesRef, (snapshot) => {
-      const messageCount = snapshot.size; // ✅ Count messages dynamically
-      console.log("Message count:", messageCount);
-      if (!chatData) return; // Safety check
-
-      if (messageCount > 0 && messageCount % 50 === 0 && !chatData.ascended) {
-        console.log("Check 1 for chatData", chatData);
-        console.log("Check 2 for message count", messageCount);
-        setModalState(true);
+    const latestMessageQuery = query(
+      messagesRef, 
+      orderBy("timestamp", "desc"), 
+      limit(1)
+    );
+  
+    let isFirstLoad = true;
+    let lastMessageTimestamp = null;
+  
+    const unsubscribe = onSnapshot(latestMessageQuery, (snapshot) => {
+      if (snapshot.empty) return;
+      if (isFirstLoad) {
+        isFirstLoad = false;
+        return;
       }
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const doc = change.doc;
+          const data = doc.data();
+          
+          // Only add if it's from the other user (avoid duplicate from onSend)
+          if (data.senderID !== userId) {
+            const newMessage = {
+              _id: doc.id,
+              text: data.content,
+              createdAt: data.timestamp?.toDate() || new Date(),
+              user: { _id: data.senderID },
+              ...(data.image && { image: data.image })
+            };
+
+            setMessages(prevMessages => 
+              GiftedChat.append(prevMessages, [newMessage])
+            );
+          }
+        }
+      });
     });
+  
+    return () => unsubscribe();
+  }, [chatId, refetch]);
+
+  
+
+  useEffect(() => {
+    if (!chatId) return;
+   
+    const messagesDocRef = doc(db, "Chats", chatId);
+    let chatData = {};
+ 
     const unsubscribe = onSnapshot(messagesDocRef, async (docSnap) => {
+     
+      
       chatData = docSnap.data();
+      if(chatData.ascended) return;
       const choice = Array.isArray(docSnap.data().choices)
         ? docSnap.data().choices
         : [];
 
-      // Hide modal if the user already made a choice
-      if (choice.some((c) => c.startsWith(userId)) && !chatData.ascended) {
-        console.log("🔴 MODAL TRIGGERED FROM USER CHOICE CHECK");
-        setModalState(true);
-        setIsDisabled(true);
+        const hasAnswered = choice.some((c) => c.startsWith(userId));
+        setHasHandledChoice(hasAnswered);
+        const bothAnswered = choice.length === 2;
+        const messageCount = chatData.messageCount ?? 0;
+        const atThreshold = messageCount > 0 && messageCount % 70 === 0;
+        const shouldShow = !chatData.ascended && (atThreshold || choice.length === 1);
+    setModalState(shouldShow);
+
+    // If this user already answered, just disable the buttons
+    setIsDisabled(hasAnswered);
+
+    // Resolve when both have answered
+    if (bothAnswered) {
+      const anyNo = choice.some((c) => c.endsWith(":No"));
+
+      if (!anyNo) {
+        if (!chatData.ascended) {
+          await updateDoc(messagesDocRef, { ascended: true });
+          Alert.alert("WOOHOO, this chat is now ascended!");
+        }
+      } else {
+        // Reset the round; bump count to get out of the threshold
+        await updateDoc(messagesDocRef, { choices: [] , messageCount: increment(1) });
+        Alert.alert("Looks like one of you chose not to Ascend. We will ask again later.");
       }
 
-      if (choice.length === 2 && !hasHandledChoice) {
-        setHasHandledChoice(true);
-        if (!choice.some((c) => c.endsWith(":No"))) {
-          if (!chatData.ascended) {
-            await updateDoc(messagesDocRef, { ascended: true });
-            Alert.alert("WOOHOO, this chat is now ascended!");
-          }
-        } else {
-          if (chatData.choices.length !== 0) {
-            await updateDoc(messagesDocRef, { choices: [] });
-          }
-          Alert.alert(
-            "Looks like one of you chose not to Ascend. We will ask again later."
-          );
-          await updateDoc(messagesDocRef, { messageCount: increment(1) });
-          setModalState(false);
-          setIsDisabled(false);
-        }
-        setModalState(false); // Ensures the modal closes for both users
-      }
+      // Close locally for both users
+      setModalState(false);
+      setIsDisabled(false);
+    }
     });
 
     return () => {
       unsubscribe();
-      unsubscribeMessages();
+      
     };
   }, [chatId]);
 
@@ -432,8 +457,6 @@ const ChatDisplay = ({ route, navigation }) => {
       if (!chatId || !userId) return;
 
       const chatDocRef = doc(db, "Chats", chatId);
-      const chatDocSnap = await getDoc(chatDocRef);
-      console.log("Chat participants:", chatDocSnap.data().participants);
       try {
         await updateDoc(chatDocRef, {
           [`unreadCounts.${userId}`]: 0,
@@ -444,7 +467,7 @@ const ChatDisplay = ({ route, navigation }) => {
     };
 
     markChatAsRead(); // ✅ Actually call the function
-  }, [chatId, userId]); // ✅ Run when chatId or userId changes
+  }, [chatId, userId, messages]); // ✅ Run when chatId or userId changes
 
   const renderSend = useCallback((props) => {
     const messageLength = props.text?.trim().length || 0;
@@ -586,6 +609,113 @@ const ChatDisplay = ({ route, navigation }) => {
 
   };
 
+  const loadMore = ()=>{
+    if(hasNextPage && !isFetchingNextPage){
+      fetchNextPage();
+    }
+  }
+
+  const customMessage = (props) => {
+    
+    const { currentMessage } = props;
+    const [expanded, setExpanded] = useState(false);
+ 
+    const userMessage = currentMessage.user._id === auth.currentUser.uid;
+    const { data: postData, isLoading, error } = useFetchPostsById(currentMessage.postId || null, true);
+   
+    if (currentMessage.type === "Post") { 
+      
+      if(isLoading){
+        return(
+          <View style={[ styles.postContainer, userMessage?styles.postContainerRight : styles.postContainerLeft]}>
+                  <Text>Loading</Text>
+          </View>
+        )
+      }
+
+      if (error) {
+         return(
+        <View style={[ styles.postContainer, userMessage?styles.postContainerRight : styles.postContainerLeft]}>
+        <Text>{error.message}</Text>
+</View>
+         )
+      }
+      console.log(postData);
+      // Example: Customize messages from a specific user
+      return (<>
+        
+        <View style={[ styles.postContainer, userMessage?styles.postContainerRight : styles.postContainerLeft]}>
+          <Text style={{color:theme.colors.text, fontWeight:"bold", fontSize:moderateScale(14), marginBottom:verticalScale(10)}}>{currentMessage.text}</Text>
+         <Pressable onPress={()=>navigation.navigate('DisplayProfile', { userId: postData.authorId })} style={{flexDirection:"row",  alignItems:"center"}}>
+          <View style={styles.avatarContainer_list}>
+          <Text style={styles.avatarText_list}>
+            {(postData.displayName || "U").charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <Text style={{fontWeight:"bold", color:theme.colors.text, maxWidth:"75%"}}numberOfLines={1} ellipsizeMode="tail">{postData.displayName}</Text>
+        </Pressable>
+    
+        <Pressable onPress={()=>navigation.navigate('PostDetail', { id: currentMessage.postId })}style={{marginTop:verticalScale(10)}}>
+        <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center"}}>
+        {postData.type === "BookReview" ? (
+     
+        <View style={styles.bookInfo}>
+          <Text style={styles.bookTitle}>{postData.BookTitle}</Text>
+          <Text style={styles.bookAuthor}>by {postData.BookAuthor}</Text>
+        </View>
+     
+        
+      ) : (
+        <View style={styles.discussionInfo}>
+          <Text style={styles.discussionTitle}>{postData.title}</Text>
+        </View>
+      )}
+       <View style={styles.postTypeContainer}>
+            <Text style={styles.postType}>{postData.type}</Text>
+          </View>
+      </View>
+          <Text style={{fontSize:moderateScale(14),color:theme.colors.text,}}numberOfLines={expanded?undefined:3} ellipsizeMode="tail">{postData.content}</Text>
+        </Pressable>
+        <Pressable onPress={() => setExpanded(!expanded)}>
+        <Text style={{fontSize:theme.fontSizes.small, fontWeight:"bold", color:theme.colors.muted}}>
+          {expanded ? "Show less" : "Read more"}
+        </Text>
+      </Pressable>
+        {postData.images.length>0 &&(
+      
+        <View style={{ flexDirection: "row", borderRadius: moderateScale(10), overflow: "hidden", marginTop:verticalScale(10) }}>
+  {/* Left side - Big image */}
+  <View style={{ flex: 1 }}>
+    <Image
+      source={{ uri: postData.images[0] }}
+      style={{ width: "100%", height: verticalScale(200) }}
+      resizeMode="cover"
+    />
+  </View>
+
+  {postData.images.length>1 && (
+  <View style={{ flex: 1, flexDirection: "column" }}>
+    {[1, 2].map((index) => (
+      <View key={index} style={{ flex: 1 }}>
+        <Image
+          source={{ uri: postData.images[index] || postData.images[0] }}
+          style={{ width: "100%", height: "100%" }}
+          resizeMode="cover"
+        />
+      </View>
+    ))}
+  </View>
+  )}
+</View>
+
+      )}
+        </View>
+        </>
+      );
+    }
+    return <Message {...props} />; // Render default message for others
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -648,6 +778,7 @@ const ChatDisplay = ({ route, navigation }) => {
             disableComposer={allData.isDeleted || allData.hasBlocked || allData.isBlocked}
             renderInputToolbar={CustomInputToolbar}
             renderMessageImage={renderMessageImage}
+            renderMessage={customMessage}
             renderBubble={renderBubble}
             renderAvatar={null}
             alwaysShowSend={false}
@@ -658,13 +789,13 @@ const ChatDisplay = ({ route, navigation }) => {
             placeholder={ placeHolder()}
             isAnimated={false}
             extraData={isKeyboardVisible}
+            loadEarlier={hasNextPage}
+            onLoadEarlier={loadMore}
+            
+            
           />
         </GestureDetector>
       </GestureHandlerRootView>
-
-      {/* // allData.isDeleted
-              //   ? "You cant reply to this chat because the user deleted their account"
-              //   : "Type a message..." */}
 
       <Modal
         animationType="slide"
@@ -679,6 +810,8 @@ const ChatDisplay = ({ route, navigation }) => {
               ascend?
             </Text>
             <View style={{ flexDirection: "row", gap: horizontalScale(15) }}>
+             {hasHandledChoice ? (<Text>You have already answered!</Text>):( 
+              <>
               <Pressable
                 disabled={isdisabled}
                 style={[styles.button, styles.buttonClose]}
@@ -693,6 +826,8 @@ const ChatDisplay = ({ route, navigation }) => {
               >
                 <Text style={styles.textStyle}>NO</Text>
               </Pressable>
+              </>
+             )}
             </View>
           </View>
         </View>
@@ -781,6 +916,84 @@ const styles = StyleSheet.create({
   modalText: {
     marginBottom: verticalScale(15),
     textAlign: "center",
+  },
+  postContainer:{
+    flex:1,
+    backgroundColor: theme.colors.background,
+    borderRadius: moderateScale(12),
+    marginVertical: verticalScale(4),
+    marginHorizontal: horizontalScale(8),
+    padding: moderateScale(12),
+    maxWidth: '75%',
+    minWidth:'75%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border || '#E5E5E5',
+  },
+  postContainerRight: {
+    alignSelf: 'flex-end',
+    
+    borderColor: theme.colors.primary + '30',
+  },
+  postContainerLeft: {
+    alignSelf: 'flex-start',
+    backgroundColor: theme.colors.background,
+  },
+  avatarContainer_list: {
+    width: horizontalScale(30), // was 40
+    height: verticalScale(30), // was 40
+    borderRadius: moderateScale(15), // was 20
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: theme.spacing.horizontal.xs, // was sm
+
+  },
+  avatarText_list: {
+    fontSize: theme.fontSizes.medium, // was medium
+    fontFamily: theme.fontFamily.bold,
+    color: theme.colors.text,
+  },
+  bookInfo: {
+    marginBottom: theme.spacing.vertical.xs,
+  },
+  bookTitle: {
+    fontSize: theme.fontSizes.medium,
+    fontFamily: theme.fontFamily.bold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.vertical.xs,
+  },
+  bookAuthor: {
+    fontSize: theme.fontSizes.small,
+    fontFamily: theme.fontFamily.regular,
+    color: theme.colors.muted,
+  },
+  discussionInfo: {
+    marginBottom: theme.spacing.vertical.xs,
+  },
+  discussionTitle: {
+    fontSize: theme.fontSizes.medium,
+    fontFamily: theme.fontFamily.bold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.vertical.xs,
+  },
+  postTypeContainer: {
+    backgroundColor: theme.colors.secondary,
+    paddingHorizontal: theme.spacing.horizontal.xs,
+    paddingVertical: theme.spacing.vertical.xs,
+    borderRadius: theme.borderRadius.sm,
+  },
+  postType: {
+    fontSize: moderateScale(9),
+    fontFamily: theme.fontFamily.regular,
+    color: theme.colors.text,
   },
 });
 

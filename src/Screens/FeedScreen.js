@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   FlatList,
@@ -11,7 +11,9 @@ import {
   RefreshControl,
   Share,
   Image,
-  Dimensions
+  Dimensions,
+  TextInput,
+  Pressable,
 } from "react-native";
 import theme from "../design-system/theme/theme";
 import Container from "../components/Container";
@@ -40,6 +42,8 @@ import { markNotificationsAsSeen } from "../utils/markbellpres.js";
 import { setUnreadNotifCount } from "../redux/userSlice";
 import { handleLike, handleDislike } from "../utils/postactions.js";
 import { useQueryClient } from "@tanstack/react-query";
+import useFetchChats from "../hooks/useFetchChats.js";
+import ShareBottomSheet from "../components/ShareBottomSheet.js";
 
 const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -229,7 +233,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
           style={styles.actionButton}
           onPress={onShare}
         >
-        <Ionicons name="share-social-outline" size={24} color="black" />
+       <Ionicons name="paper-plane-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
     </View>
@@ -237,7 +241,7 @@ const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
 };
 
 const FeedScreen = ({ navigation }) => {
-  // const { data: posts = [], isLoading, error, refetch, isRefetching } = useFetchPosts();
+   
   const [activeFilters, setActiveFilters] = useState("");
   const { 
     data, 
@@ -261,8 +265,12 @@ const FeedScreen = ({ navigation }) => {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const unseenCount = useSelector(state=>state.user.unreadNotifCount);
   const queryClient = useQueryClient();
-  console.log("this is the unseeencount", unseenCount);
 
+
+
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
+const [sharedPost, setSharedPost] = useState(null);
   const toggleFilter = async (filter) => {
 
      if (activeFilters !== filter){
@@ -309,7 +317,7 @@ useFocusEffect(
       const shareTitle = post.type === "BookReview" 
         ? `Check out "${post.BookTitle}"`
         : `Check out "${post.title}"`;
-      const message = `${post.Content?.slice(0, 100)}...\n\nCheck this out on Bookworm:\n${shareUrl}`;
+      const message = `${post.Content?.slice(0, 100)}...\n\nCheck this out on Bookworm:\n${shareUrl}`;  ///ORIGINAL AND WORKING
   
       await Share.share({
         message: message,
@@ -321,6 +329,12 @@ useFocusEffect(
     } catch (error) {
       alert("Failed to share the post.");
     }
+  };
+
+  const handleSend = (post) => {
+    setSharedPost(post);
+    setBottomSheetVisible(true);
+    bottomSheetRef.current?.expand(); // Opens the bottom sheet
   };
 
   
@@ -386,7 +400,7 @@ useFocusEffect(
       onDislike={(postId) => 
         handleDislike(postId, ["posts", activeFilters], queryClient)}
       onSave={handleSave}
-      onShare={()=>{handleShared(item)}}
+      onShare={()=>{handleSend(item); setSelectedPost(item)}}
       onContentPress={handleContentPress}
       isSaved={savedPosts.includes(item.id)}
       onBookmark={handleBookmark}
@@ -548,6 +562,18 @@ useFocusEffect(
         targetId={selectedpost.id}
         type={"Post"}
       />
+
+
+
+   <ShareBottomSheet
+   post={selectedpost}
+   bottomSheetRef={bottomSheetRef}
+   bottomSheetVisible={bottomSheetVisible}
+   onClose={ ()=>{
+    setBottomSheetVisible(false);
+    setSharedPost(null);}}
+   />
+
     </Container>
     
   );
@@ -600,6 +626,20 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.horizontal.xs, // was sm
   },
   avatarText: {
+    fontSize: theme.fontSizes.medium, // was medium
+    fontFamily: theme.fontFamily.bold,
+    color: theme.colors.text,
+  },
+  avatarContainer_list: {
+    width: horizontalScale(40), // was 40
+    height: verticalScale(40), // was 40
+    borderRadius: moderateScale(20), // was 20
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: theme.spacing.horizontal.xs, // was sm
+  },
+  avatarText_list: {
     fontSize: theme.fontSizes.medium, // was medium
     fontFamily: theme.fontFamily.bold,
     color: theme.colors.text,

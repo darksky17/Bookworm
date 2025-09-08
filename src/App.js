@@ -23,6 +23,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Modal, Linking, ActivityIndicator } from "react-native";
 import AuthNavigator from "./navigation/AuthNavigator";
 import MainNavigator from "./navigation/MainNavigator";
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 
 
@@ -274,14 +275,18 @@ const AppNavigator = () => {
   }
   return (
     <QueryClientProvider client={queryClient}>
-      <NavigationContainer linking={linking} initialState={initialState}>
+      <BottomSheetModalProvider>    
+         <NavigationContainer linking={linking} initialState={initialState}>
         <StatusBar
           backgroundColor={theme.colors.background}
           barStyle="dark-content"
         />
  
         {isAuthenticated? <MainNavigator /> : <AuthNavigator initialRoute={initialRoute} onAuthComplete={() => setIsAuthenticated(true)} />}
+          
       </NavigationContainer>
+      </BottomSheetModalProvider>
+ 
     </QueryClientProvider>
   );
 };

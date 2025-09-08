@@ -105,7 +105,7 @@ export const useFetchPosts = (filter = "") => {
         lastTimestamp: lastPage.lastTimestamp
       };
     },
-    staleTime: 0,
+    staleTime: 2 * 60 * 1000,
     cacheTime: 5 * 60 * 1000, // 5 minutes cache for infinite scroll
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

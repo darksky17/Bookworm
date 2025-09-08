@@ -211,7 +211,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
           style={styles.actionButton}
           onPress={()=>{onShare(post)}}
         >
-          <Ionicons name="share-social-outline" size={24} color="black" />
+           <Ionicons name="paper-plane-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
     </View>
@@ -433,6 +433,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.vertical.xs,
     borderTopWidth: 1,
     borderTopColor: "#E0E0E0",
+    
   },
   actionButton: {
     paddingHorizontal: theme.spacing.horizontal.xs,

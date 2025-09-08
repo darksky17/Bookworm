@@ -120,9 +120,9 @@ onRequestClose={() => setImageViewerVisible(false)}
     <FontAwesome5 name="comment" size={20} color="black" />
     <Text style={styles.stat}>{post.commentsCount}</Text>
   </TouchableOpacity>
-  <TouchableOpacity style={styles.actionButton} onPress={onShare}>
-    <Text style={styles.stat}>
-      <Ionicons name="share-social-outline" size={21} color="black" /> </Text>
+  <TouchableOpacity style={[styles.actionButton,{justifyContent:"flex-center"}]} onPress={onShare}>
+  
+    <Ionicons name="paper-plane-outline" size={24} color="black" /> 
 
   </TouchableOpacity>
 </View>

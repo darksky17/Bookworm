@@ -30,6 +30,7 @@ import {
   horizontalScale,
 } from "../design-system/theme/scaleUtils";
 import useFetchChats from "../hooks/useFetchChats";
+import useUnreadCountListener from "../hooks/useUnreadCountListener";
 
 
 const ChatScreenList = ({ navigation }) => {
@@ -44,9 +45,10 @@ const ChatScreenList = ({ navigation }) => {
 
   console.log("hello",chatRequests);
   
-
+  useUnreadCountListener();
   useFocusEffect(
     useCallback(() => {
+  
       refetch();
     }, [refetch])
   );

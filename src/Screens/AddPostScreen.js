@@ -226,6 +226,8 @@ const uploadImage = async (uri, storageRef) => {
         Reports: 0,
         Saved: 0,
         Shares: 0,
+        likedBy:[],
+        dislikedBy:[],
         commentsCount: 0,
         images: images?.map(img => img.uri) || null, // send URIs for now
        

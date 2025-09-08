@@ -60,6 +60,7 @@ import React, {
   } from "../design-system/theme/scaleUtils";
   import ImageView from "react-native-image-viewing";
   import { useQueryClient } from "@tanstack/react-query";
+  import useFetchChats from "../hooks/useFetchChats";
   
   const ChatDisplay_new = ({ route, navigation }) => {
     const { senderId, receiverId } = route.params;

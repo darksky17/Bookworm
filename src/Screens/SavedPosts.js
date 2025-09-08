@@ -29,6 +29,7 @@ import { BlockUser } from "../utils/blockuser";
 import { useFetchSavedPosts } from "../hooks/useFetchSavedPosts";
 import { useQueryClient } from "@tanstack/react-query";
 import { handleLike, handleDislike } from "../utils/postactions";
+import ShareBottomSheet from "../components/ShareBottomSheet";
 
 const SavedPosts = ({ navigation }) => {
 
@@ -38,6 +39,9 @@ const SavedPosts = ({ navigation }) => {
   const [selectedpost, setSelectedPost] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const[reportModalVisible, setReportModalVisible] = useState(false);
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
+  const [sharedPost, setSharedPost] = useState(null);
 
   const {
     data,
@@ -70,6 +74,13 @@ const handleShared = async (post) => {
     console.log(error);
   }
 };
+
+const handleSend = (post) => {
+  setSharedPost(post);
+  setBottomSheetVisible(true);
+  bottomSheetRef.current?.expand(); // Opens the bottom sheet
+};
+
 
 
 
@@ -118,7 +129,7 @@ const handleLoadMore = () => {
         
         onDislike={(postId) => 
           handleDislike(postId, ["savedPosts"], queryClient)}
-        onShare={handleShared}
+        onShare={(post)=>{handleSend(post)}}
         onContentPress={(post) => navigation.navigate("PostDetail", { id: post.id })}
         onPressOptions={(item) => {
             setSelectedPost(item);
@@ -170,6 +181,15 @@ const handleLoadMore = () => {
         type={"Post"}
       />
 )}
+
+<ShareBottomSheet
+   post={sharedPost}
+   bottomSheetRef={bottomSheetRef}
+   bottomSheetVisible={bottomSheetVisible}
+   onClose={ ()=>{
+    setBottomSheetVisible(false);}}
+   />
+
     </Container>
   );
 };

@@ -23,21 +23,15 @@ const useNotificationCountListener = () => {
         if (!lastSeen) return;
 
         const q = query(
-            collection(db, 'Notifications'),
-            where('targetId', '==', userId)
-
-          );
+          collection(db, 'Notifications'),
+          where('targetId', '==', userId),
+          where('timestamp', '>', lastSeen),
+          orderBy('timestamp', 'desc')
+        );
   
-          unsubscribe = onSnapshot(q, (snapshot) => {
-
-            const unreadCount = snapshot.docs.filter((doc) => {
-              const data = doc.data();
-              return data.timestamp?.toMillis() > lastSeen.toMillis();
-            }).length;
-          
-            
-            dispatch(setUnreadNotifCount(unreadCount));
-          });
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          dispatch(setUnreadNotifCount(snapshot.docs.length));
+        });
       };
   
       setup();

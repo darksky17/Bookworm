@@ -28,6 +28,7 @@ import { useFetchPostsForProfile } from "../hooks/useFetchPostsForProfile";
 import _ from 'lodash';
 import { useQueryClient } from "@tanstack/react-query";
 import { handleLike, handleDislike } from "../utils/postactions";
+import ShareBottomSheet from "../components/ShareBottomSheet";
 
 const TabDisplayProfileScreen = ({navigation})=>{
     
@@ -55,6 +56,9 @@ const TabDisplayProfileScreen = ({navigation})=>{
   const [scrollPos, setScrollPos] = useState(null)  ;
   const scrollYSwipe = useRef(0);
   const renderLimit = useRef(5);
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
+  const [sharedPost, setSharedPost] = useState(null);
 
   const {
     data,
@@ -103,6 +107,13 @@ const TabDisplayProfileScreen = ({navigation})=>{
       alert("Failed to share the post.");
     }
   }, []);
+
+  const handleSend = (post) => {
+    setSharedPost(post);
+    setBottomSheetVisible(true);
+    bottomSheetRef.current?.expand(); // Opens the bottom sheet
+  };
+
 
   const handleSharedProfile = useCallback( async (profile) => {
     try {
@@ -299,23 +310,7 @@ const thhrottleScroll = useCallback(
         }
       };
   
-      // const fetchPosts = async () => {
-      //   try {
-      //     const idToken = await auth.currentUser.getIdToken();
-      //     const res = await fetch(`${SERVER_URL}/posts/profile/${userId}`, {
-      //       method: 'GET',
-      //       headers: {
-      //         'Content-Type': 'application/json',
-      //         Authorization: `Bearer ${idToken}`,
-      //       },
-      //     });
-      //     const data = await res.json();
-         
-      //     if (isActive) setPosts(data);
-      //   } catch (err) {
-      //     console.error('Failed to fetch posts:', err);
-      //   }
-      // };
+
   
       fetchUserData();
   
@@ -448,7 +443,7 @@ if (isDeleting) {
 }
 
 
-  
+
 
     return(
         <Container>
@@ -528,7 +523,7 @@ if (isDeleting) {
    onLike={(post)=>handleLike(post,["postsforprofile", userId], queryClient)}
    onDislike={(post)=>handleDislike(post,["postsforprofile", userId], queryClient)}
    onSave={()=>{}}
-   onShare={()=>{handleShared(post)}}
+   onShare={()=>{handleSend(post)}}
    navigation={navigation}
    onContentPress={(post) => navigation.navigate("PostDetail", { id:post.id })}
    onPressOptions={(item) => {
@@ -590,6 +585,14 @@ if (isDeleting) {
 
    
   </ScrollView>
+  <ShareBottomSheet
+   post={sharedPost}
+   bottomSheetRef={bottomSheetRef}
+   bottomSheetVisible={bottomSheetVisible}
+   onClose={ ()=>{
+    setBottomSheetVisible(false);}}
+   />
+
   </Container>
     
 )

@@ -16,6 +16,7 @@ import PostCard from "../components/PostCard";
 import PostOptionsModal from "../components/postOptionsModal";
 import { useFetchPostsById } from "../hooks/useFetchPostsById";
 import ReportProfileModal from "../components/reportProfileModal";
+import ShareBottomSheet from "../components/ShareBottomSheet";
 const PostDetailScreen = ({ navigation }) => {
   const route = useRoute();
   // const { post: initialPost } = route.params;
@@ -46,6 +47,9 @@ const PostDetailScreen = ({ navigation }) => {
   const CONTAINER_WIDTH = screenWidth * 0.85;
 const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
 const [reportModalVisible, setReportModalVisible] = useState(false);
+const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
+const [sharedPost, setSharedPost] = useState(null);
 
 useEffect(() => {
   if (postData) {
@@ -169,6 +173,13 @@ useEffect(() => {
     } catch (error) {
       alert("Failed to share the post.");
     }
+  };
+
+  const handleSend = () => {
+
+    setSharedPost(post);
+    setBottomSheetVisible(true);
+    bottomSheetRef.current?.expand(); // Opens the bottom sheet
   };
 
   const handleSendComment = async () => {
@@ -478,7 +489,7 @@ useEffect(() => {
         onComment={()=> inputRef.current.focus()}
         onLike={handleLike}
         OnDislike={handleDislike}
-        onShare={handleShare}
+        onShare={handleSend}
         width={CONTAINER_WIDTH}
         height={CONTAINER_HEIGHT}
         />
@@ -628,6 +639,13 @@ useEffect(() => {
         targetId={post.id}
         type={"Post"}
       />
+              <ShareBottomSheet
+   post={sharedPost}
+   bottomSheetRef={bottomSheetRef}
+   bottomSheetVisible={bottomSheetVisible}
+   onClose={ ()=>{
+    setBottomSheetVisible(false);}}
+   />
     </Container>
   );
 };
