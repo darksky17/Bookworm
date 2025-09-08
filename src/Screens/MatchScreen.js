@@ -31,7 +31,8 @@ import {
   setUnsubscribeUserListener,
   setPauseMatch,
   setSavedPosts,
-  setChatRequestsCount
+  setChatRequestsCount,
+  setLastSeenNotificationAt
 } from "../redux/userSlice";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
@@ -49,6 +50,7 @@ import {
 } from "../design-system/theme/scaleUtils.js";
 import { useNearbyUsers } from "../hooks/useNearbyUsers.js";
 import { useQueryClient } from "@tanstack/react-query";
+import useNotificationCountListener from "../hooks/useNotificationCountListener.js";
 const MatchScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const location = useSelector((state) => state.user.location);
@@ -62,6 +64,7 @@ const MatchScreen = ({ navigation }) => {
   const unsubscribeRef = useRef(null);
   const pause = useSelector((state) => state.user.pauseMatch);
   const scanningRef = useRef(scanning);
+
 
   useEffect(() => {
     scanningRef.current = scanning;
@@ -117,9 +120,18 @@ const MatchScreen = ({ navigation }) => {
         if (docSnap.exists()) {
           setUserDataa(docSnap.data()); // Update local state with real-time data
           //console.log('Real-time user data:', doc.data());
-          const { lastUpdated, lastSeenNotificationsAt, deletedAt, savedPosts = [], ...updatedData } = docSnap.data();
+          const { lastUpdated, lastSeenNotificationsAt, deletedAt, savedPosts = [], ...updatedData } = docSnap.data();       
           dispatch(setUserState(updatedData));
           dispatch(setSavedPosts(savedPosts));
+          const lastSeen = docSnap.data().lastSeenNotificationsAt;
+
+let lastSeenIso = null;
+if (lastSeen && typeof lastSeen.toDate === 'function') {
+  lastSeenIso = lastSeen.toDate().toISOString();
+} else if (typeof lastSeen === 'string') {
+  lastSeenIso = lastSeen;
+}
+          dispatch(setLastSeenNotificationAt(lastSeenIso));
           dispatch(setChatRequestsCount(docSnap.data().chatRequests?.length))
         } else {
           console.warn("No user data found for this phone number.");
@@ -142,6 +154,9 @@ const MatchScreen = ({ navigation }) => {
       }
     };
   }, []);
+
+ 
+
 
   const scaleAnim = useState(new Animated.Value(1))[0];
   const matchAnim = useState(new Animated.Value(0))[0]; // For match pop effect

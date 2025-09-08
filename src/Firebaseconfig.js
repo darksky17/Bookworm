@@ -18,6 +18,7 @@ import {
   arrayRemove,
   deleteDoc,
   limit,
+  Timestamp
 } from "@react-native-firebase/firestore";
 import {
   getStorage,
@@ -59,5 +60,6 @@ export {
   uploadBytesResumable,
   getDownloadURL,
   deleteDoc,
-  limit
+  limit,
+  Timestamp
 };

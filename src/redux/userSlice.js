@@ -21,6 +21,7 @@ const initialState = {
   unreadCount:0,
   unreadNotifCount:0,
   chatRequestsCount:0,
+  lastSeenNotificationsAt:null,
 };
 
 const userSlice = createSlice({
@@ -76,6 +77,9 @@ const userSlice = createSlice({
     },
     setPauseMatch: (state, action) => {
       state.pauseMatch = action.payload;
+    },
+    setLastSeenNotificationAt: (state, action) => {
+      state.lastSeenNotificationsAt = action.payload || null;
     },
 
     setDistance: (state, action) => {
@@ -141,7 +145,8 @@ export const {
   setSavedPosts,
   setUnreadCount,
   setUnreadNotifCount,
-  setChatRequestsCount
+  setChatRequestsCount,
+  setLastSeenNotificationAt
 } = userSlice.actions;
 
 export default userSlice.reducer;

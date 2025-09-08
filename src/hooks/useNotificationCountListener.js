@@ -1,31 +1,27 @@
-import { useEffect } from 'react';
-import { doc, getDoc, collection, query, where, onSnapshot, orderBy } from '../Firebaseconfig';
+import { useEffect} from 'react';
+import { doc, getDoc, collection, query, where, onSnapshot, orderBy, Timestamp } from '../Firebaseconfig';
 import { auth, db } from '../Firebaseconfig';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setUnreadNotifCount } from '../redux/userSlice';
 
 const useNotificationCountListener = () => {
+  const lastTimestamp = useSelector(state=>state.user.lastSeenNotificationsAt);
     const dispatch = useDispatch();
-
+console.log(lastTimestamp);
     useEffect(() => {
       let unsubscribe = null;
   
       const setup = async () => {
         const userId = auth.currentUser?.uid;
         if (!userId) return;
-  
-        const userRef = doc(db, 'Users', userId);
-        const userSnap = await getDoc(userRef);
-  
-        if (!userSnap.exists()) return;
-  
-        const lastSeen = userSnap.data().lastSeenNotificationsAt;
-        if (!lastSeen) return;
-
+               
+        if (!lastTimestamp) return;
+        const lastSeenTimestamp = Timestamp.fromDate(new Date(lastTimestamp));
+      
         const q = query(
           collection(db, 'Notifications'),
           where('targetId', '==', userId),
-          where('timestamp', '>', lastSeen),
+          where('timestamp', '>', lastSeenTimestamp),
           orderBy('timestamp', 'desc')
         );
   
@@ -34,12 +30,13 @@ const useNotificationCountListener = () => {
         });
       };
   
+      
       setup();
-  
+    
       return () => {
         if (unsubscribe) unsubscribe();
       };
-    }, []);
+    }, [lastTimestamp]);
   };
   
 
