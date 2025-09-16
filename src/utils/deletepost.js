@@ -2,8 +2,9 @@ import { SERVER_URL } from "../constants/api";
 import { Alert } from "react-native";
 import { auth } from "../Firebaseconfig";
 
+export const DeletePost = async (post, queryClient) => {
 
-export const DeletePost = async (post) => {
+
    
    return new Promise((resolve, reject)=>{ Alert.alert(
       "Delete Post?",
@@ -31,6 +32,20 @@ export const DeletePost = async (post) => {
               if (!response.ok) {
                 throw new Error("Failed to delete post");
               }
+              queryClient.setQueryData(['postsforprofile', auth.currentUser.uid], (old) => {
+                if (!old) return old;
+              
+                return {
+                  ...old,
+                  pages: old.pages.map((page) => ({
+                    ...page,
+                    posts: Array.isArray(page.posts)
+                      ? page.posts.filter((p) => p.id !== post.id)
+                      : [],
+                  })),
+                };
+              });
+              
               resolve();
   
               

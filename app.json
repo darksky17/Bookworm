@@ -8,7 +8,7 @@
     "icon": "./src/assets/play_store_512.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./src/assets/splash.png",
+      "image": "./src/assets/splash_fixed.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

@@ -76,13 +76,13 @@ const SettingsScreen = ({ navigation }) => {
       fcmToken: deleteField(),
     });
 
-    console.log("I reached here");
+    
     console.log("Updated notif pref:", newValue); // Log the new value
   };
 
   const handleDeleteProfile = async () => {
     if (deleteConfirmation.toLowerCase() !== "delete") {
-      console.log(deleteConfirmation);
+      
       Alert.alert("Error", 'You must type "delete" to confirm.');
       return;
     }
@@ -102,7 +102,7 @@ const SettingsScreen = ({ navigation }) => {
         }
       );
 
-      console.log("Cloudinary folder deletion response:", response.data);
+      
       if (response) {
         // unsubscribeRef.current();
         console.log("Now my listner should stop listening");

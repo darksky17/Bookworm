@@ -94,7 +94,7 @@ const NotificationOptionsModal = ({
   const DeleteNotification = (notificationId) =>{
     
 
-    console.log(notificationId);
+    
     Alert.alert(
       "Delete Notification",
       `Are you sure you want to delete the notification?`,

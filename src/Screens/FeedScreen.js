@@ -438,7 +438,7 @@ useFocusEffect(
       <Container>
         <Header title={"Feed"} />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error.message || "Failed to load posts"}</Text>
+          <Text style={styles.errorText}>{"Failed to load posts"}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
@@ -546,7 +546,7 @@ useFocusEffect(
       <PostOptionsModal
   visible={postMenuVisible}
   onClose={() => setPostMenuVisible(false)}
-  onDelete={async ()=>{ setPostMenuVisible(false); setIsDeleting(true); await DeletePost(selectedpost); await refetch(); setIsDeleting(false); }}
+  onDelete={async ()=>{ setPostMenuVisible(false); setIsDeleting(true); await DeletePost(selectedpost, queryClient); await refetch(); setIsDeleting(false); }}
   onEdit={() => {navigation.navigate("EditPost", { initialPost : selectedpost }); setPostMenuVisible(false)}}
   onShare={()=>{handleShared(selectedpost)}}
   onViewProfile={() =>{navigation.navigate("DisplayProfile", {userId: selectedpost.authorId}); setPostMenuVisible(false)}}

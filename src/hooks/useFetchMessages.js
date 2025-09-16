@@ -45,11 +45,11 @@ export const useFetchMessages = (chatId) =>{
           };
         },
         cacheTime: Infinity,
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0,
         retry: 3,
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
         enabled: !!chatId,
       });
 

@@ -353,7 +353,7 @@ const thhrottleScroll = useCallback(
     scrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
     }
     else{
-      console.log("I m getting hit yes", scrollYSwipe.current);
+      
       scrollRef.current?.scrollTo({ x: 0, y: scrollYSwipe.current, animated: true });
    
     }
@@ -515,6 +515,11 @@ if (isDeleting) {
   <GestureDetector gesture={swipeGesture}>
     <AnimatedView style={[{ flex:1, flexDirection:"row", width:screenWidth *2}, animatedStyle]}>
    <View style={{flex:1, width:screenWidth, paddingHorizontal:theme.spacing.horizontal.xs}}>
+    {visiblePosts.length<1 && (
+      <View style={{flex:1, justifyContent:"center", alignItems:"center"}}> 
+        <Text style={{fontWeight:"bold", color:theme.colors.muted, fontSize:theme.fontSizes.large}}>No Posts Yet</Text>
+      </View>
+    )}
    {visiblePosts.map((post, index) => (
  
  <PostItem
@@ -548,7 +553,7 @@ if (isDeleting) {
  onDelete={async () => {
    setPostMenuVisible(false);
    setIsDeleting(true);
-   await DeletePost(selectedpost);
+   await DeletePost(selectedpost, queryClient);
    setReRenderTool(prevValue => prevValue + 1);
    setIsDeleting(false);
  }}

@@ -95,7 +95,7 @@ const ChatDisplay = ({ route, navigation }) => {
 
 
 
-  console.log("THIS IS WHAT I GOT as ALL DATA", allData);
+  
 
   // Add keyboard listeners
   useEffect(() => {
@@ -143,7 +143,7 @@ const ChatDisplay = ({ route, navigation }) => {
 
       if (!result.canceled && result.assets?.length > 0) {
         const image = result.assets[0];
-        console.log("Damn", image.uri);
+        
 
         return [
           {
@@ -170,9 +170,9 @@ const ChatDisplay = ({ route, navigation }) => {
   const getChatId = async () => {
     console.log("Fetching chat ID...");
 
-    console.log(allData.chatid);
+    
     let chatId = allData.chatid;
-    console.log(chatId);
+    
 
     if (!chatId) {
       console.log("No existing chat found. Creating a new chat...");
@@ -188,7 +188,7 @@ const ChatDisplay = ({ route, navigation }) => {
         },
       });
       chatId = newChat.id;
-      console.log("New chat created with ID:", chatId);
+      
     }
 
     return chatId;
@@ -230,7 +230,7 @@ const ChatDisplay = ({ route, navigation }) => {
           try {
             await storageRef.putFile(message.image);
             imageUrl = await storageRef.getDownloadURL();
-            console.log("✅ Image uploaded, URL:", imageUrl);
+            
           } catch (uploadError) {
             console.error("❌ Upload failed:", uploadError);
             throw uploadError;
@@ -290,7 +290,7 @@ const ChatDisplay = ({ route, navigation }) => {
 
   useEffect(() => {
     if (stopLoad) return;
-    console.log("useEffect triggered with chatId:", chatId);
+    
 
     if (!chatId || !data) {
      
@@ -332,7 +332,7 @@ const ChatDisplay = ({ route, navigation }) => {
   
     let isFirstLoad = true;
     let lastMessageTimestamp = null;
-  
+   
     const unsubscribe = onSnapshot(latestMessageQuery, (snapshot) => {
       if (snapshot.empty) return;
       if (isFirstLoad) {
@@ -501,8 +501,7 @@ const ChatDisplay = ({ route, navigation }) => {
             height: verticalScale(44),
             alignItems: "center",
             justifyContent: "center",
-            marginLeft: horizontalScale(4),
-            marginRight: horizontalScale(4),
+            marginLeft: horizontalScale(2),
             marginBottom: 0,
           }}
           icon={() => (
@@ -640,7 +639,7 @@ const ChatDisplay = ({ route, navigation }) => {
 </View>
          )
       }
-      console.log(postData);
+      
       // Example: Customize messages from a specific user
       return (<>
         

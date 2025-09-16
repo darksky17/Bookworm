@@ -24,7 +24,7 @@ return new Promise((resolve, reject)=>{
                 const userDocRef = doc(db, "Users", userId);
                 await updateDoc(userDocRef, {blockedUsers:arrayUnion(blockid)});
                 navigation.navigate("MainTabs", {screen:"Feed"});
-                console.log("User successfully blocked:", blockid);
+                
                 resolve();
   
               } catch(error){

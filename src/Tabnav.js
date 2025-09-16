@@ -1,14 +1,12 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Icon from "react-native-vector-icons/Ionicons"; // For tab icons
-import ProfileScreen from "./Screens/ProfileScreen"; // Your Profile screen file
 import MatchScreen from "./Screens/MatchScreen";
 import ChatScreenList from "./Screens/chatScreenList";
 import theme from "./design-system/theme/theme";
 import FeedScreen from "./Screens/FeedScreen";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import AddPostScreen from "./Screens/AddPostScreen";
-import DisplayProfileScreen from "./Screens/DisplayProfileScreen";
 import TabDisplayProfileScreen from "./Screens/TabDisplayProfile";
 import { TouchableOpacity, Text, View } from "react-native";
 import { auth } from "./Firebaseconfig";

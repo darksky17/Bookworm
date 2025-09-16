@@ -42,7 +42,6 @@ export const fetchUserDataByQuery = async (
 export const fetchChatsByQuery = async (...queryConstraints) => {
   const chatsRef = collection(db, "Chats"); //This step fetches the collection
   const q = query(chatsRef, ...queryConstraints);
-  console.log("is this null?", q.data());
   const chatsSnap = await getDocs(q);
 
   return chatsSnap;

@@ -42,8 +42,7 @@ const ShareBottomSheet = ({post, onClose, bottomSheetRef, bottomSheetVisible})=>
     const [modalVisible, setModalVisible]= useState(false);
     const [filteredchats, setFilteredChats] = useState(chats);
     const [searchQuery, setSearchQuery] = useState("");
-    console.log("selected", selectedParticipants);
-    console.log("post stuff", post);
+   
 
     useEffect(() => {
       const backAction = () => {
@@ -101,8 +100,7 @@ const ShareBottomSheet = ({post, onClose, bottomSheetRef, bottomSheetVisible})=>
         try{
 
           for(const participant of selectedParticipants){
-            console.log("participant Id", participant);
-            console.log("Post matertial", post);
+            
             const messageColRef = collection(db, "Chats", participant.chatid, "messages");
             const chatDocRef = doc(db,"Chats", participant.chatid);
 

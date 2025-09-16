@@ -16,7 +16,7 @@ const ReportProfileModal = ({ visible, onClose, targetId, type }) => {
       alert(response.error);
       onClose();
     } else {
-        console.log("Done");
+        
       alert(response.message || "Report submitted.");
       onClose(); // Close modal after submission
     }

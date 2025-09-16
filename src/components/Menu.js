@@ -53,7 +53,7 @@ const Menu = ({
     })
       .then((response) => response.json()) // Parse JSON directly
       .then((data) => {
-        console.log("Response data:", data); // Log the response data
+        
 
         navigation.goBack();
       })

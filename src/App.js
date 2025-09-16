@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavigationContainer, getStateFromPath } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useDispatch } from "react-redux";
-import { Text, View, StatusBar, Image, Platform } from "react-native";
+import { Text, View, StatusBar, Image, Platform, Alert } from "react-native";
 import { Provider, useSelector } from "react-redux";
 import { store } from "./redux/store";
 import { db, auth, doc, getDoc, updateDoc } from "./Firebaseconfig";
@@ -24,6 +24,7 @@ import { Modal, Linking, ActivityIndicator } from "react-native";
 import AuthNavigator from "./navigation/AuthNavigator";
 import MainNavigator from "./navigation/MainNavigator";
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { useNetInfoInstance } from "@react-native-community/netinfo";
 
 
 
@@ -34,7 +35,6 @@ const AppNavigator = () => {
   const [openModal, setOpenModal] = useState(false);
   const [downloadlink, setDownloadLink] = useState(null);
   const notificationPref = useSelector((state) => state.user.notificationpref);
-  console.log("WALAAALLALALAAL", notificationPref);
   const dispatch = useDispatch();
   const [initializing, setInitializing] = useState(true);
   const [initialRoute, setInitialRoute] = useState("Home");
@@ -43,6 +43,8 @@ const AppNavigator = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [initialState, setInitialState] = useState(undefined);
   const [isReady, setIsReady] = useState(true);
+  const { netInfo: { type, isConnected }, refresh } = useNetInfoInstance();
+
 
   
   const linking = {
@@ -61,15 +63,12 @@ const AppNavigator = () => {
     const prepareInitialState = async () => {
       try {
         const url = await Linking.getInitialURL();
-        console.log("DIDDDDD REACCCCCHHHH HEREEEEEE");
         if (url) {
-          console.log("This is url name", url);
           const path = url.replace(/^https?:\/\/[^/]+\/?/, '');
-          console.log('Extracted path:', path);
           const parsedState = getStateFromPath(path, linking.config);
-          console.log("This is pasrsedState name", parsedState);
+          
           const route = parsedState?.routes?.[0];
-          console.log("This is route name", route);
+          
   
           // If user deep linked to PostDetail or DisplayProfile
           if (route?.name === 'PostDetail' || route?.name === 'DisplayProfile') {
@@ -83,15 +82,13 @@ const AppNavigator = () => {
                 },
               ],
             };
-            console.log("these are routes", fallbackStack);
+            
             setInitialState(fallbackStack);
           } else {
-            console.log("tired of being run all the time lawl");
+            
             setInitialState(parsedState); // normal deep link (like to Home)
           }
-        } else{
-          console.log("tired of being run all the time");
-        }
+        } 
       } catch (e) {
         console.warn('Error preparing initial navigation state', e);
       } finally {
@@ -106,7 +103,7 @@ const AppNavigator = () => {
   const checkForUpdates = async () => {
     try {
       // Check version from your server
-      console.log("I did run");
+      
       const response = await fetch(`${SERVER_URL}/version-check`);
       const { version, updatelink } = await response.json();
 
@@ -152,7 +149,7 @@ const AppNavigator = () => {
         if (notificationPref === true && user) {
           try {
             const token = await messaging().getToken(true); // force refresh
-            console.log("Refreshed FCM Token:", token);
+            
 
             await updateDoc(doc(db, "Users", uid), {
               fcmToken: token,
@@ -201,9 +198,9 @@ const AppNavigator = () => {
   const initializeNotificationPref = async () => {
     try {
       const storedPref = await AsyncStorage.getItem(NOTIF_PREF_KEY);
-      console.log("LAWELWLWLWL", storedPref);
+    
       const pref = storedPref === null ? DEFAULT_PREF : storedPref === "true";
-      console.log("pref becomes ", pref);
+    
       await AsyncStorage.setItem(NOTIF_PREF_KEY, String(pref));
 
       dispatch(setNotificationPref(pref));
@@ -273,6 +270,17 @@ const AppNavigator = () => {
       </Modal>
     );
   }
+
+  if(!isConnected){
+    return(
+      <View style={{flex:1, justifyContent:"center", alignItems:"center", padding:10}}>
+        <Text>It looks like you are not connected to Internet. Please conenct to internet to proceed</Text>
+
+      </View>
+    )
+  }
+
+
   return (
     <QueryClientProvider client={queryClient}>
       <BottomSheetModalProvider>    

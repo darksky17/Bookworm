@@ -36,7 +36,7 @@ const AddPostScreen = ({navigation}) => {
   const handleBookSelect=(bookTitle, bookAuthor)=>{
    setBookTitle(bookTitle);
    setBookAuthor(bookAuthor);
-   console.log(bookAuthor);
+   
   
   }
 
@@ -52,7 +52,7 @@ const AddPostScreen = ({navigation}) => {
         title.length > 0
       ) {
         setDiscardModal(true);
-        console.log("I reached here");
+        
   
         return true; // prevent the screen from exiting!
       }
@@ -186,11 +186,11 @@ const uploadImage = async (uri, storageRef) => {
   try {
     // Upload the file
     const result = await storageRef.putFile(uri);
-    console.log('File uploaded successfully:', result);
+    
     
     // Get the file download URL if needed
     const downloadURL = await storageRef.getDownloadURL();
-    console.log('Download URL:', downloadURL);
+    
     return downloadURL;
   } catch (error) {
     console.error('Error uploading image:', error);
@@ -248,7 +248,7 @@ const uploadImage = async (uri, storageRef) => {
           postData.images[i] = await uploadImage(postData.images[i], storageRef);
         }
         postData.postId = randomId;
-        console.log("Whyyyy", postData.images);
+        
    
       }
             

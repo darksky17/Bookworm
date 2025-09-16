@@ -7,7 +7,7 @@ import { setUnreadNotifCount } from '../redux/userSlice';
 const useNotificationCountListener = () => {
   const lastTimestamp = useSelector(state=>state.user.lastSeenNotificationsAt);
     const dispatch = useDispatch();
-console.log(lastTimestamp);
+
     useEffect(() => {
       let unsubscribe = null;
   

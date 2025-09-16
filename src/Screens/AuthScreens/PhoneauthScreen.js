@@ -37,6 +37,8 @@ const PhoneauthScreen = ({ navigation }) => {
   const [reSendOtp, setReSendOtp] = useState(true);
   const [verifyPressed, setverifyPressed] = useState(false);
   const [counter, setCounter] = useState(31);
+  const [otpSent, setOTPSent] = useState(false);
+  const [otpPressed, setOtpPressed]= useState(false);
 
   useEffect(() => {
     if (counter === 0) {
@@ -69,7 +71,11 @@ const PhoneauthScreen = ({ navigation }) => {
       dispatch(setPhoneNumber(fullPhoneNumber)); // Dispatch the phone number to Redux
     } catch (error) {
       Alert.alert("Phone Authentication Error", error.message);
+      setCounter(0);
+      setReSendOtp(true);
     }
+    setOTPSent(true);
+    setOtpPressed(true);
   };
 
   const handleVerifyOtp = async () => {
@@ -92,7 +98,7 @@ const PhoneauthScreen = ({ navigation }) => {
       await auth().signInWithCredential(credential);
       const idToken = await auth().currentUser.getIdToken();
       console.log("OTP verified successfully");
-      console.log("Token created:", idToken);
+      
       const userId = auth().currentUser.uid;
 
       // After OTP is verified, check if the phone number is registered in Firestore
@@ -114,10 +120,9 @@ const PhoneauthScreen = ({ navigation }) => {
 
       if (data.exists) {
         // Existing user
-        console.log("How the fuck did I jump in heree??");
-        // const userDoc = querySnapshot.docs[0];
+        
         const userData = data.userData;
-        console.log(userData);
+        
 
         if (userData) {
           if (!userData.step1Completed) {
@@ -213,15 +218,16 @@ const PhoneauthScreen = ({ navigation }) => {
 
             {/* Action Buttons */}
             <View style={{ gap: theme.spacing.vertical.sm }}>
-              {verifyPressed && (
+              {otpPressed && (
                 <Text
                   style={{
+                    alignSelf:"center",
                     color: theme.colors.text,
                     fontWeight: "bold",
                     fontSize: theme.fontSizes.small,
                   }}
                 >
-                  Resend OTP in {counter} seconds
+                  Didnt get the code? Resend OTP in {counter} seconds
                 </Text>
               )}
               <Button
@@ -241,7 +247,7 @@ const PhoneauthScreen = ({ navigation }) => {
                   fontWeight: "bold",
                 }}
               >
-                SEND OTP
+                {!otpSent?"SEND OTP":"RESEND OTP"}
               </Button>
 
               {verificationId && (

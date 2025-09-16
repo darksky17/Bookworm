@@ -39,7 +39,7 @@ import {
 } from "../../design-system/theme/scaleUtils.js";
 
 const Screen1 = ({ navigation }) => {
-  console.log("first log");
+  
   const dispatch = useDispatch();
 
   const [name, setNameState] = useState("");
@@ -96,8 +96,7 @@ const Screen1 = ({ navigation }) => {
         }),
       });
       const data = await response.json();
-      console.log(data);
-      console.log("data.exists:", data.exists, typeof data.exists);
+    
       // if (querySnapshot.empty) {
       if (data.exists === false || data.exists === "false") {
         nameExists = false;

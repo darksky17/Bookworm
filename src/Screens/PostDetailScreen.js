@@ -53,7 +53,7 @@ const [sharedPost, setSharedPost] = useState(null);
 
 useEffect(() => {
   if (postData) {
-    console.log("this is PostData", postData);
+    
     setPost(postData);
   }
 }, [postData]);

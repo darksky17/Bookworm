@@ -37,7 +37,7 @@ const ViewProfile = ({ route, navigation }) => {
   };
 
   const { allData } = route.params;
-  console.log("This is all data", allData);
+  
 
   console.log("I ran");
   return (

@@ -119,7 +119,7 @@ const MatchScreen = ({ navigation }) => {
       (docSnap) => {
         if (docSnap.exists()) {
           setUserDataa(docSnap.data()); // Update local state with real-time data
-          //console.log('Real-time user data:', doc.data());
+          
           const { lastUpdated, lastSeenNotificationsAt, deletedAt, savedPosts = [], ...updatedData } = docSnap.data();       
           dispatch(setUserState(updatedData));
           dispatch(setSavedPosts(savedPosts));
@@ -132,7 +132,7 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
   lastSeenIso = lastSeen;
 }
           dispatch(setLastSeenNotificationAt(lastSeenIso));
-          dispatch(setChatRequestsCount(docSnap.data().chatRequests?.length))
+          dispatch(setChatRequestsCount(docSnap.data().chatRequests?.length || 0))
         } else {
           console.warn("No user data found for this phone number.");
           setUserDataa(null);
@@ -334,7 +334,7 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
   };
 
   const newChat = async (friendId) => {
-    console.log("This is friend Id", friendId);
+    
 
     const idToken = await auth.currentUser.getIdToken();
 

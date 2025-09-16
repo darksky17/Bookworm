@@ -156,7 +156,7 @@ const handleLoadMore = () => {
         onDelete={async () => {
           setPostMenuVisible(false);
           setIsDeleting(true);
-          await DeletePost(selectedpost);
+          await DeletePost(selectedpost, queryClient);
           setIsDeleting(false);
          
           

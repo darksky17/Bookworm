@@ -29,7 +29,7 @@ const DisplayProfileScreen = ({navigation})=>{
     const route = useRoute();
     const { userId } = route.params; 
     const [renderAbout, setRenderAbout] = useState(false);
-  console.log(userId);
+  
     const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
   const [postMenuVisible, setPostMenuVisible] = useState(false);
   const [profileMenuVisible, setProfileMenuVisible] = useState(false);
@@ -96,7 +96,7 @@ const DisplayProfileScreen = ({navigation})=>{
     fetchAllData();
   }, [rerendertool]);
 
-  console.log(userData);
+  
 
   const posts = useMemo(() => {
     if (!datap || isBlocked || hasBlocked) return [];
@@ -202,7 +202,7 @@ const DisplayProfileScreen = ({navigation})=>{
       });
      
       const data = await res.json();
-      console.log("Unfollow response:", data);
+      
       setReRenderTool(prevValue => prevValue + 1);
 
     } catch (error) {
@@ -461,7 +461,12 @@ else{
       <Text>No Information available</Text>
     </View>
   ) : (
-    <View>
+    <View style={{flex:1}}>
+        {visiblePosts.length<1 && (
+      <View style={{flex:1, justifyContent:"center", alignItems:"center"}}> 
+        <Text style={{fontWeight:"bold", color:theme.colors.muted, fontSize:theme.fontSizes.large}}>No Posts Yet</Text>
+      </View>
+    )}
       {visiblePosts.map((post, index) => (
         <PostItem
           key={post.id}
@@ -493,7 +498,7 @@ else{
         onDelete={async () => {
           setPostMenuVisible(false);
           setIsDeleting(true);
-          await DeletePost(selectedpost);
+          await DeletePost(selectedpost, queryClient);
           setIsDeleting(false);
           setReRenderTool(prevValue => prevValue + 1);
         }}

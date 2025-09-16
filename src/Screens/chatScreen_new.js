@@ -82,7 +82,7 @@ import React, {
     // Remove allData from route params, initialize as null
     const [allData, setAllData] = useState(null);
     const otherId = allData?.id || receiverId;
-    console.log("THIS IS WHAT I GOT as ALL DATA", allData);
+    
   
     // Add keyboard listeners
     useEffect(() => {

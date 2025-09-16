@@ -53,7 +53,7 @@ const ChatRequestsScreen = ({ navigation }) => {
         try{
         const userdocRef = doc(db,"Users", userId);
         const userDocsnap = await getDoc(userdocRef);
-        const ChatReq = userDocsnap.data().chatRequests;
+        const ChatReq = userDocsnap.data().chatRequests || [];
         setChatRequests(ChatReq);
         } catch(e){
             console.log("Error fetching chat requests", e);
@@ -97,7 +97,7 @@ const ChatRequestsScreen = ({ navigation }) => {
   };
 
   const newChat = async (friendId) => {
-    console.log("This is friend Id", friendId);
+    
 
     const idToken = await auth.currentUser.getIdToken();
 
@@ -124,7 +124,7 @@ const ChatRequestsScreen = ({ navigation }) => {
       };
     if(choice){
     const chat_formed = await newChat(selectedItem.requestorId);
-    console.log(chat_formed, selectedItem.requestorId);
+    
 
     if(chat_formed){
        

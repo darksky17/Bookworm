@@ -43,7 +43,7 @@ const ChatScreenList = ({ navigation }) => {
   const unread = useSelector(state => state.user.unreadCount);
   let unreadCount = unread;
 
-  console.log("hello",chatRequests);
+  console.log("chat Request count", chatRequests);
   
   useUnreadCountListener();
   useFocusEffect(
