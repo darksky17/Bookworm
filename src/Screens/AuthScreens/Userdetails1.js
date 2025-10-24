@@ -218,6 +218,7 @@ const Screen1 = ({ navigation }) => {
                   placeholder="Enter your name"
                   value={name}
                   onChangeText={setNameState}
+                  placeholderTextColor={theme.colors.text}
                 />
                 <TextInput
                   style={styles.input}
@@ -225,6 +226,7 @@ const Screen1 = ({ navigation }) => {
                   value={email}
                   onChangeText={setEmailState}
                   keyboardType="email-address"
+                  placeholderTextColor={theme.colors.text}
                 />
 
                 <Text style={styles.label}>Date of Birth (DD/MM/YYYY):</Text>
@@ -237,6 +239,7 @@ const Screen1 = ({ navigation }) => {
                       setDay(value.replace(/[^0-9]/g, "").slice(0, 2))
                     }
                     keyboardType="numeric"
+                    placeholderTextColor={theme.colors.text}
                   />
                   <Text style={styles.separator}>/</Text>
                   <TextInput
@@ -247,6 +250,7 @@ const Screen1 = ({ navigation }) => {
                       setMonth(value.replace(/[^0-9]/g, "").slice(0, 2))
                     }
                     keyboardType="numeric"
+                    placeholderTextColor={theme.colors.text}
                   />
                   <Text style={styles.separator}>/</Text>
                   <TextInput
@@ -257,14 +261,24 @@ const Screen1 = ({ navigation }) => {
                       setYear(value.replace(/[^0-9]/g, "").slice(0, 4))
                     }
                     keyboardType="numeric"
+                    placeholderTextColor={theme.colors.text}
                   />
                 </View>
 
                 <Picker
                   selectedValue={gender}
                   onValueChange={(itemValue) => setGenderState(itemValue)}
+                  dropdownIconColor={theme.colors.secondary}
+                  color={theme.colors.text}
+                  mode="dialog"
+                  prompt="Select Your Gender"
+                  style={{
+                    borderWidth: 1, 
+                    paddingVertical: 6,
+                    paddingHorizontal: 6,
+                    backgroundColor: theme.colors.text,            
+                  }}
                 >
-                  <Picker.Item label="Select gender" value="" />
                   <Picker.Item label="Male" value="male" />
                   <Picker.Item label="Female" value="female" />
                   <Picker.Item label="Other" value="other" />
@@ -301,7 +315,6 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.text,
     borderWidth: 2,
     borderRadius: moderateScale(10),
-
     paddingLeft: horizontalScale(10),
   },
   dateInputContainer: {

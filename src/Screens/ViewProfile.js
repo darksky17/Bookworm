@@ -19,6 +19,8 @@ import {
   verticalScale,
   horizontalScale,
 } from "../design-system/theme/scaleUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Container from "../components/Container";
 const ViewProfile = ({ route, navigation }) => {
   const calculateAge = (dob) => {
     const birthDate = new Date(dob); // Convert string to Date object
@@ -41,7 +43,7 @@ const ViewProfile = ({ route, navigation }) => {
 
   console.log("I ran");
   return (
-    <View style={styles.container}>
+    <Container>
       <View style={styles.header}>
         {/* Left icon container */}
         <View style={styles.sideContainer}>
@@ -180,13 +182,14 @@ const ViewProfile = ({ route, navigation }) => {
           )}
         </View>
       </ScrollView>
-    </View>
+    </Container>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor:theme.colors.background
   },
 
   wrapper: {
@@ -220,7 +223,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     height: verticalScale(60),
     width: "100%",
-    elevation: 4,
     alignItems: "center",
     paddingHorizontal: horizontalScale(10),
   },

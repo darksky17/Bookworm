@@ -1,6 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import Icon from "react-native-vector-icons/Ionicons"; // For tab icons
+import Icon from  '@expo/vector-icons/Ionicons'
 import MatchScreen from "./Screens/MatchScreen";
 import ChatScreenList from "./Screens/chatScreenList";
 import theme from "./design-system/theme/theme";
@@ -18,6 +18,7 @@ import { useSelector } from "react-redux";
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
+  
   const unread = useSelector(state => state.user.unreadCount);
   return (
     <Tab.Navigator
@@ -74,7 +75,7 @@ const BottomTabNavigator = () => {
         options={{ unmountOnBlur: true, tabBarBadge: unread > 0?unread:undefined, tabBarBadgeStyle:{color:theme.colors.text, backgroundColor:theme.colors.primary} }}
       />
       {/* <Tab.Screen name="Profile" component={ProfileScreen} /> */}
-      <Tab.Screen name="Profile" component={TabDisplayProfileScreen} initialParams={{userId: auth.currentUser.uid}} />
+      <Tab.Screen name="Profile" component={TabDisplayProfileScreen}/>
     </Tab.Navigator>
   );
 };

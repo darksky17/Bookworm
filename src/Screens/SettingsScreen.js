@@ -44,10 +44,11 @@ import {
   horizontalScale,
   verticalScale,
 } from "../design-system/theme/scaleUtils";
+import { setIsAuthenticated } from "../redux/appSlice";
 const SettingsScreen = ({ navigation }) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false); // Delete confirmation modal
   const [deleteConfirmation, setDeleteConfirmation] = useState(""); // Confirmation text input
-  dispatch = useDispatch();
+  const dispatch = useDispatch();
   const [logoutModal, setLogoutModal] = useState(false);
 
   const notificationPref = useSelector((state) => state.user.notificationpref);
@@ -117,7 +118,7 @@ const SettingsScreen = ({ navigation }) => {
         );
 
         Alert.alert("Success", "Your profile has been deleted.");
-        navigation.navigate("Home");
+        dispatch(setIsAuthenticated(false));
       }
     } catch (error) {
       console.error("Error deleting profile:", error);
@@ -200,11 +201,12 @@ const SettingsScreen = ({ navigation }) => {
       });
       dispatch(clearUserState());
 
-      signOut(auth).then(() => {
+      await signOut(auth);
         console.log("User signed out!");
         setLogoutModal(false);
-        navigation.replace("Home");
-      });
+       dispatch(setIsAuthenticated(false));
+        
+      
     } catch (error) {
       console.error("❌ Error deleting field:", error);
       throw error;

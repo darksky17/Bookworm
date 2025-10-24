@@ -44,6 +44,7 @@ import { handleLike, handleDislike } from "../utils/postactions.js";
 import { useQueryClient } from "@tanstack/react-query";
 import useFetchChats from "../hooks/useFetchChats.js";
 import ShareBottomSheet from "../components/ShareBottomSheet.js";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -449,7 +450,7 @@ useFocusEffect(
 
   return (
     <Container>
-      <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center"}}>
+      <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"flex-start"}}>
       <Header title={"Feed"} />
       <View style={{   paddingTop: verticalScale(10),
     paddingBottom: verticalScale(10),

@@ -1,12 +1,8 @@
 import React from "react";
 import { View, StyleSheet, Dimensions } from "react-native";
-import {
-  GestureHandlerRootView,
-  PanGestureHandler,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
-  useAnimatedGestureHandler,
   useAnimatedStyle,
   runOnJS,
 } from "react-native-reanimated";
@@ -34,16 +30,19 @@ const RangeSlider = ({
     ((initialMax - MIN_VALUE) / (MAX_VALUE - MIN_VALUE)) * TRACK_LENGTH
   );
 
-  const panLeft = useAnimatedGestureHandler({
-    onStart: (_, ctx) => {
-      ctx.start = leftX.value;
-    },
-    onActive: (e, ctx) => {
-      const next = ctx.start + e.translationX;
+  // Context for gesture start values
+  const leftStartX = useSharedValue(0);
+  const rightStartX = useSharedValue(0);
+
+  const panLeft = Gesture.Pan()
+    .onStart(() => {
+      leftStartX.value = leftX.value;
+    })
+    .onUpdate((e) => {
+      const next = leftStartX.value + e.translationX;
       leftX.value = Math.max(0, Math.min(next, rightX.value - MIN_SPACING));
-    },
-    onEnd: () => {
-      "worklet";
+    })
+    .onEnd(() => {
       const l = Math.round(
         MIN_VALUE + (leftX.value / TRACK_LENGTH) * (MAX_VALUE - MIN_VALUE)
       );
@@ -51,22 +50,20 @@ const RangeSlider = ({
         MIN_VALUE + (rightX.value / TRACK_LENGTH) * (MAX_VALUE - MIN_VALUE)
       );
       runOnJS(onValuesChange)(l, r);
-    },
-  });
+    });
 
-  const panRight = useAnimatedGestureHandler({
-    onStart: (_, ctx) => {
-      ctx.start = rightX.value;
-    },
-    onActive: (e, ctx) => {
-      const next = ctx.start + e.translationX;
+  const panRight = Gesture.Pan()
+    .onStart(() => {
+      rightStartX.value = rightX.value;
+    })
+    .onUpdate((e) => {
+      const next = rightStartX.value + e.translationX;
       rightX.value = Math.max(
         leftX.value + MIN_SPACING,
         Math.min(next, TRACK_LENGTH)
       );
-    },
-    onEnd: () => {
-      "worklet";
+    })
+    .onEnd(() => {
       const l = Math.round(
         MIN_VALUE + (leftX.value / TRACK_LENGTH) * (MAX_VALUE - MIN_VALUE)
       );
@@ -74,35 +71,38 @@ const RangeSlider = ({
         MIN_VALUE + (rightX.value / TRACK_LENGTH) * (MAX_VALUE - MIN_VALUE)
       );
       runOnJS(onValuesChange)(l, r);
-    },
-  });
+    });
 
   const leftStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: leftX.value }],
   }));
+  
   const rightStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: rightX.value }],
   }));
+  
   const selectedStyle = useAnimatedStyle(() => ({
     left: leftX.value + THUMB_SIZE / 2,
     width: rightX.value - leftX.value,
   }));
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <View style={styles.container}>
       <View
         style={[styles.trackContainer, { width: TRACK_LENGTH + THUMB_SIZE }]}
       >
         <View style={styles.track} />
         <Animated.View style={[styles.selectedTrack, selectedStyle]} />
-        <PanGestureHandler onGestureEvent={panLeft}>
+        
+        <GestureDetector gesture={panLeft}>
           <Animated.View style={[styles.thumb, leftStyle]} />
-        </PanGestureHandler>
-        <PanGestureHandler onGestureEvent={panRight}>
+        </GestureDetector>
+        
+        <GestureDetector gesture={panRight}>
           <Animated.View style={[styles.thumb, rightStyle]} />
-        </PanGestureHandler>
+        </GestureDetector>
       </View>
-    </GestureHandlerRootView>
+    </View>
   );
 };
 

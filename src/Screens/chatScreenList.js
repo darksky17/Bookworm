@@ -191,10 +191,10 @@ const ChatScreenList = ({ navigation }) => {
 
   return (
     <Container>
-      <View style={{flexDirection:"row", justifyContent:"space-between"}}>
+      <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center"}}>
       <Header title={"Chats"} />
       {chatRequests>=0 &&(
-      <View style={{justifyContent:"center", marginRight:theme.spacing.horizontal.sm}}>
+      <View style={{marginRight:theme.spacing.horizontal.sm}}>
       <Pressable onPress={()=>navigation.navigate("ChatRequests")}>
    
       <Text style={{color:theme.colors.secondary, fontWeight:"bold"}}>Requests({chatRequests>9? `9+` :chatRequests}) </Text>

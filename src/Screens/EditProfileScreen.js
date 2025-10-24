@@ -27,8 +27,10 @@ import {
   moderateScale,
 } from "../design-system/theme/scaleUtils";
 import BookSelector from "../components/bookSelector";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const EditProfileScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const [selectedAuthors, setSelectedAuthors] = useState([
@@ -47,7 +49,7 @@ const EditProfileScreen = ({ navigation }) => {
   const [choicebook, setChoiceBook] = useState(false);
   const [choicesummary, setChoiceSummary] = useState(false);
   const [bookSummary, setBooksummary] = useState("");
-  userId = auth.currentUser.uid;
+  const userId = auth.currentUser.uid;
 
   const handleSaveBook = async () => {
     if (currentreade.length > 20 || currentreade.length < 1) {
@@ -127,7 +129,7 @@ const EditProfileScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      <Container>
+      <Container containerStyle={{paddingBottom:insets.bottom}}>
         <Header title={"Edit Profile"} />
         <ScrollView>
           <View style={styles.container}>

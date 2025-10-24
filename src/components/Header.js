@@ -4,8 +4,9 @@ import {
   verticalScale,
   horizontalScale,
 } from "../design-system/theme/scaleUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default Header = ({ title, headerstyle }) => {
+const Header = ({ title, headerstyle }) => {
   return (
     <View style={[styles.header, headerstyle]}>
       <Text style={styles.headerText}>{title}</Text>
@@ -13,15 +14,17 @@ export default Header = ({ title, headerstyle }) => {
   );
 };
 
+export default Header;
+
 const styles = StyleSheet.create({
   header: {
     backgroundColor: theme.colors.background,
     flexDirection: "row",
     width: "50%",
     // elevation: 4,
-    paddingTop: verticalScale(10),
     paddingBottom: verticalScale(10),
     paddingLeft: horizontalScale(20),
+    
   },
   headerText: {
     fontWeight: "bold",

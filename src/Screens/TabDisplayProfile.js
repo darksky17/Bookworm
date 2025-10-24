@@ -33,7 +33,7 @@ import ShareBottomSheet from "../components/ShareBottomSheet";
 const TabDisplayProfileScreen = ({navigation})=>{
     
     const route = useRoute();
-    const { userId } = route.params; 
+    const  userId  = auth.currentUser.uid; 
     const queryClient = useQueryClient();
   // const [posts, setPosts] = useState([]);
   const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
@@ -136,7 +136,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
 
 
 
-  handleFollow = useCallback(async ()=>{
+const handleFollow = useCallback(async ()=>{
 
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -159,7 +159,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
 
   }, []);
 
-  handleUnfollow = useCallback(async (overrideuser, overridefollower)=>{
+  const handleUnfollow = useCallback(async (overrideuser, overridefollower)=>{
 
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -616,8 +616,11 @@ const styles = StyleSheet.create({
       paddingLeft: 0,
     },
     headerIconRight: {
-      padding: 8,
+      alignSelf:"center",
+      paddingLeft: 8,
       paddingRight: 0,
+      
+      
     },
     avatarContainer: {
         width: horizontalScale(80), // was 40

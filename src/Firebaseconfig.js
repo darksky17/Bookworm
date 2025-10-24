@@ -18,7 +18,8 @@ import {
   arrayRemove,
   deleteDoc,
   limit,
-  Timestamp
+  Timestamp,
+  startAfter
 } from "@react-native-firebase/firestore";
 import {
   getStorage,
@@ -27,7 +28,7 @@ import {
   getDownloadURL,
 } from "@react-native-firebase/storage";
 
-import { getAuth } from "@react-native-firebase/auth";
+import { getAuth, phoneAuthProvider } from "@react-native-firebase/auth";
 import { getApp } from "@react-native-firebase/app";
 
 const app = getApp();
@@ -61,5 +62,7 @@ export {
   getDownloadURL,
   deleteDoc,
   limit,
-  Timestamp
+  Timestamp,
+  startAfter,
+  phoneAuthProvider
 };

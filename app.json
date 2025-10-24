@@ -8,7 +8,7 @@
     "icon": "./src/assets/play_store_512.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./src/assets/splash_fixed.png",
+      "image": "./src/assets/splash_latest.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,7 +21,7 @@
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"],
       "googleServicesFile": "./src/google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/play_store_512.png",
+        "foregroundImage": "./src/assets/adaptive-icon_latest.png",
         "backgroundColor": "#ffffff"
       },
       "intentFilters": [
@@ -45,7 +45,7 @@
       [
       "expo-build-properties",
       {"android": {
-        "kotlinVersion": "1.9.25"
+        "kotlinVersion": "2.2.20"
       }
     }
   ]

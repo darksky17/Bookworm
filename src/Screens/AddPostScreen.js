@@ -240,7 +240,7 @@ const uploadImage = async (uri, storageRef) => {
         
       }
       if (postData.images != null) {
-        randomId= generateRandomString();
+      const randomId= generateRandomString();
 
 
         for (let i=0; i<postData.images.length; i++){

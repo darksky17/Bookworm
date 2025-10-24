@@ -15,6 +15,7 @@ import {
   moderateScale,
 } from "../design-system/theme/scaleUtils";
 import ReportProfileModal from "./reportProfileModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const Menu = ({
   visible,
   setvisible,
@@ -52,9 +53,9 @@ const Menu = ({
       }),
     })
       .then((response) => response.json()) // Parse JSON directly
-      .then((data) => {
+      .then(async (data) => {
         
-
+        await AsyncStorage.removeItem(chatId);
         navigation.goBack();
       })
       .catch((error) => {

@@ -39,6 +39,8 @@ import {
   ref,
   uploadBytesResumable,
   getDownloadURL,
+  startAfter,
+  Timestamp
 } from "../Firebaseconfig";
 import storage from "@react-native-firebase/storage";
 import { Bubble, Send, InputToolbar, Actions } from "react-native-gifted-chat";
@@ -64,6 +66,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useFetchMessages } from "../hooks/useFetchMessages";
 import { useFocusEffect } from "@react-navigation/native";
 import { useFetchPostsById } from "../hooks/useFetchPostsById";
+import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
@@ -81,21 +85,36 @@ const ChatDisplay = ({ route, navigation }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-  const queryClient = useQueryClient();
-  const { 
-    data, 
-    isLoading, 
-    isError, 
-    error, 
-    fetchNextPage, 
-    hasNextPage, 
-    isFetchingNextPage ,
-    refetch
-  } = useFetchMessages(chatId);
+  const [isLoadingInitial, setIsLoadingInitital] = useState(true);
+  const [lastVisible, setLastVisible] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [localMessages, setLocalMessages] = useState([]);
+  const listenerUnsubscribeRef = useRef(null);
+    
 
 
 
-  
+  const fetchLocalChats = async (chatId) => {
+    try {
+      if (!chatId) return null;
+      
+      const value = await AsyncStorage.getItem(chatId);
+      if (!value) return null;
+      
+      const parsed = JSON.parse(value);
+      
+      // ✅ Normalize all messages to have Date objects
+      const normalized = parsed.map(normalizeMessage);
+      
+      console.log(`📦 Loaded ${normalized.length} cached messages`);
+      return normalized;
+    } catch (e) {
+      console.error("Error fetching local chats", e);
+      return null;
+    }
+  };
+
 
   // Add keyboard listeners
   useEffect(() => {
@@ -118,9 +137,272 @@ const ChatDisplay = ({ route, navigation }) => {
     };
   }, []);
 
+
+const normalizeMessage = (msg) => ({
+  ...msg,
+  createdAt: msg.createdAt instanceof Date 
+    ? msg.createdAt 
+    : new Date(msg.createdAt)
+});
+
+
+
+  // Check if the Messages in Local Storage are Latest or not
+
+
+  const fetchNewMessagesSinceCache = async (chatId, cachedMessages) => {
+    try {
+      if (!cachedMessages || cachedMessages.length === 0) {
+        return [];
+      }
+  
+      const lastCachedMessage = cachedMessages[cachedMessages.length - 1];
+      const lastCachedDate = new Date(lastCachedMessage.createdAt);
+      
+      console.log("🔍 Last cached ID:", lastCachedMessage._id);
+      console.log("🔍 Last cached time:", lastCachedDate.toISOString());
+  
+      // Query for messages AFTER the last cached timestamp
+      const newMessagesQuery = query(
+        collection(db, "Chats", chatId, "messages"),
+        where("timestamp", ">", Timestamp.fromDate(lastCachedDate)),
+        orderBy("timestamp", "asc")
+      );
+  
+      const snapshot = await getDocs(newMessagesQuery);
+  
+      if (snapshot.empty) {
+        console.log("✅ Cache is up to date");
+        return [];
+      }
+  
+      console.log(`🔍 Found ${snapshot.size} messages in Firestore`);
+  
+      // Map Firestore messages
+      const firestoreMessages = snapshot.docs.map(doc => ({
+        _id: doc.id,
+        text: doc.data().content,
+        type: doc.data().type || undefined,
+        createdAt: doc.data().timestamp?.toDate() || new Date(),
+        user: { _id: doc.data().senderID },
+        ...(doc.data().image && { image: doc.data().image }),
+        ...(doc.data().postId && { postId: doc.data().postId })
+      }));
+  
+      // ✅ Filter using fuzzy duplicate detection
+      const newMessages = firestoreMessages.filter(msg => {
+        const isDupe = isDuplicateMessage(cachedMessages, msg);
+        if (isDupe) {
+          console.log("⏭️ Skipping duplicate:", msg._id);
+        }
+        return !isDupe;
+      });
+  
+      console.log(`✅ ${newMessages.length} truly new messages`);
+      return newMessages;
+  
+    } catch (error) {
+      console.error("Error fetching new messages:", error);
+      return [];
+    }
+  };
+  
+
+
   const toggleMenu = () => {
     setMenuVisible((prev) => !prev); // ✅ This correctly toggles the modal
   };
+
+  // Initial Loading of Messages Upon opening the chat
+  useEffect(() => {
+    if (!chatId) return;
+  
+    let unsubscribe;
+    const hasLoadedRef = { current: false }; // Local ref to prevent double-load
+  
+    const loadMessages = async () => {
+      if (hasLoadedRef.current) return; // Prevent double execution
+      hasLoadedRef.current = true;
+  
+      try {
+        console.log("🚀 Initializing chat...");
+        setIsLoadingInitital(true);
+  
+        // Step 1: Load from cache FIRST (instant UI)
+        const cachedMessages = await fetchLocalChats(chatId);
+  
+        if (cachedMessages && cachedMessages.length > 0) {
+          console.log("⚡ Showing cached messages immediately");
+          setMessages(cachedMessages);
+          
+          setIsLoadingInitital(false); // UI ready instantly
+  
+          // Step 2: Check for NEW messages while user was offline
+          const newMessages = await fetchNewMessagesSinceCache(chatId, cachedMessages);
+  
+          if (newMessages.length > 0) {
+            console.log("🔄 Merging new messages with cache");
+            const mergedMessages = [...cachedMessages, ...newMessages];
+            
+            // Update both state and cache
+            setMessages(mergedMessages);
+            await storeChatInAsync(chatId, mergedMessages);
+            
+            console.log(`✅ Synced: ${cachedMessages.length} cached + ${newMessages.length} new`);
+          }
+  
+          // Set pagination
+          setHasMore(cachedMessages.length >= 30);
+  
+          // Step 3: Set up real-time listener for FUTURE messages
+          setupRealtimeListener();
+          
+        } else {
+          // No cache - fetch from Firestore
+          console.log("📡 No cache, fetching from Firestore");
+          await fetchInitialMessages();
+        }
+  
+      } catch (error) {
+        console.error("Error loading messages:", error);
+        setIsLoadingInitital(false);
+      }
+    };
+  
+    // Fetch initial batch (no cache scenario)
+    const fetchInitialMessages = async () => {
+      const messageRef = collection(db, "Chats", chatId, "messages");
+      const initialQuery = query(
+        messageRef,
+        orderBy("timestamp", "desc"),
+      );
+  
+      unsubscribe = onSnapshot(initialQuery, async (snapshot) => {
+        if (snapshot.empty) {
+          setMessages([]);
+          setIsLoadingInitital(false);
+          setHasMore(false);
+          return;
+        }
+  
+        const newMessages = snapshot.docs.map(doc => ({
+          _id: doc.id,
+          text: doc.data().content,
+          type: doc.data().type || undefined,
+          createdAt: doc.data().timestamp?.toDate() || new Date(),
+          user: { _id: doc.data().senderID },
+          ...(doc.data().image && { image: doc.data().image }),
+          ...(doc.data().postId && { postId: doc.data().postId })
+        }));
+  
+        const reversedMessages = newMessages.reverse();
+        setMessages(reversedMessages);
+        
+        // Cache the initial fetch
+        await storeChatInAsync(chatId, reversedMessages);
+        
+        const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+        setLastVisible(lastDoc);
+        setHasMore(snapshot.docs.length === 30);
+        setIsLoadingInitital(false);
+      });
+  
+      listenerUnsubscribeRef.current = unsubscribe;
+    };
+  
+    // Set up listener for NEW messages only (when cache exists)
+    const setupRealtimeListener = () => {
+      const messagesRef = collection(db, "Chats", chatId, "messages");
+      const latestMessageQuery = query(
+        messagesRef,
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+    
+      let isFirstSnapshot = true;
+    
+      const unsubscribe = onSnapshot(latestMessageQuery, (snapshot) => {
+        if (snapshot.empty) return;
+        
+        if (isFirstSnapshot) {
+          isFirstSnapshot = false;
+          console.log("⏭️ Skipping first snapshot");
+          return;
+        }
+    
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const doc = change.doc;
+            const data = doc.data();
+    
+            console.log("🔔 Listener detected message:", doc.id, "from:", data.senderID);
+    
+            // Only add messages from OTHER users
+            if (data.senderID !== userId) {
+              const newMessage = {
+                _id: doc.id,
+                text: data.content,
+                type: data.type || undefined,
+                createdAt: data.timestamp?.toDate() || new Date(), // ✅ Always Date object
+                user: { _id: data.senderID },
+                ...(data.image && { image: data.image }),
+                ...(data.postId && { postId: data.postId })
+              };
+    
+              setMessages(prevMessages => {
+                // ✅ Normalize all existing messages first
+                const normalized = prevMessages.map(normalizeMessage);
+    
+                // Check for duplicates
+                if (isDuplicateMessage(normalized, newMessage)) {
+                  console.log("⚠️ Duplicate detected:", newMessage._id);
+                  return prevMessages;
+                }
+    
+                console.log("✅ Adding message from other user:", newMessage._id);
+                
+                // Add new message
+                const updated = [...normalized, newMessage];
+                
+                // ✅ CRITICAL: Sort by timestamp (oldest → newest)
+                updated.sort((a, b) => {
+                  const timeA = a.createdAt.getTime();
+                  const timeB = b.createdAt.getTime();
+                  return timeA - timeB;
+                });
+    
+                console.log("📊 Message order after adding:");
+                updated.forEach((m, i) => {
+                  console.log(`  ${i}: ${m._id} at ${m.createdAt.toISOString()}`);
+                });
+                
+                // Update cache
+                storeChatInAsync(chatId, updated);
+                
+                return updated;
+              });
+            } else {
+              console.log("⏭️ Ignoring own message:", doc.id);
+            }
+          }
+        });
+      });
+    
+      return unsubscribe;
+    };
+  
+    loadMessages();
+  
+    return () => {
+      console.log("🧹 Cleaning up listeners");
+      if (unsubscribe) unsubscribe();
+      if (listenerUnsubscribeRef.current) {
+        listenerUnsubscribeRef.current();
+        listenerUnsubscribeRef.current = null;
+      }
+    };
+  
+  }, [chatId, userId]);
 
   // Handle image picking (just selection, not sending)
   const handleImagePick = async () => {
@@ -203,61 +485,118 @@ const ChatDisplay = ({ route, navigation }) => {
     fetchChatId();
   }, []);
 
+  const isDuplicateMessage = (existingMessages, newMessage) => {
+    return existingMessages.some(existing => {
+      // 1. Check by ID (exact match)
+      if (existing._id === newMessage._id) {
+        return true;
+      }
+  
+      // 2. Check by content + user + timestamp (fuzzy match for optimistic vs real)
+      const sameUser = existing.user._id === newMessage.user._id;
+      const sameText = existing.text === newMessage.text;
+      
+      // Allow 5 second timestamp difference (optimistic vs server time)
+      const timeDiff = Math.abs(
+        new Date(existing.createdAt).getTime() - 
+        new Date(newMessage.createdAt).getTime()
+      );
+      const similarTime = timeDiff < 5000; // 5 seconds tolerance
+  
+      // If same user, same text, and similar time → it's a duplicate
+      if (sameUser && sameText && similarTime) {
+        console.log("🔍 Fuzzy duplicate detected:");
+        console.log("   Existing:", existing._id, existing.text, new Date(existing.createdAt).toISOString());
+        console.log("   New:", newMessage._id, newMessage.text, new Date(newMessage.createdAt).toISOString());
+        return true;
+      }
+  
+      return false;
+    });
+  };
+
   const onSend = useCallback(
     async (newMessages = []) => {
       if (!chatId || newMessages.length === 0) return;
-      
+  
       const message = newMessages[0];
-
-   
-      setMessages((previousMessages) =>
-        GiftedChat.append(previousMessages, message)
-      );
+      const tempId = message._id;
+  
+      console.log("📤 Sending message:", tempId);
+  
+      // Optimistic UI update
+      setMessages((previousMessages) => {
+        const normalized = previousMessages.map(normalizeMessage);
+        const updated = [...normalized, normalizeMessage(message)];
+        
+        // ✅ Sort to ensure correct order
+        updated.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        
+        return updated;
+      });
+  
       const messagesRef = collection(db, "Chats", chatId, "messages");
-
+  
       try {
         let imageUrl = null;
-
-        // Upload image if message has a pending image
+  
         if (message.image && message.pending) {
-          console.log("Uploading image...");
+          console.log("📤 Uploading image...");
           const tempMessageId = `${Date.now()}_${Math.random()
             .toString(36)
             .substr(2, 9)}`;
           const imagePath = `images/${chatId}/${tempMessageId}.jpg`;
           const storageRef = storage().ref(imagePath);
-
-          try {
-            await storageRef.putFile(message.image);
-            imageUrl = await storageRef.getDownloadURL();
-            
-          } catch (uploadError) {
-            console.error("❌ Upload failed:", uploadError);
-            throw uploadError;
-          }
+  
+          await storageRef.putFile(message.image);
+          imageUrl = await storageRef.getDownloadURL();
         } else if (message.image && !message.pending) {
-          // Image was already uploaded (edge case)
           imageUrl = message.image;
         }
-
-        // Prepare Firestore message object
+  
         const firestoreMessage = {
           content: imageUrl ? "📷 Photo" : message.text || "",
           senderID: userId,
           receiverID: allData.id,
           timestamp: serverTimestamp(),
         };
-
-        if (imageUrl) {
-          firestoreMessage.image = imageUrl;
-        }
-
-        // Add message document to Firestore
-        await addDoc(messagesRef, firestoreMessage);
-
+  
+        if (imageUrl) firestoreMessage.image = imageUrl;
+        if (message.type) firestoreMessage.type = message.type;
+        if (message.postId) firestoreMessage.postId = message.postId;
+  
+        const docRef = await addDoc(messagesRef, firestoreMessage);
+        const realFirestoreId = docRef.id;
+        
+        console.log("✅ Sent! Replacing", tempId, "with", realFirestoreId);
+  
+        // Replace optimistic with real message
+        setMessages(prevMessages => {
+          const normalized = prevMessages.map(normalizeMessage);
+          const withoutOptimistic = normalized.filter(m => m._id !== tempId);
+  
+          const confirmedMessage = {
+            _id: realFirestoreId,
+            text: message.text || "",
+            type: message.type || undefined,
+            createdAt: new Date(), // Current time
+            user: { _id: userId },
+            ...(imageUrl && { image: imageUrl }),
+            ...(message.postId && { postId: message.postId }),
+          };
+  
+          const updated = [...withoutOptimistic, confirmedMessage];
+          
+          // ✅ Sort by timestamp
+          updated.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  
+          storeChatInAsync(chatId, updated);
+  
+          return updated;
+        });
+  
         const lastMessageText = imageUrl ? "📷 Photo" : message.text;
-
-        // Update the parent chat document
+  
         await updateDoc(doc(db, "Chats", chatId), {
           lastMessage: lastMessageText,
           timestamp: serverTimestamp(),
@@ -265,8 +604,7 @@ const ChatDisplay = ({ route, navigation }) => {
           lastSenderId: userId,
           messageCount: increment(1),
         });
-
-        // Send notification to receiver
+  
         const idToken = await auth.currentUser.getIdToken();
         await fetch(`${SERVER_URL}/send-message-notification`, {
           method: "POST",
@@ -279,91 +617,42 @@ const ChatDisplay = ({ route, navigation }) => {
             message: lastMessageText,
           }),
         });
-    
+  
       } catch (error) {
         console.error("❌ Error sending message:", error);
         Alert.alert("Error", "Failed to send message. Please try again.");
+        
+        setMessages(prev => prev.filter(m => m._id !== tempId));
       }
     },
     [chatId, userId, allData.id]
   );
 
-  useEffect(() => {
-    if (stopLoad) return;
-    
-
-    if (!chatId || !data) {
-     
-      return;
-    }
-    
-  
-    // Flatten all pages of messages and transform to your expected format
-    const allMessages = data.pages.flatMap(page => 
-      page.messages.map(msg => ({
-        _id: msg._id || msg.id, // Adjust based on your API response structure
-        text: msg.content || msg.text,
-        type:msg.type || undefined,
-        createdAt: new Date(msg.timestamp._seconds * 1000),
-        user: {
-          _id: msg.senderID || msg.senderId,
-        },
-        // Add image if it exists
-        ...(msg.image && { image: msg.image }),
-        ...(msg.postId && {postId: msg.postId})
-      }))
-    );
-  
-    setMessages(allMessages);
-    
-
-    
-  }, [chatId, data, stopLoad]);
-
-  useEffect(() => {
-    if (!chatId) return;
-    
-    const messagesRef = collection(db, "Chats", chatId, "messages");
-    const latestMessageQuery = query(
-      messagesRef, 
-      orderBy("timestamp", "desc"), 
-      limit(1)
-    );
-  
-    let isFirstLoad = true;
-    let lastMessageTimestamp = null;
-   
-    const unsubscribe = onSnapshot(latestMessageQuery, (snapshot) => {
-      if (snapshot.empty) return;
-      if (isFirstLoad) {
-        isFirstLoad = false;
+  const storeChatInAsync = async (chatId, messagesArray) => {
+    try {
+      if (!chatId || !Array.isArray(messagesArray)) {
+        console.warn("Invalid params for storeChatInAsync");
         return;
       }
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const doc = change.doc;
-          const data = doc.data();
-          
-          // Only add if it's from the other user (avoid duplicate from onSend)
-          if (data.senderID !== userId) {
-            const newMessage = {
-              _id: doc.id,
-              text: data.content,
-              createdAt: data.timestamp?.toDate() || new Date(),
-              user: { _id: data.senderID },
-              ...(data.image && { image: data.image })
-            };
+      
+      // ✅ Convert Date objects to ISO strings for storage
+      const serializable = messagesArray.map(msg => ({
+        ...msg,
+        createdAt: msg.createdAt instanceof Date 
+          ? msg.createdAt.toISOString() 
+          : msg.createdAt
+      }));
+      
+      const jsonVal = JSON.stringify(serializable);
+      await AsyncStorage.setItem(chatId, jsonVal);
+      console.log(`💾 Cached ${serializable.length} messages`);
+    } catch (e) {
+      console.error("Error storing chats to local store", e);
+    }
+  };
 
-            setMessages(prevMessages => 
-              GiftedChat.append(prevMessages, [newMessage])
-            );
-          }
-        }
-      });
-    });
   
-    return () => unsubscribe();
-  }, [chatId, refetch]);
+
 
   
 
@@ -608,11 +897,65 @@ const ChatDisplay = ({ route, navigation }) => {
 
   };
 
-  const loadMore = ()=>{
-    if(hasNextPage && !isFetchingNextPage){
-      fetchNextPage();
+  const loadMore = async  ()=>{
+    if (!chatId || !lastVisible || !hasMore || isLoadingMore) return;
+ console.log("Load earlier was pressed");
+    setIsLoadingMore(true);
+
+    try {
+      const messagesRef = collection(db, "Chats", chatId, "messages");
+      
+      // Query for next batch, starting after the last visible document
+      const nextQuery = query(
+        messagesRef,
+        orderBy("timestamp", "desc"),
+        startAfter(lastVisible),
+        limit(30)
+      );
+
+      const snapshot = await getDocs(nextQuery);
+
+      if (snapshot.empty) {
+        setHasMore(false);
+        setIsLoadingMore(false);
+        return;
+      }
+
+      // Transform new batch
+      const olderMessages = snapshot.docs.map(doc => ({
+        _id: doc.id,
+        text: doc.data().content,
+        type: doc.data().type || undefined,
+        createdAt: doc.data().timestamp?.toDate() || new Date(),
+        user: {
+          _id: doc.data().senderID,
+        },
+        ...(doc.data().image && { image: doc.data().image }),
+        ...(doc.data().postId && { postId: doc.data().postId })
+      }));
+
+      
+
+      // Append older messages to the end (they're already in desc order)
+      setMessages(prev => {
+        const combined = [...prev, ...olderMessages];
+        // Sort ascending (oldest → newest)
+        combined.sort((a, b) => a.createdAt - b.createdAt);
+        return combined;
+      });
+      
+      // Update pagination markers
+      const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+      setLastVisible(lastDoc);
+      setHasMore(snapshot.docs.length === 30);
+      
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+      Alert.alert("Error", "Failed to load older messages");
+    } finally {
+      setIsLoadingMore(false);
     }
-  }
+  };
 
   const customMessage = (props) => {
     
@@ -659,14 +1002,14 @@ const ChatDisplay = ({ route, navigation }) => {
         {postData.type === "BookReview" ? (
      
         <View style={styles.bookInfo}>
-          <Text style={styles.bookTitle}>{postData.BookTitle}</Text>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookTitle}>{postData.BookTitle}</Text>
           <Text style={styles.bookAuthor}>by {postData.BookAuthor}</Text>
         </View>
      
         
       ) : (
         <View style={styles.discussionInfo}>
-          <Text style={styles.discussionTitle}>{postData.title}</Text>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.discussionTitle}>{postData.title}</Text>
         </View>
       )}
        <View style={styles.postTypeContainer}>
@@ -716,7 +1059,7 @@ const ChatDisplay = ({ route, navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView  style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={navigation.goBack}>
           <Ionicons
@@ -726,7 +1069,7 @@ const ChatDisplay = ({ route, navigation }) => {
             style={{ left: horizontalScale(5) }}
           />
         </TouchableOpacity>
-        <Text style={styles.headerText}>
+        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.headerText}>
           {allData.ascended ? allData.name : allData.displayName}
         </Text>
         <TouchableOpacity onPress={toggleMenu}>
@@ -767,9 +1110,10 @@ const ChatDisplay = ({ route, navigation }) => {
         >
           <Text>Profile</Text>
         </TouchableOpacity>
-      </View>
+      </View>{!isLoadingInitial && (
       <GestureHandlerRootView>
         <GestureDetector gesture={swipeGesture}>
+          
           <GiftedChat
             messages={messages}
             onSend={onSend}
@@ -788,13 +1132,13 @@ const ChatDisplay = ({ route, navigation }) => {
             placeholder={ placeHolder()}
             isAnimated={false}
             extraData={isKeyboardVisible}
-            loadEarlier={hasNextPage}
-            onLoadEarlier={loadMore}
-            
+            inverted={false}
             
           />
+        
         </GestureDetector>
       </GestureHandlerRootView>
+      )}
 
       <Modal
         animationType="slide"
@@ -806,7 +1150,8 @@ const ChatDisplay = ({ route, navigation }) => {
           <View style={styles.modalView}>
             <Text style={styles.modalText}>
               Congratulations! This chat can be ascended, would you like to
-              ascend?
+              ascend?{"\n"}{"\n"}
+             <Text style={{color:theme.colors.error, fontWeight:"bold"}}> Note: </Text>Ascension will reveal your photos to your friend!
             </Text>
             <View style={{ flexDirection: "row", gap: horizontalScale(15) }}>
              {hasHandledChoice ? (<Text>You have already answered!</Text>):( 
@@ -837,7 +1182,7 @@ const ChatDisplay = ({ route, navigation }) => {
         visible={imageViewerVisible}
         onRequestClose={() => setImageViewerVisible(false)}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -866,7 +1211,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     height: verticalScale(60),
     width: "100%",
-    elevation: 4,
     justifyContent: "space-between",
     alignItems: "center",
     paddingLeft: horizontalScale(10),
@@ -875,6 +1219,8 @@ const styles = StyleSheet.create({
   headerText: {
     fontWeight: "500",
     fontSize: moderateScale(25),
+    flexShrink:1,
+    textAlign:"center"
   },
   centeredView: {
     flex: 1,
@@ -962,6 +1308,7 @@ const styles = StyleSheet.create({
   },
   bookInfo: {
     marginBottom: theme.spacing.vertical.xs,
+    flex:1
   },
   bookTitle: {
     fontSize: theme.fontSizes.medium,
@@ -976,6 +1323,7 @@ const styles = StyleSheet.create({
   },
   discussionInfo: {
     marginBottom: theme.spacing.vertical.xs,
+    flex:1
   },
   discussionTitle: {
     fontSize: theme.fontSizes.medium,

@@ -245,7 +245,7 @@ const ShareBottomSheet = ({post, onClose, bottomSheetRef, bottomSheetVisible})=>
           <View style={{alignItems:"center", gap:5}}>
           <Pressable onPress={()=>{Clipboard.setString(`${SHARE_PREFIX}/posts/${post.id}`)}}>
         <View style={{backgroundColor:"lightgrey", height:40, width:40, borderRadius:20, justifyContent:"center", alignItems:"center"}}>
-        <AntDesign name="paperclip" size={26} color="black" />
+        <AntDesign name="paper-clip" size={26} color="black" />
         </View>
         </Pressable>      
         <Text style={{color:theme.colors.text, fontSize:theme.fontSizes.small}}>Copy Link</Text>

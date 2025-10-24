@@ -6,9 +6,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import Logo from '../assets/BookWorm_logo.png';
 import theme from '../design-system/theme/theme';
 import { PRIVACY_POLICY, TERMS_N_CONDITIONS } from '../constants/api';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HomeScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   return (
     <View
       style={{
@@ -17,6 +18,7 @@ const HomeScreen = ({ navigation }) => {
         padding: 20,
         paddingTop: 50,
         backgroundColor: 'lightgreen',
+        
       }}
     >
       <StatusBar backgroundColor="lightgreen" barStyle="dark-content" />
@@ -43,7 +45,7 @@ const HomeScreen = ({ navigation }) => {
       </View>
       
       <View
-        style={{ alignItems: 'center', justifyContent: 'flex-start', gap: 12 }}
+        style={{ alignItems: 'center', justifyContent: 'flex-start', gap: 12, marginBottom:insets.bottom }}
       >
         <Text style={{ fontWeight: 'bold' }}>
           Made with <Ionicons name="heart" size={16} color="red" /> by Soraaa

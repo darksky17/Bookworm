@@ -12,6 +12,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Image
 } from "react-native";
 import { Button } from "react-native-paper";
 import auth from "@react-native-firebase/auth"; // Import Firebase auth
@@ -25,6 +26,7 @@ import theme from "../../design-system/theme/theme.js";
 import {
   moderateScale,
   verticalScale,
+  horizontalScale
 } from "../../design-system/theme/scaleUtils.js";
 
 const PhoneauthScreen = ({ navigation }) => {
@@ -39,6 +41,7 @@ const PhoneauthScreen = ({ navigation }) => {
   const [counter, setCounter] = useState(31);
   const [otpSent, setOTPSent] = useState(false);
   const [otpPressed, setOtpPressed]= useState(false);
+  const[disableVerify, setDisableVerify] = useState(false);
 
   useEffect(() => {
     if (counter === 0) {
@@ -76,6 +79,11 @@ const PhoneauthScreen = ({ navigation }) => {
     }
     setOTPSent(true);
     setOtpPressed(true);
+
+    if(auth().currentUser){
+      console.log("This is auth currentuser", auth().currentUser);
+      setDisableVerify(true);
+    }
   };
 
   const handleVerifyOtp = async () => {
@@ -96,68 +104,39 @@ const PhoneauthScreen = ({ navigation }) => {
 
       // Sign in with credential
       await auth().signInWithCredential(credential);
-      const idToken = await auth().currentUser.getIdToken();
+    
       console.log("OTP verified successfully");
       
-      const userId = auth().currentUser.uid;
-
-      // After OTP is verified, check if the phone number is registered in Firestore
-      const fullPhoneNumber = `${countryCode}${phoneNumber}`;
-
-      const response = await fetch(`${SERVER_URL}/check-user-exists`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          phoneNumber: fullPhoneNumber,
-        }),
-      });
-      const data = await response.json();
-
-      const usersRef = collection(db, "Users");
-
-      if (data.exists) {
-        // Existing user
-        
-        const userData = data.userData;
-        
-
-        if (userData) {
-          if (!userData.step1Completed) {
-            navigation.navigate("Userdeet1");
-          } else if (!userData.step2Completed) {
-            navigation.navigate("Userdeet2");
-          } else if (!userData.step3Completed) {
-            navigation.navigate("AddPhotos");
-          } else {
-            navigation.replace("MainTabs");
-          }
-        }
-      } else {
-        // New user, create a document
-        const newUserRef = doc(usersRef, userId);
-        await setDoc(newUserRef, {
-          phoneNumber: fullPhoneNumber,
-          step1Completed: false,
-          step2Completed: false,
-          step3Completed: false,
-          pauseMatch: false,
-          currentMatches: [],
-        });
-
-        navigation.navigate("Userdeet1");
-      }
+ 
+      
     } catch (error) {
       console.error("Error during OTP verification:", error);
       Alert.alert("OTP Verification Error", error.message);
+      setIsVerifying(false);
     }
+ setTimeout(()=>{
     setIsVerifying(false);
+  }, 3000);
+
   };
 
   return (
     <Container>
+      {isVerifying?(<>
+            <View style={{flex:1, backgroundColor:"white", justifyContent:"center", alignItems:"center"}}>
+              <Text style={{color:theme.colors.text}}>WE ARE PROCESSING</Text>
+              <Image
+                  source={require("../../assets/AuthGIf.gif")} 
+                  style={{
+                    width: horizontalScale(200),
+                    height: verticalScale(270),
+                    borderRadius: theme.borderRadius.sm,
+                  }}
+                  resizeMode="contain"
+                />
+              </View>    
+      </>)
+      :(
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -260,7 +239,8 @@ const PhoneauthScreen = ({ navigation }) => {
                     !countryCode ||
                     !otp ||
                     otp.length < 6 ||
-                    isVerifying
+                    isVerifying || 
+                    disableVerify
                   }
                   buttonColor={theme.colors.primary}
                   labelStyle={{
@@ -276,6 +256,7 @@ const PhoneauthScreen = ({ navigation }) => {
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+      )}
     </Container>
   );
 };

@@ -36,7 +36,8 @@ import {
 } from "../redux/userSlice";
 import { request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import geohash from "ngeohash";
-import Icon from "react-native-vector-icons/FontAwesome";
+import Icon from "@expo/vector-icons/FontAwesome";
+import Fontisto from  "@expo/vector-icons/Fontisto";
 import { SERVER_URL } from "../constants/api";
 import { scaleFont } from "../utils/responsiveFont";
 import Container from "../components/Container.js";
@@ -51,7 +52,9 @@ import {
 import { useNearbyUsers } from "../hooks/useNearbyUsers.js";
 import { useQueryClient } from "@tanstack/react-query";
 import useNotificationCountListener from "../hooks/useNotificationCountListener.js";
+
 const MatchScreen = ({ navigation }) => {
+  
   const dispatch = useDispatch();
   const location = useSelector((state) => state.user.location);
   const [matches, setMatches] = useState([]);
@@ -103,6 +106,7 @@ const MatchScreen = ({ navigation }) => {
 
   useEffect(() => {
     // Get the current user's phone number
+    
     const user = auth.currentUser;
     if (!user) return; // No user — don’t continue
     const userPhoneNumber = auth.currentUser?.phoneNumber;
@@ -352,7 +356,14 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
 
   return (
     <Container>
+      <View style={{flexDirection:"row", justifyContent:"space-between"}}>
       <Header title={"BookWorm"} />
+      {/* <Pressable style={{   paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(10),
+    paddingRight: horizontalScale(12),}} onPress={()=>{navigation.navigate("StoreTabs")}}>
+      <Fontisto name="shopping-store" size={24} color={theme.colors.text} />
+      </Pressable> */}
+      </View>
       <View style={styles.container}>
         <View style={{ alignItems: "center" }}>
           <Text style={styles.title}>Find Bookworms</Text>

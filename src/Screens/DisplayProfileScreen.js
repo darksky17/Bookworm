@@ -154,7 +154,7 @@ const DisplayProfileScreen = ({navigation})=>{
 
 
 
-  handleFollow = async ()=>{
+  const handleFollow = async ()=>{
 
     
 
@@ -179,7 +179,7 @@ const DisplayProfileScreen = ({navigation})=>{
 
   };
 
-  handleUnfollow = async (overrideuser, overridefollower)=>{
+  const handleUnfollow = async (overrideuser, overridefollower)=>{
 
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -256,11 +256,13 @@ const DisplayProfileScreen = ({navigation})=>{
  
 }
 
+
+
 const checkChatRequest= async (targetId) =>{
 
   const userDocref = doc(db, "Users", auth.currentUser.uid);
   const usersnap = await getDoc(userDocref);
-  const userChatRequests = usersnap.data().chatRequests;
+  const userChatRequests = usersnap.data().chatRequests || [];
   const exists = userChatRequests.some(
     (request) => request.requestorId === targetId
   );
@@ -765,10 +767,7 @@ const styles = StyleSheet.create({
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: theme.spacing.horizontal.md,
-      paddingTop: theme.spacing.vertical.md,
-      
-  
+      paddingHorizontal: theme.spacing.horizontal.md,  
     },
     headerIconLeft: {
       padding: 8,

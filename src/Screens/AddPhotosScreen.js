@@ -27,12 +27,14 @@ import {
   moderateScale,
 } from "../design-system/theme/scaleUtils.js";
 import { useRoute } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { setIsAuthenticated } from "../redux/appSlice.js";
 
 const AddPhotosScreen = ({ navigation }) => {
   const route = useRoute();
-  const { onAuthComplete } = route.params || {};
   const globalSelected = useSelector((state) => state.user);
   const dispatch = useDispatch();
+  const isAuthenticated = useSelector((state)=> state.app.isAuthenticated);
   const userId = auth.currentUser.uid;
   const [isLoading, setIsLoading] = useState(false);
   const initialPhotos = globalSelected.photos
@@ -43,7 +45,7 @@ const AddPhotosScreen = ({ navigation }) => {
   while (initialPhotos.length < 6) {
     initialPhotos.push({ key: `${initialPhotos.length}`, uri: "" });
   }
-
+  const insets = useSafeAreaInsets();
   const [selectedPhotos, setSelectedPhotos] = useState(initialPhotos);
 
   // Universal photo sizing calculation
@@ -82,6 +84,7 @@ const AddPhotosScreen = ({ navigation }) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 1,
+        aspect:[9,16]
       });
 
       if (!result.canceled) {
@@ -190,9 +193,13 @@ const AddPhotosScreen = ({ navigation }) => {
       );
 
       dispatch(setPhotos(photoUrls));
+      
       setIsLoading(false);
-      await updateDoc(userDocRef, { step2Completed: true });
-      onAuthComplete?.();
+      
+      // await updateDoc(userDocRef, { step2Completed: true });
+      
+      dispatch(setIsAuthenticated(true));
+      
     } catch (error) {
       setIsLoading(false);
       console.error("Error saving user data to Firestore:", error);
@@ -217,6 +224,7 @@ const AddPhotosScreen = ({ navigation }) => {
         flex: 1,
         paddingBottom: verticalScale(50),
         backgroundColor: theme.colors.background,
+        marginTop:insets.top
       }}
     >
       <Header title="Add Photos" />
@@ -301,7 +309,7 @@ const AddPhotosScreen = ({ navigation }) => {
             )}
           />
           <Text style={{ color: "grey" }}>
-            Long press and drag to reorder the images.{"\n"}
+            Each image should be less than 10mb{"\n"}                                                        
             Minimum 3 required
           </Text>
         </View>
@@ -316,6 +324,7 @@ const AddPhotosScreen = ({ navigation }) => {
         >
           Save Changes
         </Button>
+        {isAuthenticated &&(
         <Button
           buttonColor={theme.colors.primary}
           textColor={theme.colors.text}
@@ -324,6 +333,7 @@ const AddPhotosScreen = ({ navigation }) => {
         >
           Cancel
         </Button>
+        )}
       </View>
       <Modal visible={isLoading} transparent>
         <View

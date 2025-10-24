@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { NavigationContainer, getStateFromPath } from "@react-navigation/native";
+import { NavigationContainer, getStateFromPath, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useDispatch } from "react-redux";
-import { Text, View, StatusBar, Image, Platform, Alert } from "react-native";
+import { Text, View,Image, Platform, Alert } from "react-native";
+import { StatusBar } from 'expo-status-bar';
 import { Provider, useSelector } from "react-redux";
 import { store } from "./redux/store";
-import { db, auth, doc, getDoc, updateDoc } from "./Firebaseconfig";
+import { db, auth, doc, getDoc, updateDoc, setDoc, addDoc } from "./Firebaseconfig";
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 import { PaperProvider, Button } from "react-native-paper";
 import messaging from "@react-native-firebase/messaging";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setNotificationPref } from "./redux/userSlice";
+import { setIsAuthenticated } from "./redux/appSlice";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { onAuthStateChanged } from "@react-native-firebase/auth";
 import theme from "./design-system/theme/theme";
@@ -25,8 +27,9 @@ import AuthNavigator from "./navigation/AuthNavigator";
 import MainNavigator from "./navigation/MainNavigator";
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useNetInfoInstance } from "@react-native-community/netinfo";
-
-
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { horizontalScale, verticalScale } from "./design-system/theme/scaleUtils";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 
 
@@ -35,16 +38,17 @@ const AppNavigator = () => {
   const [openModal, setOpenModal] = useState(false);
   const [downloadlink, setDownloadLink] = useState(null);
   const notificationPref = useSelector((state) => state.user.notificationpref);
+  const isAuthenticated = useSelector((state)=> state.app.isAuthenticated);
   const dispatch = useDispatch();
   const [initializing, setInitializing] = useState(true);
   const [initialRoute, setInitialRoute] = useState("Home");
   const [user, setUser] = useState();
   const [notificationPrefReady, setNotificationPrefReady] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [initialState, setInitialState] = useState(undefined);
   const [isReady, setIsReady] = useState(true);
   const { netInfo: { type, isConnected }, refresh } = useNetInfoInstance();
-
+  const [serverCheck, setServerCheck] = useState(false);
 
   
   const linking = {
@@ -118,6 +122,7 @@ const AppNavigator = () => {
     } catch (error) {
       console.log("Update check failed:", error);
     }
+    setServerCheck(true);
   };
   useEffect(() => {
     checkForUpdates();
@@ -136,6 +141,8 @@ const AppNavigator = () => {
     }
   }, [notificationPref]);
 
+
+
   useEffect(() => {
     if (!notificationPrefReady) return;
 
@@ -143,7 +150,9 @@ const AppNavigator = () => {
       setUser(user);
 
       if (user != null) {
+        console.log("User is logged in");
         const uid = user.uid;
+     
 
         // ✅ STEP 1: Register fresh FCM token
         if (notificationPref === true && user) {
@@ -161,13 +170,40 @@ const AppNavigator = () => {
 
         // ✅ STEP 2: Routing logic
         try {
+          const idToken = await auth.currentUser.getIdToken();
           const userDocRef = doc(db, "Users", uid);
           const userDocSnap = await getDoc(userDocRef);
-          if (!userDocSnap.exists()) {
-            setInitialRoute("Phoneauth");
+                const response = await fetch(`${SERVER_URL}/check-user-exists`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          phoneNumber: user.phoneNumber,
+        }),
+      });
+      const data = await response.json();
+      
+          if (!data.exists) {
+            
+            // setInitialRoute("Phoneauth");
+            console.log("I was triggeder too");
+            const newUserRef = doc(db, "Users", auth.currentUser.uid);
+            await setDoc(newUserRef, {
+              phoneNumber: auth.currentUser.phoneNumber,
+              step1Completed: false,
+              step2Completed: false,
+              step3Completed: false,
+              pauseMatch: false,
+              currentMatches: [],
+            });
+          console.log("CREATED NEW DOC FROM aPP root");
+            setInitialRoute("Userdeet1");
           } else {
             const userData = userDocSnap.data();
             if (!userData.step1Completed) {
+              console.log("Sending this lad to userDeet1 because a doc laready exists", initialRoute);
               setInitialRoute("Userdeet1");
             } else if (!userData.step2Completed) {
               setInitialRoute("Userdeet2");
@@ -175,7 +211,7 @@ const AppNavigator = () => {
               setInitialRoute("AddPhotos");
             } else {
               setInitialRoute("MainTabs");
-              setIsAuthenticated(true);
+              dispatch(setIsAuthenticated(true));
             }
           }
         } catch (error) {
@@ -193,11 +229,12 @@ const AppNavigator = () => {
   }, [notificationPrefReady, notificationPref]);
 
   const NOTIF_PREF_KEY = "notificationPref";
-  const DEFAULT_PREF = false;
+  const DEFAULT_PREF = true;
 
   const initializeNotificationPref = async () => {
     try {
       const storedPref = await AsyncStorage.getItem(NOTIF_PREF_KEY);
+      
     
       const pref = storedPref === null ? DEFAULT_PREF : storedPref === "true";
     
@@ -220,6 +257,23 @@ const AppNavigator = () => {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color={theme.colors.secondary} />
+      </View>
+    );
+  }
+  if (!serverCheck) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center"}}>
+        <Text numberOfLines={2} style={{color:theme.colors.background, paddingHorizontal:10}}>Please wait while we talk to our server.. it might take a minute..he is busy reading</Text>
+        
+        <Image
+                  source={require("./assets/servercheck.gif")}
+                  style={{
+                    width: horizontalScale(200),
+                    height: verticalScale(270),
+                    borderRadius: theme.borderRadius.sm,
+                  }}
+                  resizeMode="contain"
+                />
       </View>
     );
   }
@@ -270,6 +324,13 @@ const AppNavigator = () => {
       </Modal>
     );
   }
+  const MyTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: theme.colors.background, // Or your desired background color
+    },
+  };
 
   if(!isConnected){
     return(
@@ -283,17 +344,18 @@ const AppNavigator = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BottomSheetModalProvider>    
-         <NavigationContainer linking={linking} initialState={initialState}>
-        <StatusBar
-          backgroundColor={theme.colors.background}
-          barStyle="dark-content"
-        />
+      <SafeAreaProvider>
+             <BottomSheetModalProvider>    
+              <KeyboardProvider>
+         <NavigationContainer linking={linking} initialState={initialState} theme={MyTheme} key={`${isAuthenticated ? 'main' : 'auth'}-${initialRoute || 'none'}`}>
+        <StatusBar style="dark"/>
  
-        {isAuthenticated? <MainNavigator /> : <AuthNavigator initialRoute={initialRoute} onAuthComplete={() => setIsAuthenticated(true)} />}
-          
+        {isAuthenticated? <MainNavigator /> : <AuthNavigator initialRoute={initialRoute} />}
+
       </NavigationContainer>
+      </KeyboardProvider>
       </BottomSheetModalProvider>
+      </SafeAreaProvider>
  
     </QueryClientProvider>
   );

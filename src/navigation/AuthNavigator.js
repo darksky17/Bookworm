@@ -9,7 +9,7 @@ import AddPhotosScreen from '../Screens/AddPhotosScreen';
 
 const AuthStack = createNativeStackNavigator();
 
-const AuthNavigator = ({initialRoute, onAuthComplete}) => {
+const AuthNavigator = ({initialRoute}) => {
   return (
     <AuthStack.Navigator 
       screenOptions={{ headerShown: false }}
@@ -19,7 +19,7 @@ const AuthNavigator = ({initialRoute, onAuthComplete}) => {
       <AuthStack.Screen name="Phoneauth" component={PhoneauthScreen} />
       <AuthStack.Screen name="Userdeet1" component={Userdetails1} />
       <AuthStack.Screen name="Userdeet2" component={Userdetails2} />
-      <AuthStack.Screen name="AddPhotos" component={AddPhotosScreen} initialParams={{ onAuthComplete }} />
+      <AuthStack.Screen name="AddPhotos" component={AddPhotosScreen}/>
     </AuthStack.Navigator>
   );
 };

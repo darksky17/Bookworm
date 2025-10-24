@@ -29,13 +29,15 @@ import {
 import { MultiSelect, Dropdown } from "react-native-element-dropdown";
 import { GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../../constants/api";
 import { Button } from "react-native-paper";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+// import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import theme from "../../design-system/theme/theme";
 import {
   moderateScale,
   verticalScale,
   horizontalScale,
 } from "../../design-system/theme/scaleUtils";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const genres = [
   "Fiction",
@@ -91,6 +93,7 @@ const Userdetails2 = ({ navigation }) => {
   const userId = auth.currentUser.uid;
   const dispatch = useDispatch();
   const globalSelected = useSelector((state) => state.user);
+  const insets = useSafeAreaInsets();
 
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [selectedAuthors, setSelectedAuthors] = useState([]);
@@ -310,14 +313,15 @@ const Userdetails2 = ({ navigation }) => {
   return (
     <KeyboardAwareScrollView
       contentContainerStyle={styles.container}
-      enableOnAndroid={true}
       extraScrollHeight={100}
       keyboardShouldPersistTaps="handled"
       enableAutomaticScroll={true}
       enableResetScrollToCoords={false}
       keyboardOpeningTime={0}
       scrollEnabled={true}
-    >
+      style={{ paddingBottom: Math.max(insets.bottom, 12),
+      marginTop: insets.top
+          }}    >
       <View style={{ flex: 1 }}>
         <Text style={styles.header}>Complete Your Details</Text>
         <View
@@ -477,7 +481,7 @@ const Userdetails2 = ({ navigation }) => {
         animationType="slide"
         onRequestClose={closeGenreModal}
       >
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, {marginBottom:insets.bottom}]}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Genres</Text>
@@ -563,7 +567,7 @@ const Userdetails2 = ({ navigation }) => {
         animationType="slide"
         onRequestClose={() => setShowAuthorModal(false)}
       >
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, {marginBottom:insets.bottom}]}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Search Authors</Text>
@@ -669,7 +673,7 @@ const Userdetails2 = ({ navigation }) => {
         animationType="slide"
         onRequestClose={() => setShowBookModal(false)}
       >
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, {marginBottom:insets.bottom}]}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Search Books</Text>
@@ -845,6 +849,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: "white",
+    
   },
   modalHeader: {
     flexDirection: "row",

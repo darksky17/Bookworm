@@ -1,5 +1,5 @@
 import React, {useRef, useState, useCallback, useEffect} from "react";
-import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Share, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Keyboard, Platform, Modal, Share, Alert } from "react-native";
 import Container from "../components/Container";
 import theme from "../design-system/theme/theme";
 import { useRoute } from "@react-navigation/native";
@@ -17,20 +17,22 @@ import PostOptionsModal from "../components/postOptionsModal";
 import { useFetchPostsById } from "../hooks/useFetchPostsById";
 import ReportProfileModal from "../components/reportProfileModal";
 import ShareBottomSheet from "../components/ShareBottomSheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQueryClient } from "@tanstack/react-query";
 const PostDetailScreen = ({ navigation }) => {
   const route = useRoute();
-  // const { post: initialPost } = route.params;
+  const queryClient = useQueryClient();
   const { id: postId } = route.params;
-  
+  const insets = useSafeAreaInsets();
 
   const {data: postData, isError, error } = useFetchPostsById(postId);
  const [post, setPost] = useState(null);
 
-  // const [post, setPost] = useState(initialPost);
+
   const userId = auth.currentUser?.uid;
   const [comment, setComment] = useState("");
   const [replyTo, setReplyTo] = useState(null);
-  // const { data: comments = [], isLoading: commentsLoading, error: commentsError, refetch: refetchComments } = useFetchComments(post.id);
+  const disname = useSelector((state)=>state.user.displayName);
   const { data: comments = [], isLoading: commentsLoading, error: commentsError, refetch: refetchComments } = useFetchComments(postId);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuComment, setMenuComment] = useState(null);
@@ -50,6 +52,22 @@ const [reportModalVisible, setReportModalVisible] = useState(false);
 const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
 const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
 const [sharedPost, setSharedPost] = useState(null);
+const [sendingComment, setSendingComment] = useState(false);
+const [behaviour, setBehaviour] = useState("padding");
+
+useEffect(() => {
+  const showListener = Keyboard.addListener("keyboardDidShow", () => {
+    setBehaviour("padding");
+  });
+  const hideListener = Keyboard.addListener("keyboardDidHide", () => {
+    setBehaviour(undefined);
+  });
+
+  return () => {
+    showListener.remove();
+    hideListener.remove();
+  };
+}, []);
 
 useEffect(() => {
   if (postData) {
@@ -183,7 +201,23 @@ useEffect(() => {
   };
 
   const handleSendComment = async () => {
+   
+    setSendingComment(true);
     if (comment.trim()) {
+    const previousData = queryClient.getQueryData(['comments', post.id])
+    queryClient.setQueryData(['comments', post.id], (oldData) => {                                      //Optimistic update
+    const newComment = {
+      id: 'temp-id',  
+      text: comment.trim(),
+      timestamp: new Date(),
+      userId: auth.currentUser.uid, 
+      parentId: replyTo ? replyTo.id : null,
+      postId:post.id,
+      displayName:disname,
+    };
+    return [...oldData, newComment]; 
+  });
+  
       try {
         const idToken = await auth.currentUser.getIdToken();
         const body = { text: comment.trim() };
@@ -197,13 +231,28 @@ useEffect(() => {
           body: JSON.stringify(body),
         });
         if (!response.ok) throw new Error("Failed to add comment");
+        
+        const newComment = await response.json();  
+        
+
+        
+        queryClient.setQueryData(['comments', post.id], (oldData) => {
+          return oldData.map(pomment =>
+            pomment.id === 'temp-id'  // Match the temporary comment
+              ? { ...pomment, id:newComment.id }  // Replace the whole comment object with the actual data
+              : pomment
+          );
+        });
+        
         setComment("");
         setReplyTo(null);
-        refetchComments();
+        // refetchComments();
       } catch (error) {
         alert("Failed to add comment");
+        queryClient.setQueryData(['comments', post.id], previousData);
       }
     }
+    setSendingComment(false);
   };
 
   if (!post && !isError) {
@@ -283,6 +332,10 @@ useEffect(() => {
   };
   const handleDeleteComment = async (comment) => {
     setMenuVisible(false);
+    const previousData = queryClient.getQueryData(['comments', post.id])
+    queryClient.setQueryData(['comments', post.id], (oldData) => {
+      return oldData.filter(c => c.id !== comment.id); // Remove the comment that matches the id
+    });
     try {
       const idToken = await auth.currentUser.getIdToken();
       await fetch(`${SERVER_URL}/posts/${post.id}/comments/${comment.id}`, {
@@ -292,14 +345,23 @@ useEffect(() => {
           Authorization: `Bearer ${idToken}`,
         },
       });
-      refetchComments();
+      // refetchComments();
     } catch (error) {
       alert("Failed to delete comment");
+      queryClient.setQueryData(['comments', post.id], previousData);
     }
   };
 
   const handleSaveEdit = async () => {
     if (!editingComment || !comment.trim()) return;
+    const previousData = queryClient.getQueryData(['comments', post.id])
+    queryClient.setQueryData(['comments', post.id], (oldData) => {
+      return oldData.map(pomment =>
+        pomment.id === editingComment.id 
+          ? { ...pomment, text:comment.trim() }  
+          : pomment
+      );
+    });
     try {
       const idToken = await auth.currentUser.getIdToken();
       const response = await fetch(`${SERVER_URL}/posts/${post.id}/comments/${editingComment.id}`, {
@@ -313,9 +375,10 @@ useEffect(() => {
       if (!response.ok) throw new Error("Failed to edit comment");
       setEditingComment(null);
       setComment("");
-      refetchComments();
+      // refetchComments();
     } catch (error) {
       alert("Failed to edit comment");
+      queryClient.setQueryData(['comments', post.id], previousData);
     }
   };
 
@@ -464,7 +527,7 @@ useEffect(() => {
   };
 
   return (
-    <Container>
+    <Container containerStyle={{paddingBottom:insets.bottom}}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconLeft}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
@@ -482,8 +545,13 @@ useEffect(() => {
       </View>
 
  
-      <ScrollView contentContainerStyle={styles.container}>
-       
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : behaviour}
+        keyboardVerticalOffset={5}
+        style={{flex: 1, marginBottom:theme.spacing.vertical.sm}}
+        
+      >
+ <ScrollView contentContainerStyle={styles.container}>
         <PostCard
         post={post}
         onComment={()=> inputRef.current.focus()}
@@ -493,7 +561,8 @@ useEffect(() => {
         width={CONTAINER_WIDTH}
         height={CONTAINER_HEIGHT}
         />
-
+        
+      
 
 
         {/* Comments Section */}
@@ -525,11 +594,8 @@ useEffect(() => {
           })()}
         </View>
       </ScrollView>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={80}
-        style={styles.commentInputContainer}
-      >
+
+    <View  style={styles.commentInputContainer}>
         {replyTo && !editingComment && (
           <View style={styles.replyPill}>
             <Text style={styles.replyPillText}>
@@ -562,12 +628,12 @@ useEffect(() => {
               <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity onPress={handleSendComment} style={styles.sendButton} disabled={!comment.trim()}>
+            <TouchableOpacity onPress={handleSendComment} style={styles.sendButton} disabled={!comment.trim() || sendingComment}>
               <Ionicons name="send" size={22} color={theme.colors.primary} />
             </TouchableOpacity>
           )}
         </View>
-
+        </View>
        
       </KeyboardAvoidingView>
       {/* Post Context Menu Modal */}
@@ -578,7 +644,7 @@ useEffect(() => {
   onClose={() => setPostMenuVisible(false)}
   onDelete={handleDeletePost}
   onEdit={() => {
-    navigation.navigate("EditPost", { initialPost });
+    navigation.navigate("EditPost", { initialPost:post});
     setPostMenuVisible(false);
   }}
   onShare={handleShare}
@@ -668,7 +734,7 @@ const styles = StyleSheet.create({
     paddingRight: 0,
   },
   container: {
-    padding: theme.spacing.horizontal.md,
+    paddingHorizontal: theme.spacing.horizontal.md,
     paddingTop: theme.spacing.vertical.lg,
     flexGrow:1,
   },

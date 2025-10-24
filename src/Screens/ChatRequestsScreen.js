@@ -34,6 +34,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 
 
 
+
 const ChatRequestsScreen = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
   const gender = useSelector((state) => state.user.gender);
@@ -44,6 +45,7 @@ const ChatRequestsScreen = ({ navigation }) => {
   const [choice, setChoice] = useState(false);
   const userId = auth.currentUser.uid;
   const [reRenderTool, setReRenderTool] = useState(1);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(()=>{
 
@@ -116,6 +118,7 @@ const ChatRequestsScreen = ({ navigation }) => {
   };
 
   const handleChoice = async()=>{
+    setProcessing(true);
     const userDocRef = doc(db,"Users", auth.currentUser.uid);
     const chatRequestToRemove = {
         requestorId: selectedItem.requestorId,
@@ -153,6 +156,7 @@ const ChatRequestsScreen = ({ navigation }) => {
 
 }
 setReRenderTool(10);
+setProcessing(false);
 
     
   }
@@ -290,11 +294,11 @@ setReRenderTool(10);
                       marginLeft: horizontalScale(10),
                       gap:horizontalScale(20)
                     }}
-                  ><Pressable onPress={()=>{setChoice(false);setOpenModal(true); setSelectedItem(item)}}>
-                    <AntDesign name="closecircleo" size={24} color={theme.colors.text} />
+                  ><Pressable disabled={opeModal} onPress={()=>{setChoice(false);setOpenModal(true); setSelectedItem(item)}}>
+                    <AntDesign name="close-circle" size={24} color={theme.colors.text} />
                     </Pressable>
-                    <Pressable onPress={()=>{setChoice(true);setOpenModal(true); setSelectedItem(item)}}>
-                  <AntDesign  name="checkcircleo" size={24} color={theme.colors.text} />
+                    <Pressable disabled={opeModal} onPress={()=>{setChoice(true);setOpenModal(true); setSelectedItem(item)}}>
+                  <AntDesign  name="check-circle" size={24} color={theme.colors.text} />
                   </Pressable>
                   </View>
                 </View>
@@ -326,6 +330,7 @@ setReRenderTool(10);
                 textColor={theme.colors.text}
                 mode="contained"
                 onPress={handleChoice}
+                disabled={processing}
               >
                 <Text>Yes</Text>
               </Button>
@@ -334,6 +339,7 @@ setReRenderTool(10);
                 textColor={theme.colors.text}
                 mode="contained"
                 onPress={() => setOpenModal(false)}
+                disabled={processing}
               >
                 <Text>No</Text>
               </Button>

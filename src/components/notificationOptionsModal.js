@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, Pressable, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { moderateScale, verticalScale, horizontalScale } from '../design-system/theme/scaleUtils';
 import theme from '../design-system/theme/theme';
