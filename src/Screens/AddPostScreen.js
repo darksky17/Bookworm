@@ -90,7 +90,7 @@ const AddPostScreen = ({navigation}) => {
       const draftData = JSON.stringify(postData);
       await AsyncStorage.setItem('my-draft', draftData);
     } catch (e) {
-      console.error("Failed to save draft locally:", error);
+      console.error("Failed to save draft locally:", e);
     }
     Alert.alert(
       "Draft Saved",

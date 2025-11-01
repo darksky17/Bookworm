@@ -30,6 +30,7 @@ const useUnreadCountListener = () => {
   };
 
   const subscribeToUnreadChats = async () => {
+    console.log("Subscribing to unread chats…");
     // Clean up any existing listeners
     unsubscribeRefs.current.forEach((unsub) => unsub());
     unsubscribeRefs.current = [];
@@ -52,7 +53,9 @@ const useUnreadCountListener = () => {
         const chatRef = docSnap.ref;
     
         const unsub = onSnapshot(chatRef, (doc) => {
+          const previousData = queryClient.getQueryData(['chats'])
           try {
+            
             if (doc.exists()) {
               const chatData = doc.data();
               const currentChatUnreadCount = chatData.unreadCounts?.[userId] || 0;
@@ -67,10 +70,38 @@ const useUnreadCountListener = () => {
               console.log("Total unread count:", totalUnreadCount);
               
               dispatch(setUnreadCount(totalUnreadCount));
-              queryClient.invalidateQueries({ queryKey: ["chats"] });
+              
+              queryClient.setQueryData(['chats'], (oldData) => {                                      
+               if (!oldData) return
+                const updated = oldData.map(chat =>
+                  chat.chatid === chatId 
+                    ? { 
+                        ...chat, 
+                        latestMessage: chatData.lastMessage,
+                        unreadCount: chatData.unreadCounts?.[auth.currentUser.uid] || 0,
+                        timestamp: chatData.timestamp?.toDate?.() || chat.timestamp
+                      }  
+                    : chat
+                );
+                
+                // ✅ Sort by most recent
+                updated.sort((a, b) => {
+                  const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+                  const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+                  return timeB - timeA;  // Newest first
+                });
+                
+                return updated;
+                
+              });
+           
+              
+              
+              // queryClient.invalidateQueries({ queryKey: ["chats"] });
             }
           } catch (err) {
             console.error("Error processing snapshot for chat:", chatId, err);
+            queryClient.setQueryData(['chats'], previousData);
           }
         });
     
@@ -83,6 +114,7 @@ const useUnreadCountListener = () => {
   };
 
   const unsubscribeAll = () => {
+    console.log("Unsubscribing from all chats…");
     unsubscribeRefs.current.forEach((unsub) => unsub());
     unsubscribeRefs.current = [];
     chatUnreadCounts.current.clear();

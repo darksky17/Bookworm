@@ -441,16 +441,13 @@ else{
             )}
             <Button
               mode="contained-tonal"
-              disabled={isBlocked || userData.hasRequestedChat}
-              onPress={() =>
-                
-                checkChatRequest(userId)
-              }
-              buttonColor={theme.colors.primary}
+              disabled={isBlocked}
+              onPress={() => !userData.hasRequestedChat && checkChatRequest(userId)}
+              buttonColor={userData.hasRequestedChat?"grey":theme.colors.primary}
               textColor={theme.colors.text}
               style={{ borderRadius: 5, flex: 0.5 }}
             >
-              Message
+              {userData.hasRequestedChat?"Request Sent":"Message"}
             </Button>
           </>
         )}

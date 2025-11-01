@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "expo lint"
   },
   "dependencies": {
     "@cloudinary/url-gen": "^1.21.0",
@@ -37,6 +38,7 @@
     "expo": "^54.0.8",
     "expo-build-properties": "~1.0.8",
     "expo-dev-client": "~6.0.12",
+    "expo-image": "~3.0.10",
     "expo-image-picker": "~17.0.8",
     "expo-status-bar": "~3.0.8",
     "express": "^4.21.2",
@@ -69,7 +71,10 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2"
+    "@babel/core": "^7.25.2",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~10.0.0",
+    "eslint-plugin-react-compiler": "^19.1.0-rc.2"
   },
   "private": true,
   "packageManager": "yarn@4.7.0+sha512.5a0afa1d4c1d844b3447ee3319633797bcd6385d9a44be07993ae52ff4facabccafb4af5dcd1c2f9a94ac113e5e9ff56f6130431905884414229e284e37bb7c9",

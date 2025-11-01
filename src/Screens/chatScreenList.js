@@ -46,12 +46,6 @@ const ChatScreenList = ({ navigation }) => {
   console.log("chat Request count", chatRequests);
   
   useUnreadCountListener();
-  useFocusEffect(
-    useCallback(() => {
-  
-      refetch();
-    }, [refetch])
-  );
 
   const toggleFilter = (filter) => {
     setActiveFilters((prev) => {
@@ -68,7 +62,10 @@ const ChatScreenList = ({ navigation }) => {
     });
   };
 
+
+
   const getFilteredChats = () => {
+
     if (activeFilters.size === 0) return chats; // "All"
 
     return chats.filter((chat) => {
@@ -83,6 +80,7 @@ const ChatScreenList = ({ navigation }) => {
       return true;
     });
   };
+
   useEffect(() => {
     const checkNotificationPermission = async () => {
       if (Platform.OS === "android") {

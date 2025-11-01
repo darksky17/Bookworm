@@ -53,12 +53,12 @@ export const useFetchPostsById = (id, isChat=false) => {
   return useQuery({
     queryKey: ["post", id, isChat],
     queryFn: () => fetchPosts(id, isChat),
-    staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache data
+    staleTime: isChat? 10 * 60 * 1000: 0, // Always consider data stale
+    cacheTime: isChat? 30 *60 *1000: 0, // Don't cache data
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchOnMount: true, // Refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: isChat? false: true, // Refetch when component mounts
+    refetchOnWindowFocus: isChat? false:true, // Refetch when window gains focus
     enabled:!!id,
   });
 }; 

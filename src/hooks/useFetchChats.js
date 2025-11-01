@@ -27,10 +27,10 @@ const useFetchChats = () => {
   return useQuery({
     queryKey: ["chats"],
     queryFn: fetchChats,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    staleTime: 0, // optional: 1 minute
-    cacheTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    staleTime: Infinity, // optional: 1 minute
+    cacheTime: Infinity,
     retry: 3, // optional: retry once on error
   });
 };

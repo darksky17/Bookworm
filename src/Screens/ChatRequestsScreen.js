@@ -31,7 +31,7 @@ import {
 } from "../design-system/theme/scaleUtils";
 import { Button } from "react-native-paper";
 import AntDesign from '@expo/vector-icons/AntDesign';
-
+import { useQueryClient } from "@tanstack/react-query";
 
 
 
@@ -46,7 +46,7 @@ const ChatRequestsScreen = ({ navigation }) => {
   const userId = auth.currentUser.uid;
   const [reRenderTool, setReRenderTool] = useState(1);
   const [processing, setProcessing] = useState(false);
-
+  const queryClient = useQueryClient();
   useEffect(()=>{
 
     const fetchChatRequests = async()=>{
@@ -136,6 +136,7 @@ const ChatRequestsScreen = ({ navigation }) => {
             await updateDoc(userDocRef,{chatRequests:arrayRemove(chatRequestToRemove)});
             setOpenModal(false);
             Alert.alert("Chat Formed");
+            queryClient.invalidateQueries(["chats"]);
 
         } catch(e){
             console.log("error while removing object from ChatRequests",e);

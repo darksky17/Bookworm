@@ -326,7 +326,7 @@ useFocusEffect(
         title: shareTitle,
       });
   
-      setPost((prev) => ({ ...prev, Shares: prev.Shares + 1 }));
+      
     } catch (error) {
       alert("Failed to share the post.");
     }
@@ -350,13 +350,7 @@ useFocusEffect(
   };
 
 
-  const handleSave = (postId) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) =>
-        post.id === postId ? { ...post, Saved: post.Saved + 1 } : post
-      )
-    );
-  };
+  
 
   
   useFocusEffect(
@@ -400,7 +394,7 @@ useFocusEffect(
         handleLike(postId, ["posts", activeFilters], queryClient)}
       onDislike={(postId) => 
         handleDislike(postId, ["posts", activeFilters], queryClient)}
-      onSave={handleSave}
+      onSave={()=>{}}
       onShare={()=>{handleSend(item); setSelectedPost(item)}}
       onContentPress={handleContentPress}
       isSaved={savedPosts.includes(item.id)}

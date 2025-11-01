@@ -112,6 +112,9 @@ const AppNavigator = () => {
       const { version, updatelink } = await response.json();
 
       console.log("Here is the version", version);
+      
+      
+
 
       if (version !== APP_VERSION) {
         // Get APK download URL from Firebase Storage
@@ -252,14 +255,6 @@ const AppNavigator = () => {
   useEffect(() => {
     initializeNotificationPref();
   }, []);
-
-  if (initializing || !isReady) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color={theme.colors.secondary} />
-      </View>
-    );
-  }
   if (!serverCheck) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center"}}>
@@ -277,6 +272,15 @@ const AppNavigator = () => {
       </View>
     );
   }
+
+  if (initializing || !isReady) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color={theme.colors.secondary} />
+      </View>
+    );
+  }
+
   if (openModal) {
     return (
       <Modal visible transparent animationType="slide">

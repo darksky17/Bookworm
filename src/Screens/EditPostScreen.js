@@ -1,15 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, BackHandler, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Modal, FlatList, Keyboard, Pressable } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Text, BackHandler, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Modal, FlatList, Keyboard, } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { useSelector } from "react-redux";
 import { auth } from "../Firebaseconfig";
 import { SERVER_URL, GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../constants/api";
 import Container from "../components/Container";
 import Header from "../components/Header";
-import theme from "../design-system/theme/theme";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { horizontalScale, moderateScale, verticalScale } from "../design-system/theme/scaleUtils";
-import { Button, Modal as PModal } from "react-native-paper";
+import theme from "../design-system/theme/theme"
+import {moderateScale} from "../design-system/theme/scaleUtils";
 import { useFocusEffect } from "@react-navigation/native";
 
 
@@ -42,7 +40,6 @@ const EditPostScreen = ({navigation}) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [bookOptions, setBookOptions] = useState([]);
   const [loadingBooks, setLoadingBooks] = useState(false);
-  const [discardModal, setDiscardModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -377,59 +374,7 @@ const EditPostScreen = ({navigation}) => {
         </View>
       </Modal>
 
-      <PModal
-        transparent={true}
-        visible={discardModal}
-        animationType="slide"
-        onRequestClose={() => setDiscardModal(false)}
-      >
-        <View
-          style={{
-            padding: 20,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <View style={styles.unmatchModal}>
-            <Text>Do you want to save a draft?</Text>
-            <View style={{ flexDirection: "row", gap:horizontalScale(50), alignItems:"center" }}>
-            <View>
-  <Pressable onPress={() => setDiscardModal(false)}>
-    <Text style={{ color: theme.colors.muted }}>Cancel</Text>
-  </Pressable>
-</View>
-              <View style={{flexDirection:"row", alignItems:"center", gap:horizontalScale(10)}}>
-              <Button
-                buttonColor={theme.colors.primary}
-                textColor={theme.colors.text}
-                mode="contained"
-                onPress={()=>{setDiscardModal(false); storeDraft();}}
-              >
-                <Text>Yes</Text>
-              </Button>
-              <Button
-                buttonColor={theme.colors.primary}
-                textColor={theme.colors.text}
-                mode="contained"
-                onPress={async () =>  { setDiscardModal(false);
-                  await AsyncStorage.removeItem('my-draft'); 
-                  setBookTitle("");
-                  setBookAuthor("");
-                  setTitle("");
-                  setContent("");
-                  setTags("");
      
-                
-                  navigation.goBack(); 
-                }}
-              >
-                <Text>No</Text>
-              </Button>
-              </View>
-            </View>
-          </View>
-        </View>
-      </PModal>
     </Container>
   );
 };

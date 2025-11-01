@@ -16,6 +16,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.bookworm.demo"
     },
+    "experiments":{
+      "reactCompiler":true
+    },
     "android": {
       "package": "com.bookworm.demo",
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"],

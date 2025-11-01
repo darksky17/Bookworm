@@ -14,9 +14,10 @@ import {
   Pressable,
   TouchableHighlight,
   TouchableOpacity,
-  Image,
   Keyboard,
+  Vibration,
 } from "react-native";
+import { Image } from 'expo-image';
 import { GiftedChat, Message } from "react-native-gifted-chat";
 import * as ImagePicker from "expo-image-picker";
 import Menu from "../components/Menu";
@@ -53,7 +54,7 @@ import {
   GestureDetector,
   ScrollView,
 } from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
+import { Extrapolate, Extrapolation, FadeIn, interpolate, runOnJS, SlideInUp, SlideOutUp, Easing } from "react-native-reanimated";
 import { SERVER_URL } from "../constants/api";
 import theme from "../design-system/theme/theme";
 import {
@@ -63,11 +64,18 @@ import {
 } from "../design-system/theme/scaleUtils";
 import ImageView from "react-native-image-viewing";
 import { useQueryClient } from "@tanstack/react-query";
-import { useFetchMessages } from "../hooks/useFetchMessages";
-import { useFocusEffect } from "@react-navigation/native";
 import { useFetchPostsById } from "../hooks/useFetchPostsById";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, {
+  useSharedValue,
+  withTiming,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
+import { Dimensions } from "react-native";
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import dayjs from "dayjs";
+
 
 const ChatDisplay = ({ route, navigation }) => {
   const { allData } = route.params;
@@ -76,7 +84,6 @@ const ChatDisplay = ({ route, navigation }) => {
   const [chatId, setChatId] = useState(null);
   const chatsRef = collection(db, "Chats");
   const [modalState, setModalState] = useState(false);
-  let clickedYes = [];
   const [isdisabled, setIsDisabled] = useState(false);
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [hasHandledChoice, setHasHandledChoice] = useState(false);
@@ -86,14 +93,28 @@ const ChatDisplay = ({ route, navigation }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [isLoadingInitial, setIsLoadingInitital] = useState(true);
-  const [lastVisible, setLastVisible] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [localMessages, setLocalMessages] = useState([]);
+  const [isSending, setIsSending] = useState(false);
   const listenerUnsubscribeRef = useRef(null);
-    
+  const queryClient = useQueryClient();
+  const { width } = Dimensions.get('window');
+  const [isReply, setIsReply] = useState(false);
+  const [currentSelectedMessage, setCurrentSelectedMessage] = useState([]);
+  const scrollpos = useRef(null);
+  const initialScrolled = useRef(false); 
+  const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
 
-
+  // useEffect(() => {
+  //   if (!isLoadingInitial && messages.length > 0 && !hasScrolledToEnd) {
+  //     // Delay to ensure all Post components are fully rendered
+  //     const timer = setTimeout(() => {
+  //       scrollpos.current?.scrollToEnd({ animated: false });
+  //       setHasScrolledToEnd(true);
+  //     }, 300); // Increase delay if posts have images loading
+  
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [isLoadingInitial, messages.length, hasScrolledToEnd]);
+  
 
   const fetchLocalChats = async (chatId) => {
     try {
@@ -157,6 +178,7 @@ const normalizeMessage = (msg) => ({
       }
   
       const lastCachedMessage = cachedMessages[cachedMessages.length - 1];
+     
       const lastCachedDate = new Date(lastCachedMessage.createdAt);
       
       console.log("🔍 Last cached ID:", lastCachedMessage._id);
@@ -183,6 +205,7 @@ const normalizeMessage = (msg) => ({
         _id: doc.id,
         text: doc.data().content,
         type: doc.data().type || undefined,
+        parentId:doc.data().parentId || undefined,
         createdAt: doc.data().timestamp?.toDate() || new Date(),
         user: { _id: doc.data().senderID },
         ...(doc.data().image && { image: doc.data().image }),
@@ -252,7 +275,7 @@ const normalizeMessage = (msg) => ({
           }
   
           // Set pagination
-          setHasMore(cachedMessages.length >= 30);
+         
   
           // Step 3: Set up real-time listener for FUTURE messages
           setupRealtimeListener();
@@ -281,7 +304,7 @@ const normalizeMessage = (msg) => ({
         if (snapshot.empty) {
           setMessages([]);
           setIsLoadingInitital(false);
-          setHasMore(false);
+         
           return;
         }
   
@@ -289,6 +312,7 @@ const normalizeMessage = (msg) => ({
           _id: doc.id,
           text: doc.data().content,
           type: doc.data().type || undefined,
+          parentId:doc.data().parentId || undefined,
           createdAt: doc.data().timestamp?.toDate() || new Date(),
           user: { _id: doc.data().senderID },
           ...(doc.data().image && { image: doc.data().image }),
@@ -301,9 +325,9 @@ const normalizeMessage = (msg) => ({
         // Cache the initial fetch
         await storeChatInAsync(chatId, reversedMessages);
         
-        const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-        setLastVisible(lastDoc);
-        setHasMore(snapshot.docs.length === 30);
+        
+        
+        
         setIsLoadingInitital(false);
       });
   
@@ -343,6 +367,7 @@ const normalizeMessage = (msg) => ({
                 _id: doc.id,
                 text: data.content,
                 type: data.type || undefined,
+                parentId:data.parentId || undefined,
                 createdAt: data.timestamp?.toDate() || new Date(), // ✅ Always Date object
                 user: { _id: data.senderID },
                 ...(data.image && { image: data.image }),
@@ -518,11 +543,20 @@ const normalizeMessage = (msg) => ({
   const onSend = useCallback(
     async (newMessages = []) => {
       if (!chatId || newMessages.length === 0) return;
-  
+      const tempReply = isReply;
+    const tempcurrmsg = setCurrentSelectedMessage;
+    setIsReply(false);
+    setCurrentSelectedMessage([]);
       const message = newMessages[0];
+      if (isReply) {
+        console.log("This was selected and its parentId was sent", currentSelectedMessage._id);
+        message.type="reply"
+        message.parentId=currentSelectedMessage._id
+       }
       const tempId = message._id;
   
       console.log("📤 Sending message:", tempId);
+      setIsSending(true);
   
       // Optimistic UI update
       setMessages((previousMessages) => {
@@ -553,13 +587,17 @@ const normalizeMessage = (msg) => ({
         } else if (message.image && !message.pending) {
           imageUrl = message.image;
         }
-  
+   console.log("This is reply status", isReply);
         const firestoreMessage = {
           content: imageUrl ? "📷 Photo" : message.text || "",
           senderID: userId,
           receiverID: allData.id,
           timestamp: serverTimestamp(),
+          type: isReply? "reply":null,
         };
+        if(isReply){
+          firestoreMessage.parentId = currentSelectedMessage._id
+        }
   
         if (imageUrl) firestoreMessage.image = imageUrl;
         if (message.type) firestoreMessage.type = message.type;
@@ -583,6 +621,7 @@ const normalizeMessage = (msg) => ({
             user: { _id: userId },
             ...(imageUrl && { image: imageUrl }),
             ...(message.postId && { postId: message.postId }),
+            parentId:message.parentId || undefined
           };
   
           const updated = [...withoutOptimistic, confirmedMessage];
@@ -620,12 +659,19 @@ const normalizeMessage = (msg) => ({
   
       } catch (error) {
         console.error("❌ Error sending message:", error);
+        setIsReply(tempReply);
+        setCurrentSelectedMessage(tempcurrmsg);
         Alert.alert("Error", "Failed to send message. Please try again.");
         
         setMessages(prev => prev.filter(m => m._id !== tempId));
+      } finally{
+        setIsSending(false);
+        setIsReply(false);
+        setCurrentSelectedMessage([]);
+        
       }
     },
-    [chatId, userId, allData.id]
+    [chatId, userId, allData.id, isReply, currentSelectedMessage]
   );
 
   const storeChatInAsync = async (chatId, messagesArray) => {
@@ -651,7 +697,6 @@ const normalizeMessage = (msg) => ({
     }
   };
 
-  
 
 
   
@@ -690,6 +735,7 @@ const normalizeMessage = (msg) => ({
         if (!chatData.ascended) {
           await updateDoc(messagesDocRef, { ascended: true });
           Alert.alert("WOOHOO, this chat is now ascended!");
+            queryClient.invalidateQueries({ queryKey: ["chats"] });
         }
       } else {
         // Reset the round; bump count to get out of the threshold
@@ -760,12 +806,13 @@ const normalizeMessage = (msg) => ({
 
   const renderSend = useCallback((props) => {
     const messageLength = props.text?.trim().length || 0;
+
     return (
       <Send
         {...props}
         containerStyle={{ justifyContent: "center", paddingHorizontal: 10 }}
         alwaysShowSend="true"
-        disabled={messageLength === 0}
+        disabled={messageLength === 0 || isSending}
       >
         <MaterialIcons
           size={30}
@@ -815,8 +862,21 @@ const normalizeMessage = (msg) => ({
 
   const CustomInputToolbar = useCallback(
     (props) => {
+      
       return (
+        <View>
+        {isReply &&(
+          <Animated.View entering={FadeIn.duration(150).easing(Easing.inOut(Easing.quad))} style={{flexDirection:"row", maxWidth:width, justifyContent:"space-between", backgroundColor:theme.colors.secondary, borderTopStartRadius:10,borderTopEndRadius:10, padding:10}}>
+            <View style={{flex:1,gap:2}}>
+            <Text style={{fontWeight:"bold"}}>{currentSelectedMessage.user._id===auth.currentUser.uid?"You":allData.ascended ? allData.name : allData.displayName}</Text>
+            <Text numberOfLines={2} ellipsizeMode="tail">{currentSelectedMessage.text}</Text>
+            </View>
+            <Pressable  onPress={()=>setIsReply(false)}>
+            <Ionicons  name="close-circle-outline" size={21} color="black" />   
+            </Pressable>
+        </Animated.View>)}
         <View style={styles.inputContainer}>
+       
           <ScrollView>
             <InputToolbar
               {...props}
@@ -828,9 +888,10 @@ const normalizeMessage = (msg) => ({
           </ScrollView>
           {renderSend(props)}
         </View>
+        </View>
       );
     },
-    [renderActions, renderSend]
+    [renderActions, renderSend, isReply, currentSelectedMessage]
   );
 
   const renderMessageImage = useCallback((props) => {
@@ -854,21 +915,101 @@ const normalizeMessage = (msg) => ({
     );
   }, []);
 
+  const messageMap = useMemo(() => {
+    const map = new Map();
+    messages.forEach(msg => map.set(msg._id, msg));
+    return map;
+  }, [messages]);
+
   const renderBubble = useCallback(
-    (props) => (
+  
+    (props) => {
+     
+      const { currentMessage } = props;
+     
+      const isUser = currentMessage.user._id === auth.currentUser.uid;
+      const replyMessage = messages.find((msg)=> msg._id === currentMessage.parentId) || null
+      const bubbleStyle = {
+        backgroundColor: isUser ? theme.colors.primary : theme.colors.text,
+        borderRadius: 15,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        marginVertical: 2,
+        maxWidth: '80%',
+        alignSelf: isUser ? 'flex-end' : 'flex-start',
+      };
+  
+      const textStyle = {
+        color: isUser ? theme.colors.text : theme.colors.background,
+        fontSize:15,
+      };
+      const scrollToText=()=>{
+        
+const targetIndex = messages.findIndex(msg => msg._id === currentMessage.parentId);
+
+if (targetIndex !== -1) {
+  scrollpos.current?.scrollToIndex({ index: targetIndex, animated: true });
+}
+      }
+      
+ return(
+        <>
+        {replyMessage ?( <View style={bubbleStyle}>
+        {/* Reply preview inside bubble */}
+        {currentMessage.type === 'reply' && replyMessage && (
+          <Pressable style={{
+            padding: 5,
+            backgroundColor: theme.colors.secondary,
+            borderRadius: 8,
+            marginBottom: 4,
+          }} onPress={()=>{console.log("Pressing it");scrollToText() }}>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontWeight: 'bold', fontSize: theme.fontSizes.small }}>
+              {replyMessage.user._id === auth.currentUser.uid
+                ? 'You'
+                : allData.ascended
+                  ? allData.name
+                  : allData.displayName
+              }
+            </Text>
+            <Text numberOfLines={2} ellipsizeMode="tail" style={{ fontSize: theme.fontSizes.small }}>
+              {replyMessage.text}
+            </Text>
+ </Pressable>
+        )}
+
+        {/* Actual message text */}
+        <Text style={textStyle}>{currentMessage.text}</Text>
+        <Text
+    style={{
+      alignSelf: "flex-end",
+      fontSize: 10,
+      color: isUser ? "black" : theme.colors.background,
+      marginTop: 2,
+    }}
+  >
+     {dayjs(currentMessage.createdAt).format("h:mm A")}
+  </Text>
+         
+      </View>):(
       <Bubble
         {...props}
         wrapperStyle={{
-          right: { backgroundColor: theme.colors.primary }, // Sent messages (you)
+          right: { backgroundColor: theme.colors.primary}, // Sent messages (you)
           left: { backgroundColor: theme.colors.text }, // Received messages (other party)
         }}
         textStyle={{
           right: { color: theme.colors.text },
           left: { color: theme.colors.background },
         }}
-      />
-    ),
-    []
+        timeTextStyle={{
+          right:{color:"black"}
+        }}
+      /> 
+    )}
+      </>
+   
+    )},
+    [allData, messageMap]
   );
 
   // Memoize the user object to prevent unnecessary re-renders
@@ -893,79 +1034,18 @@ const normalizeMessage = (msg) => ({
       return "You cant reply to this chat because you have blocked this user"
     }
 
-    else return "Type a message..."
+    else return isReply ? "Type a reply...":"Type a message..."
 
   };
 
-  const loadMore = async  ()=>{
-    if (!chatId || !lastVisible || !hasMore || isLoadingMore) return;
- console.log("Load earlier was pressed");
-    setIsLoadingMore(true);
-
-    try {
-      const messagesRef = collection(db, "Chats", chatId, "messages");
-      
-      // Query for next batch, starting after the last visible document
-      const nextQuery = query(
-        messagesRef,
-        orderBy("timestamp", "desc"),
-        startAfter(lastVisible),
-        limit(30)
-      );
-
-      const snapshot = await getDocs(nextQuery);
-
-      if (snapshot.empty) {
-        setHasMore(false);
-        setIsLoadingMore(false);
-        return;
-      }
-
-      // Transform new batch
-      const olderMessages = snapshot.docs.map(doc => ({
-        _id: doc.id,
-        text: doc.data().content,
-        type: doc.data().type || undefined,
-        createdAt: doc.data().timestamp?.toDate() || new Date(),
-        user: {
-          _id: doc.data().senderID,
-        },
-        ...(doc.data().image && { image: doc.data().image }),
-        ...(doc.data().postId && { postId: doc.data().postId })
-      }));
-
-      
-
-      // Append older messages to the end (they're already in desc order)
-      setMessages(prev => {
-        const combined = [...prev, ...olderMessages];
-        // Sort ascending (oldest → newest)
-        combined.sort((a, b) => a.createdAt - b.createdAt);
-        return combined;
-      });
-      
-      // Update pagination markers
-      const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-      setLastVisible(lastDoc);
-      setHasMore(snapshot.docs.length === 30);
-      
-    } catch (error) {
-      console.error("Error loading more messages:", error);
-      Alert.alert("Error", "Failed to load older messages");
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  const customMessage = (props) => {
-    
-    const { currentMessage } = props;
+  const PostComponent = React.memo(({currentMessage})=>{
+    console.log("Tfddddddddddd");
     const [expanded, setExpanded] = useState(false);
  
     const userMessage = currentMessage.user._id === auth.currentUser.uid;
     const { data: postData, isLoading, error } = useFetchPostsById(currentMessage.postId || null, true);
    
-    if (currentMessage.type === "Post") { 
+
       
       if(isLoading){
         return(
@@ -984,7 +1064,8 @@ const normalizeMessage = (msg) => ({
       }
       
       // Example: Customize messages from a specific user
-      return (<>
+      return (
+        
         
         <View style={[ styles.postContainer, userMessage?styles.postContainerRight : styles.postContainerLeft]}>
           <Text style={{color:theme.colors.text, fontWeight:"bold", fontSize:moderateScale(14), marginBottom:verticalScale(10)}}>{currentMessage.text}</Text>
@@ -1031,7 +1112,7 @@ const normalizeMessage = (msg) => ({
     <Image
       source={{ uri: postData.images[0] }}
       style={{ width: "100%", height: verticalScale(200) }}
-      resizeMode="cover"
+      contentFit="cover"
     />
   </View>
 
@@ -1042,7 +1123,7 @@ const normalizeMessage = (msg) => ({
         <Image
           source={{ uri: postData.images[index] || postData.images[0] }}
           style={{ width: "100%", height: "100%" }}
-          resizeMode="cover"
+          contentFit="cover"
         />
       </View>
     ))}
@@ -1052,11 +1133,88 @@ const normalizeMessage = (msg) => ({
 
       )}
         </View>
-        </>
+     
       );
+    
+  
+  },(prevProps, nextProps) => {
+  return (
+    prevProps.currentMessage._id === nextProps.currentMessage._id
+
+    
+  );
+});
+
+const SwipeMessageComponent = React.memo((props)=>{
+  const {currentMessage, onSwipe} = props;
+  const swipeRef = useRef(null);
+  const renderRightAction = useCallback((progress) => {
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [
+        { scale: interpolate(progress.value, [0, 1], [0, 1], Extrapolation.CLAMP) },
+        { translateX: interpolate(progress.value, [0, 1], [0, 2], Extrapolation.CLAMP) }
+      ],
+      width: 80,
+    }));
+    
+    return (
+      <Animated.View style={animatedStyle}>
+        <View style={styles.replyImageWrapper} />
+      </Animated.View>
+    );
+  }, []);
+
+  const handleSwipe = useCallback(()=>{
+    Vibration.vibrate(55);
+      onSwipe(currentMessage);
+
+    swipeRef.current?.close();
+  },[currentMessage._id, onSwipe]);
+
+  return(
+    <Swipeable
+    ref={swipeRef}
+    renderLeftActions={renderRightAction}
+    renderRightActions={null}
+    leftThreshold={2}
+    overshootLeft={false}
+    friction={1}
+    overshootFriction={10}
+    onSwipeableWillOpen={handleSwipe}
+    
+  >
+    <View>
+    <Message {...props}/>
+    </View>
+  </Swipeable>
+  )
+
+},(prevProps, nextProps)=>{
+  return prevProps.currentMessage?._id === nextProps.currentMessage?._id;
+});
+const handleReplySwipe = useCallback((msg) => {
+  setIsReply(true);
+  setCurrentSelectedMessage(msg);
+}, []);
+
+  const customMessage = useCallback((props) => {
+   
+    const { currentMessage } = props; 
+   
+    if (currentMessage.type === "Post") { 
+      
+      return(
+      <PostComponent currentMessage={currentMessage}/>
+    );
     }
-    return <Message {...props} />; // Render default message for others
-  };
+  
+    else{
+    return (
+
+      <SwipeMessageComponent {...props} onSwipe={handleReplySwipe}/>
+    );
+    }
+  },[handleReplySwipe]);
 
   return (
     <SafeAreaView  style={styles.container}>
@@ -1115,6 +1273,7 @@ const normalizeMessage = (msg) => ({
         <GestureDetector gesture={swipeGesture}>
           
           <GiftedChat
+            
             messages={messages}
             onSend={onSend}
             user={user}
@@ -1133,6 +1292,20 @@ const normalizeMessage = (msg) => ({
             isAnimated={false}
             extraData={isKeyboardVisible}
             inverted={false}
+           listViewProps={{ref:scrollpos,
+                          //  initialScrollIndex:messages.length-1,
+                          onContentSizeChange:()=>{
+                            if(!initialScrolled.current && !isLoadingInitial){
+                              setTimeout(()=>{scrollpos.current?.scrollToEnd({animated:false});
+                            initialScrolled.current=true}, 10);
+                            }
+                          },
+                          maxToRenderPerBatch:15,
+                          updateCellsBatchingPeriod:30,
+                          windowSize:15,
+
+                          
+           }}
             
           />
         

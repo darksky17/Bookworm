@@ -167,7 +167,7 @@ const handleLoadMore = () => {
         }}
         onShare={()=>{handleShared(selectedpost)}}
         onViewProfile={() => {setPostMenuVisible(false); navigation.navigate("DisplayProfile", {userId: selectedpost.authorId})}}
-        onBlock={() =>{ BlockUser(userId, {navigation}); setPostMenuVisible(false)} }
+        onBlock={() =>{ BlockUser(selectedpost.authorId, {navigation}); setPostMenuVisible(false);} }
         onReport={() => {setPostMenuVisible(false); setReportModalVisible(true)}}
         post={selectedpost}
         userId={auth.currentUser.uid}

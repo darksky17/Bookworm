@@ -11,6 +11,7 @@ const theme = {
     error: "#E94E77",
 
   },
+   
   spacing: {
     vertical: {
       xs: verticalScale(4),

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { 
   View, 
   StyleSheet, 
@@ -10,12 +10,11 @@ import {
   TextInput,
   FlatList,
   ActivityIndicator,
-  Keyboard
 } from "react-native";
 
 import { useDispatch, useSelector } from "react-redux";
 import { setFavAuthors } from "../redux/userSlice";
-import { setDoc, updateDoc, auth } from "../Firebaseconfig";
+import { setDoc, auth } from "../Firebaseconfig";
 
 import { fetchUserDataById } from "../components/FirestoreHelpers";
 import Container from "../components/Container";
