@@ -29,6 +29,7 @@ import { BlockUser } from "../utils/blockuser";
 import { useFetchSavedPosts } from "../hooks/useFetchSavedPosts";
 import { useQueryClient } from "@tanstack/react-query";
 import { handleLike, handleDislike } from "../utils/postactions";
+import { pollUpdate } from "../utils/pollUdate";
 import ShareBottomSheet from "../components/ShareBottomSheet";
 
 const SavedPosts = ({ navigation }) => {
@@ -55,6 +56,7 @@ const SavedPosts = ({ navigation }) => {
 
 
   const posts = data?.pages.flatMap(page => page.posts) || [];
+  console.log(posts);
 
 const handleShared = async (post) => {
   try {
@@ -89,6 +91,16 @@ const handleLoadMore = () => {
   if (hasNextPage && !isFetchingNextPage) {
     fetchNextPage();
   }
+};
+
+const handlePollUpdate = (postId, newVoterList) => {
+  pollUpdate(postId, ["savedPosts"], queryClient, newVoterList);
+  pollUpdate(postId, ["postsforprofile", auth.currentUser.uid], queryClient, newVoterList);
+  pollUpdate(postId, ["posts"], queryClient, newVoterList);
+  queryClient.setQueryData(["post", postId, false], (old)=>{
+    if(!old) return old;
+    return { ...old, voterList: newVoterList };
+  });
 };
 
 
@@ -131,6 +143,7 @@ const handleLoadMore = () => {
           handleDislike(postId, ["savedPosts"], queryClient)}
         onShare={(post)=>{handleSend(post)}}
         onContentPress={(post) => navigation.navigate("PostDetail", { id: post.id })}
+        onPollUpdate={handlePollUpdate}
         onPressOptions={(item) => {
             setSelectedPost(item);
             setPostMenuVisible(true);

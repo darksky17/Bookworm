@@ -1,13 +1,156 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { auth } from "../Firebaseconfig";
 import ImageView from "react-native-image-viewing";
-import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Image, TouchableOpacity, Dimensions, Pressable, Alert } from 'react-native';
 import theme from '../design-system/theme/theme';
+import { SERVER_URL } from '../constants/api';
+import { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 
-const PostCard=({post, onLike, OnDislike, onComment, onShare, width, height })=>
+const PollComponent = ({pollOptions, voterList, hasVoted, setHasVoted, postId, onUpdate})=>{
+ 
+
+  const handleVote = async(option)=>{
+
+       const newVoterList = {...voterList};
+
+
+         newVoterList[auth.currentUser.uid]=option;
+         setHasVoted(true);
+         onUpdate?.(newVoterList);
+    
+     
+    const idToken = await auth.currentUser.getIdToken();
+    console.log("Enter hered on frontend");
+    const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body:JSON.stringify({option:option}),
+
+      
+    });
+
+    const res = await response.json();
+    if(response.ok){
+      setHasVoted(true);
+      return
+    } else{
+      Alert.alert("We got a problem here");
+      onUpdate?.(voterList);
+      setHasVoted(Object.keys(voterList).includes(userId));
+    }
+  }
+
+  const handleUndo = async (option)=>{
+
+    const newVoterList = {...voterList};
+    setHasVoted(false);
+
+    if(newVoterList[auth.currentUser.uid] === option){
+      delete newVoterList[auth.currentUser.uid]
+      onUpdate?.(newVoterList); 
+    } 
+     
+    const idToken = await auth.currentUser.getIdToken();
+    
+    const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body:JSON.stringify({option:option}),
+
+      
+    });
+
+    const res = await response.json();
+    if(response.ok){
+      setHasVoted(false);
+      return
+    } else{
+      Alert.alert("We got a problem here");
+      onUpdate?.(voterList);
+      setHasVoted(Object.keys(voterList).includes(userId));
+    }
+    
+
+  }
+
+  const totalVoters= Object.keys(voterList).length;
+
+  const votes = Object.values(voterList);
+
+  const OptionLayout =({option, percentage})=>{
+    const widthProgress = useSharedValue(0);
+    useEffect(() => {
+      widthProgress.value = withTiming(percentage, { duration: 300 });
+      
+    }, [percentage]);
+
+
+    const animatedStyle =useAnimatedStyle(()=>({ width:`${widthProgress.value}%` }));
+     
+    
+    return(
+      <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center"}}>
+    <Pressable disabled={hasVoted} onPress={()=>{ handleVote(option)}} style={{width:"90%",paddingLeft:8, paddingVertical:10, position:"relative", maxHeight:"100%", borderRadius:5, overflow:"hidden"}}>
+    <Animated.View style={[{backgroundColor:hasVoted?theme.colors.primary:"", position:"absolute", top:0, left:0, bottom:0,right:0}, animatedStyle]} />
+    
+   <View style={{flexDirection:"row", gap:10, alignItems:"center"}}>
+   <View><Text style={{fontWeight:"bold", alignSelf:"flex-start", paddingLeft:2, color:"black"}}>{option}</Text></View>
+   {hasVoted && option===voterList[auth.currentUser.uid] &&(<Ionicons name="star" size={18} color="black" />)}
+
+   </View>
+
+
+  
+    </Pressable>
+   {hasVoted&&(  
+   <View>
+   <Text numberOfLines={1} ellipsizeMode="tail" style={{fontWeight:"bold"}}>{percentage.toFixed(0)}%</Text>
+   </View>
+   )}
+    </View>
+    
+)
+  }
+  
+  return(
+    
+  <>{
+    pollOptions.map((option,index)=>{
+      const votesLength = votes.filter(v=>v===option).length
+      return(
+        
+        <View key={index}style={{marginBottom:8}}>
+      <OptionLayout option={option} percentage={votesLength<1?0:((votesLength*100)/totalVoters)} />
+
+      </View>
+       
+      )
+    })}
+    <View style={{flexDirection:"row", marginTop:10, alignItems:"center"}}>
+      <Text style={{fontSize:theme.fontSizes.xs}}> {totalVoters} Vote(s)</Text>
+      {hasVoted&&(
+      <Pressable onPress={ ()=>{const value=voterList[auth.currentUser.uid]; handleUndo(value);}}><Text style={{color:theme.colors.secondary, fontWeight:"bold"}}>   Undo</Text></Pressable>
+    )}
+      </View>
+  </>
+
+
+  )
+
+}
+
+
+const PostCard=({post, onLike, OnDislike, onComment, onShare, width, height, onPollUpdate })=>
     
     {
         const [selected, setSelected] = useState();
@@ -19,6 +162,14 @@ const PostCard=({post, onLike, OnDislike, onComment, onShare, width, height })=>
         const IMAGE_ASPECT_RATIO = 4 / 5;
         const CONTAINER_WIDTH = screenWidth * 0.85;
         const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
+        const [hasVoted, setHasVoted] = useState(() => {
+          if (post.type === "Poll" && post.voterList) {
+            console.log(post.voterList);
+            return Object.keys(post.voterList).includes(userId);
+          }
+          return false;
+        });
+ 
 
 return(
 <>
@@ -31,7 +182,14 @@ return(
   <Text style={styles.title}>{post.title}</Text>
 )}
 <Text style={styles.displayName}>{post.displayName}</Text>
+{post.type!=="Poll" &&(
 <Text style={styles.content}>{post.Content}</Text>
+    )}
+ 
+{post.type === "Poll" &&(
+  
+ <PollComponent pollOptions={post.pollOptions} voterList={post.voterList} hasVoted={hasVoted} setHasVoted={setHasVoted} postId={post.id} onUpdate={onPollUpdate} />
+)}
 {post.images?.length > 0 && (
 
 

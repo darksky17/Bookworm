@@ -19,6 +19,7 @@ import ReportProfileModal from "../components/reportProfileModal";
 import ShareBottomSheet from "../components/ShareBottomSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
+import { pollUpdate } from "../utils/pollUdate";
 const PostDetailScreen = ({ navigation }) => {
   const route = useRoute();
   const queryClient = useQueryClient();
@@ -71,8 +72,10 @@ useEffect(() => {
 
 useEffect(() => {
   if (postData) {
+ 
     
     setPost(postData);
+   
   }
 }, [postData]);
 
@@ -526,6 +529,20 @@ useEffect(() => {
     );
   };
 
+  const handlePollUpdate=(newVoterList)=>{
+    
+ setPost(prev=>({...prev, voterList:newVoterList}));
+ queryClient.setQueryData(["post", postId, false], (old)=>{
+  if(!old) return old;
+  return { ...old, voterList: newVoterList };
+});
+
+pollUpdate(postId, ["savedPosts"], queryClient, newVoterList);
+pollUpdate(postId, ["postsforprofile", auth.currentUser.uid], queryClient, newVoterList);
+pollUpdate(postId, ["posts"], queryClient, newVoterList);
+ 
+  }
+
   return (
     <Container containerStyle={{paddingBottom:insets.bottom}}>
       <View style={styles.headerRow}>
@@ -558,6 +575,7 @@ useEffect(() => {
         onLike={handleLike}
         OnDislike={handleDislike}
         onShare={handleSend}
+        onPollUpdate={handlePollUpdate}
         width={CONTAINER_WIDTH}
         height={CONTAINER_HEIGHT}
         />

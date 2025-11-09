@@ -29,6 +29,7 @@ import _ from 'lodash';
 import { useQueryClient } from "@tanstack/react-query";
 import { handleLike, handleDislike } from "../utils/postactions";
 import ShareBottomSheet from "../components/ShareBottomSheet";
+import { pollUpdate } from "../utils/pollUdate";
 
 const TabDisplayProfileScreen = ({navigation})=>{
     
@@ -132,6 +133,34 @@ const TabDisplayProfileScreen = ({navigation})=>{
       console.log(error);
     }
   }, []);
+
+  const handlePollUpdate = (postId, newVoterList) => {
+    console.log("Atleast I enter the handlePollUpdate frompoll in display profile"); //not showing
+    const keysToUpdate = [
+      ["savedPosts"],
+      ["postsforprofile", userId],
+      ["posts",""],
+    ];
+  
+    // Try updating all relevant infinite-query caches independently
+    for (const key of keysToUpdate) {
+      try {
+        pollUpdate(postId, key, queryClient, newVoterList);
+      } catch (e) {
+        console.warn("pollUpdate failed for key", key, e);
+      }
+    }
+  
+    // Keep the single-post cache in sync if it's present
+    try {
+      queryClient.setQueryData(["post", postId, false], (old)=>{
+        if(!old) return old;
+        return { ...old, voterList: newVoterList };
+      });
+    } catch (e) {
+      console.warn("single post cache update failed", e);
+    }
+  };
 
 
 
@@ -535,6 +564,7 @@ if (isDeleting) {
        setSelectedPost(item);
        setPostMenuVisible(true);
      }}
+    onPollUpdate={handlePollUpdate}
   
  />
 ))}

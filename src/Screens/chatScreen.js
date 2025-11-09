@@ -1039,7 +1039,7 @@ if (targetIndex !== -1) {
   };
 
   const PostComponent = React.memo(({currentMessage})=>{
-    console.log("Tfddddddddddd");
+    
     const [expanded, setExpanded] = useState(false);
  
     const userMessage = currentMessage.user._id === auth.currentUser.uid;
@@ -1061,6 +1061,27 @@ if (targetIndex !== -1) {
         <Text>{error.message}</Text>
 </View>
          )
+      }
+
+      if(postData.type==="Poll"){
+        return(
+          <View style={[ styles.postContainer, userMessage?styles.postContainerRight : styles.postContainerLeft]}>
+          <Text style={{color:theme.colors.text, fontWeight:"bold", fontSize:moderateScale(14), marginBottom:verticalScale(10)}}>{currentMessage.text}</Text>
+         <Pressable onPress={()=>navigation.navigate('DisplayProfile', { userId: postData.authorId })} style={{flexDirection:"row",  alignItems:"center"}}>
+          <View style={styles.avatarContainer_list}>
+          <Text style={styles.avatarText_list}>
+            {(postData.displayName || "U").charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <Text style={{fontWeight:"bold", color:theme.colors.text, maxWidth:"75%"}}numberOfLines={1} ellipsizeMode="tail">{postData.displayName}</Text>
+        </Pressable>
+    
+        <Pressable onPress={()=>navigation.navigate('PostDetail', { id: currentMessage.postId })}style={{marginTop:verticalScale(10)}}>
+          <Text>Looks like your friend shared a poll with you. Click here to go to the poll</Text>
+          </Pressable>
+          </View>
+
+        )
       }
       
       // Example: Customize messages from a specific user

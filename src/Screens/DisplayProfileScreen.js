@@ -23,6 +23,7 @@ import { handleDislike, handleLike } from "../utils/postactions";
 import _ from 'lodash';
 import ChatRequestModal from "../components/chatRequestModal";
 import ShareBottomSheet from "../components/ShareBottomSheet";
+import { pollUpdate } from "../utils/pollUdate";
 
 const DisplayProfileScreen = ({navigation})=>{
     
@@ -151,6 +152,35 @@ const DisplayProfileScreen = ({navigation})=>{
       console.log(error);
     }
   };
+
+  const handlePollUpdate = (postId, newVoterList) => {
+    console.log("Atleast I enter the handlePollUpdate frompoll in display profile"); //not showing
+    const keysToUpdate = [
+      ["savedPosts"],
+      ["postsforprofile", userId],
+      ["posts",""],
+    ];
+  
+    // Try updating all relevant infinite-query caches independently
+    for (const key of keysToUpdate) {
+      try {
+        pollUpdate(postId, key, queryClient, newVoterList);
+      } catch (e) {
+        console.warn("pollUpdate failed for key", key, e);
+      }
+    }
+  
+    // Keep the single-post cache in sync if it's present
+    try {
+      queryClient.setQueryData(["post", postId, false], (old)=>{
+        if(!old) return old;
+        return { ...old, voterList: newVoterList };
+      });
+    } catch (e) {
+      console.warn("single post cache update failed", e);
+    }
+  };
+  
 
 
 
@@ -466,7 +496,9 @@ else{
         <Text style={{fontWeight:"bold", color:theme.colors.muted, fontSize:theme.fontSizes.large}}>No Posts Yet</Text>
       </View>
     )}
+    
       {visiblePosts.map((post, index) => (
+        
         <PostItem
           key={post.id}
           post={post}
@@ -480,6 +512,7 @@ else{
             setSelectedPost(item);
             setPostMenuVisible(true);
           }}
+          onPollUpdate={handlePollUpdate}
         />
       ))}
 
@@ -657,7 +690,6 @@ const thhrottleScroll = useCallback(
     }, 50), 
     [hasNextPage, isFetchingNextPage, fetchNextPage, posts.length]
 );
-
 
 
 

@@ -44,6 +44,9 @@ const EditPostScreen = ({navigation}) => {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
+        if(postType === "Poll"){
+          return
+        }
         Alert.alert(
           "Discard Changes?",
           "Are you sure you want to discard your changes?",
@@ -171,6 +174,13 @@ const EditPostScreen = ({navigation}) => {
     }
   };
 
+  if(postType === "Poll"){
+    return(
+      <View style={{backgroundColor:theme.colors.background, padding:20, flex:1, justifyContent:"center", alignItems:"center"}}>
+        <Text>We do not allow editing polls. Please delete and make a new one if you have any corrections</Text>
+      </View>
+    )
+  }
 
 
 
