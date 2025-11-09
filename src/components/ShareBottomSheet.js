@@ -68,7 +68,9 @@ const ShareBottomSheet = ({post, onClose, bottomSheetRef, bottomSheetVisible})=>
           const shareTitle = post.type === "BookReview" 
             ? `Check out "${post.BookTitle}"`
             : `Check out "${post.title}"`;
-          const message = `${post.Content?.slice(0, 100)}...\n\nCheck this out on Bookworm:\n${shareUrl}`;  ///ORIGINAL AND WORKING
+
+          const subMessage = post.type!=="Poll"? post.Content?.slice(0,100):"Check out this Poll"
+          const message = `${subMessage}...\n\nCheck this out on Bookworm:\n${shareUrl}`;  ///ORIGINAL AND WORKING
       
           await Share.share({
             message: message,

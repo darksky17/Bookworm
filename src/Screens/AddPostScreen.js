@@ -12,7 +12,120 @@ import { horizontalScale, moderateScale, verticalScale } from "../design-system/
 import { Button, Modal as PModal } from "react-native-paper";
 import storage from "@react-native-firebase/storage";
 import BookSelector from "../components/bookSelector";
+import { Dropdown } from "react-native-element-dropdown";
 const MAX_IMAGES = 3;
+
+const PostComponent=React.memo(({postType, bookTitle, bookAuthor, handleBookSelect, title, setTitle, content, setContent, pollOptions, setPollOptions})=>{
+  if(postType==="BookReview"){
+    return(
+      <>
+      <Text style={styles.label}>Book Title & Author *</Text>
+      
+       <BookSelector
+                placeholder="Search by title or author"
+                value=
+                  { bookTitle!=="" ?
+                  `${bookTitle} by ${bookAuthor}`:""}
+                onBookSelect={handleBookSelect}
+              />
+                       <Text style={styles.label}>Content *</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={content}
+            onChangeText={setContent}
+            placeholder={postType === "BookReview" ? "Write your review or thoughts..." : "Write your discussion content..."}
+            placeholderTextColor={theme.colors.muted}
+            multiline
+            numberOfLines={5}
+          />
+    </>
+    )
+  } 
+  else if(postType === "Discussion"){
+    return(
+      <>
+      <Text style={styles.label}>Title *</Text>
+      <TextInput
+        style={styles.input}
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Enter discussion title"
+        placeholderTextColor={theme.colors.muted}
+      />
+               <Text style={styles.label}>Content *</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={content}
+            onChangeText={setContent}
+            placeholder={postType === "BookReview" ? "Write your review or thoughts..." : "Write your discussion content..."}
+            placeholderTextColor={theme.colors.muted}
+            multiline
+            numberOfLines={5}
+          />
+    </>
+    )
+
+  }
+  else{
+    return(
+      <>
+      <Text style={styles.label}>Ask Your Question *</Text>
+      <TextInput
+        style={styles.input}
+        maxLength={150}
+        multiline
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Enter discussion title"
+        placeholderTextColor={theme.colors.muted}
+      />
+      {pollOptions.map((option, index)=>{
+        return(
+        <View key={index}>
+      <View style={{flexDirection:"row", alignItems:"center", justifyContent:"space-between"}}>
+      <Text style={styles.label}>Option {index +1}{index+1>2?"":"*"}</Text>
+      {index+1>2&&(<Pressable onPress={()=>{const newOptions = [...pollOptions]
+                                            newOptions.splice(index, 1);
+                                            setPollOptions(newOptions);
+      }}><Text>Remove</Text></Pressable>)}
+      </View>
+            <TextInput
+            maxLength={50}
+            multiline
+        style={[styles.input,{paddingRight:40}]}
+        value={pollOptions[index]}
+        onChangeText={(text)=>{const newOptions = [...pollOptions];
+          newOptions[index] = text;
+          setPollOptions(newOptions);
+        }}
+        placeholder="Add Option"
+        placeholderTextColor={theme.colors.muted}
+      />
+       <Text
+                style={{
+                  flexDirection: "row",
+                  alignSelf: "flex-end",
+                  fontWeight: "bold",
+                  color: theme.colors.muted,
+                  fontSize:theme.fontSizes.xs,
+                  position:"absolute",
+                  top:53,
+                  right:4,
+                }}
+              >
+                {50- pollOptions[index].length}/50
+              </Text>
+      </View>
+      
+      )})
+  }
+   <Button disabled ={pollOptions.length>4}onPress={()=>{const newOptions = [...pollOptions];
+          newOptions.push("")
+          setPollOptions(newOptions);}}>Add Option</Button>
+    </>
+    )
+  }
+});
 
 const AddPostScreen = ({navigation}) => {
   const user = auth.currentUser;
@@ -21,6 +134,7 @@ const AddPostScreen = ({navigation}) => {
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
   const [title, setTitle] = useState("");
+  const [pollOptions, setPollOptions]=useState(["",""]);
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [loading, setLoading] = useState(false);
@@ -204,9 +318,17 @@ const uploadImage = async (uri, storageRef) => {
         Alert.alert("Error", "Please fill in all required fields.");
         return;
       }
-    } else {
+    } else if(postType === "Discussion") {
       if (!title || !content) {
         Alert.alert("Error", "Please fill in all required fields.");
+        return;
+      }
+    }
+    else{
+      if(!pollOptions[0] || !pollOptions[1] || !title){
+        console.log(pollOptions);
+        console.log(title);
+        Alert.alert("Error", "You need to fill atleast 2 options");
         return;
       }
     }
@@ -216,7 +338,7 @@ const uploadImage = async (uri, storageRef) => {
       const idToken = await user.getIdToken();
       const postData = {
         type: postType,
-        Content: content,
+        Content: content || null,
         tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
         authorId: user.uid,
         displayName: reduxUser.displayName || user.displayName || "Unknown User",
@@ -235,9 +357,14 @@ const uploadImage = async (uri, storageRef) => {
       if (postType === "BookReview") {
         postData.BookTitle = bookTitle;
         postData.BookAuthor = bookAuthor;
-      } else {
+      } else if(postType === "Discussion") {
         postData.title = title;
         
+      }
+      else{
+        postData.title=title;
+        postData.pollOptions= pollOptions;
+        postData.voterList = {};
       }
       if (postData.images != null) {
       const randomId= generateRandomString();
@@ -270,6 +397,7 @@ const uploadImage = async (uri, storageRef) => {
       setTitle("");
       setContent("");
       setTags("");
+      setPollOptions([]);
       setImages([]);
       Alert.alert("Success", "Your post has been added!");
       await AsyncStorage.removeItem('my-draft'); 
@@ -289,6 +417,9 @@ const uploadImage = async (uri, storageRef) => {
     }
     return rows;
   };
+  
+  const dropDownData = [{label:"Book Review", value:"BookReview"},{label:"Discussion", value:"Discussion"},{label:"Poll", value:"Poll"}]
+
 
 
   return (
@@ -302,73 +433,36 @@ const uploadImage = async (uri, storageRef) => {
         <ScrollView contentContainerStyle={styles.formContainer}>
           {/* Post Type Selector */}
           <Text style={styles.label}>Post Type *</Text>
+          <Dropdown data={dropDownData}
+          style={{borderRadius:10, borderWidth:1, padding:12}}
+          onChange={(item)=>{setPostType(item.value)}}
+          placeholder="Select Type Of Post"
+          labelField="label"
+          valueField="value"
+          selectedTextStyle={{fontWeight:"bold"}}
+          containerStyle={{borderRadius:10}}
+          activeColor={theme.colors.primary}
+          value={postType}
+          maxHeight={300}/>
           <View style={styles.typeSelector}>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                postType === "BookReview" && styles.typeButtonActive
-              ]}
-              onPress={() => setPostType("BookReview")}
-            >
-              <Text style={[
-                styles.typeButtonText,
-                postType === "BookReview" && styles.typeButtonTextActive
-              ]}>
-                Book Review
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                postType === "Discussion" && styles.typeButtonActive
-              ]}
-              onPress={() => setPostType("Discussion")}
-            >
-              <Text style={[
-                styles.typeButtonText,
-                postType === "Discussion" && styles.typeButtonTextActive
-              ]}>
-                Discussion
-              </Text>
-            </TouchableOpacity>
+
           </View>
 
-          {/* Conditional Fields based on Post Type */}
-          {postType === "BookReview" ? (
-            <>
-              <Text style={styles.label}>Book Title & Author *</Text>
-              
-               <BookSelector
-                        placeholder="Search by title or author"
-                        value=
-                          { bookTitle!=="" ?
-                          `${bookTitle} by ${bookAuthor}`:""}
-                        onBookSelect={handleBookSelect}
-                      />
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>Title *</Text>
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Enter discussion title"
-                placeholderTextColor={theme.colors.muted}
-              />
-            </>
-          )}
 
-          <Text style={styles.label}>Content *</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={content}
-            onChangeText={setContent}
-            placeholder={postType === "BookReview" ? "Write your review or thoughts..." : "Write your discussion content..."}
-            placeholderTextColor={theme.colors.muted}
-            multiline
-            numberOfLines={5}
-          />
+          <PostComponent 
+          postType={postType}
+          bookAuthor={bookAuthor}
+          bookTitle={bookTitle}
+          handleBookSelect={handleBookSelect}
+          title={title}
+          setTitle={setTitle}
+          pollOptions={pollOptions}
+          setPollOptions={setPollOptions}
+          content={content}
+          setContent={setContent}
+           />
+
+ 
           <Text style={styles.label}>Tags (comma separated)</Text>
           <TextInput
             style={styles.input}
@@ -379,6 +473,9 @@ const uploadImage = async (uri, storageRef) => {
           />
 
           {/* Image Picker */}
+
+          {postType!=="Poll"&&(
+            <>
           <Text style={styles.label}>Images (max 3)</Text>
           <View style={styles.imagePickerGrid}>
             {getImageRows().map((row, rowIdx) => (
@@ -411,6 +508,8 @@ const uploadImage = async (uri, storageRef) => {
           {images.length >= MAX_IMAGES && (
             <Text style={styles.imageLimitText}>You can select up to 3 images.</Text>
           )}
+          </>
+        )}
 
           <TouchableOpacity
             style={styles.submitButton}

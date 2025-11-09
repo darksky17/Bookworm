@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FlatList,
   View,
@@ -8,7 +8,9 @@ import {
   RefreshControl,
   Share,
   Image,
-  Dimensions
+  Dimensions,
+  Pressable,
+  Alert
 } from "react-native";
 import theme from "../design-system/theme/theme.js";
 import { auth } from "../Firebaseconfig.js";
@@ -23,15 +25,168 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { useSelector, useDispatch } from 'react-redux';
 import { setSavedPosts } from '../redux/userSlice.js';
 import ImageView from "react-native-image-viewing";
+import { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
-export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation }) => {
+const PollComponent = ({pollOptions, voterList, hasVoted, setHasVoted, postId, onUpdate})=>{
+ 
+
+  const handleVote = async(option)=>{
+    const userId = auth.currentUser.uid;
+       const newVoterList = {...voterList};
+
+
+         newVoterList[auth.currentUser.uid]=option;
+         setHasVoted(true);
+         onUpdate?.(newVoterList);
+    
+     
+    const idToken = await auth.currentUser.getIdToken();
+    console.log("Enter hered on frontend");
+    const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body:JSON.stringify({option:option}),
+
+      
+    });
+
+    const res = await response.json();
+    if(response.ok){
+      setHasVoted(true);
+      return
+    } else{
+      Alert.alert("We got a problem here");
+      onUpdate?.(voterList);
+      setHasVoted(Object.keys(voterList).includes(auth.currentUser.uid));
+    }
+  }
+
+  const handleUndo = async (option)=>{
+    console.log("I am running and here is chosen option ->", option); //confirmed
+    console.log("I am running and here is postId  ->", postId);  //confirmed
+    const userId = auth.currentUser.uid;
+    const newVoterList = {...voterList};
+    setHasVoted(false);
+    console.log("I am running and here is newVoterList before edit->", newVoterList);  //confirmed
+    if(newVoterList[auth.currentUser.uid] === option){
+      delete newVoterList[auth.currentUser.uid]
+      onUpdate?.(newVoterList);    // This is the culprit, it is failing everything after itself
+    } 
+    console.log("I am running and here is newVoterList after edit->", newVoterList); // not showing
+    const idToken = await auth.currentUser.getIdToken();
+    console.log("I am running and here is Idtoken  ->", idToken); //not showing 
+    const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body:JSON.stringify({option:option}),
+
+      
+    });
+
+    const res = await response.json();
+    if(response.ok){
+      setHasVoted(false);
+      return
+    } else{
+      Alert.alert("We got a problem here");
+      onUpdate?.(voterList);
+      setHasVoted(Object.keys(voterList).includes(userId));
+    }
+    
+
+  }
+
+  const totalVoters= Object.keys(voterList).length;
+
+  const votes = Object.values(voterList);
+
+  const OptionLayout =({option, percentage})=>{
+    const widthProgress = useSharedValue(0);
+    useEffect(() => {
+      widthProgress.value = withTiming(percentage, { duration: 300 });
+      
+    }, [percentage]);
+
+
+    const animatedStyle =useAnimatedStyle(()=>({ width:`${widthProgress.value}%` }));
+     
+    
+    return(
+      <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center"}}>
+    <Pressable disabled={hasVoted} onPress={()=>{ handleVote(option)}} style={{width:"90%",paddingLeft:8, paddingVertical:10, position:"relative", maxHeight:"100%", borderRadius:5, overflow:"hidden"}}>
+    <Animated.View style={[{backgroundColor:hasVoted?theme.colors.primary:"", position:"absolute", top:0, left:0, bottom:0,right:0}, animatedStyle]} />
+    
+   <View style={{flexDirection:"row", gap:10, alignItems:"center"}}>
+   <View><Text style={{fontWeight:"bold", alignSelf:"flex-start", paddingLeft:2, color:"black"}}>{option}</Text></View>
+   {hasVoted && option===voterList[auth.currentUser.uid] &&(<Ionicons name="star" size={18} color="black" />)}
+
+   </View>
+
+
+  
+    </Pressable>
+   {hasVoted&&(  
+   <View>
+   <Text numberOfLines={1} ellipsizeMode="tail" style={{fontWeight:"bold"}}>{percentage.toFixed(0)}%</Text>
+   </View>
+   )}
+    </View>
+    
+)
+  }
+  
+  return(
+    
+  <>{
+    pollOptions.map((option,index)=>{
+      const votesLength = votes.filter(v=>v===option).length
+      return(
+        
+        <View key={index}style={{marginBottom:8}}>
+      <OptionLayout option={option} percentage={votesLength<1?0:((votesLength*100)/totalVoters)} />
+
+      </View>
+       
+      )
+    })}
+    <View style={{flexDirection:"row", marginTop:10, alignItems:"center"}}>
+      <Text style={{fontSize:theme.fontSizes.xs}}> {totalVoters} Vote(s)</Text>
+      {hasVoted&&(
+      <Pressable onPress={ ()=>{const value=voterList[auth.currentUser.uid]; handleUndo(value);}}><Text style={{color:theme.colors.secondary, fontWeight:"bold"}}>   Undo</Text></Pressable>
+    )}
+      </View>
+  </>
+
+
+  )
+
+}
+
+
+export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPress, isSaved, onBookmark, onPressOptions, navigation, onPollUpdate }) => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selected, setSelected] = useState();
   const screenWidth = Dimensions.get('window').width;
   const IMAGE_ASPECT_RATIO = 4 / 5;
   const CONTAINER_WIDTH = screenWidth * 0.85;
   const CONTAINER_HEIGHT = CONTAINER_WIDTH / IMAGE_ASPECT_RATIO;
-
+  const userId = auth.currentUser?.uid;
+  const [hasVoted, setHasVoted] = useState(() => {
+    if (post.type === "Poll" && post.voterList) {
+      console.log("pp");
+      console.log(post.voterList);
+      return Object.keys(post.voterList).includes(userId);
+    }
+    return false;
+  });
+// console.log(post);
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "";
   
@@ -61,7 +216,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
      return `${diffInWeeks}w`;
   };
 
-  const userId = auth.currentUser?.uid;
+
   const hasLiked = post.likedBy && Array.isArray(post.likedBy) && post.likedBy.includes(userId);
   const hasDisliked = post.dislikedBy && Array.isArray(post.dislikedBy) && post.dislikedBy.includes(userId);
 
@@ -107,11 +262,20 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
         </View>
       )}
 
+ 
+{post.type === "Poll" &&(
+  <>{console.log("PostItem - onPollUpdate prop:", !!onPollUpdate)}
+ <PollComponent pollOptions={post.pollOptions} voterList={post.voterList} hasVoted={hasVoted} setHasVoted={setHasVoted} postId={post.id} onUpdate={(newVoterList) => {console.log("About to call onPollUpdate with:", post.id, newVoterList);
+  onPollUpdate(post.id, newVoterList)}} />
+ </>
+)}
+
       {/* Post Content - make this area touchable */}
+      {post.type!=="Poll" &&(
       <TouchableOpacity onPress={() => onContentPress(post)} activeOpacity={0.7}>
         <Text style={styles.postContent}>{post.Content}</Text>
       </TouchableOpacity>
-
+      )}
       {post.images?.length > 0 && (
         <>
           <FlatList
@@ -228,6 +392,7 @@ const PostsList = ({
   onContentPress,
   onBookmark,
   onPressOptions,
+  onPollUpdate,
   refreshing,
   onRefresh,
   emptyComponent,
@@ -277,6 +442,7 @@ const PostsList = ({
       onBookmark={onBookmark || handleBookmark}
       onPressOptions={onPressOptions}
       navigation={navigation}
+      onPollUpdate={onPollUpdate}
     />
   );
 
