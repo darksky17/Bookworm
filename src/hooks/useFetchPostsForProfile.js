@@ -26,6 +26,7 @@ const fetchPostsForProfile = async ({pageParam=null, queryKey}) => {
         posts: response.posts,
         hasMore: response.hasMore,
         cursor: response.cursor,
+        postsCount: response.postsCount
     }
      
     } catch (err) {

@@ -177,10 +177,12 @@ const PhoneauthScreen = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   placeholder="Enter phone number"
+                  placeholderTextColor={theme.colors.text}
                   value={phoneNumber}
                   onChangeText={(text) => setPhoneNumberState(text)}
                   keyboardType="phone-pad"
                   maxLength={10}
+                  autoComplete="tel"
                 />
               </View>
               {verificationId && (

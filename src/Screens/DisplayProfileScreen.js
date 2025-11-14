@@ -381,7 +381,7 @@ else{
             fontWeight: "bold",
             color: theme.colors.text
           }}>
-            {posts.length}
+            {datap?.pages[0]?.postsCount}
           </Text>
           <Text style={{ color: theme.colors.muted }}>Posts</Text>
         </View>

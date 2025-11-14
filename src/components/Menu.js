@@ -7,6 +7,7 @@ import {
   PaperProvider,
 } from "react-native-paper";
 import { doc, updateDoc, arrayUnion, auth, db } from "../Firebaseconfig";
+import { useQueryClient } from "@tanstack/react-query";
 import { SERVER_URL } from "../constants/api";
 import theme from "../design-system/theme/theme";
 import {
@@ -31,7 +32,7 @@ const Menu = ({
   const [blockModal, setBlockModal] = useState(false);
   const[reportModalVisible, setReportModalVisible] = useState(false);
   const userId = auth.currentUser.uid;
-  
+  const queryClient = useQueryClient();
 
   const Unmatch = async (chatId) => {
     if (unsubscribeRef.current) {
@@ -56,6 +57,7 @@ const Menu = ({
       .then(async (data) => {
         
         await AsyncStorage.removeItem(chatId);
+        await queryClient.invalidateQueries(["chats"]);
         navigation.goBack();
       })
       .catch((error) => {

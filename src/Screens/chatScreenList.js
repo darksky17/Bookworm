@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useFocusEffect } from "@react-navigation/native";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useFocusEffect, useScrollToTop } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import {
   View,
@@ -33,6 +33,7 @@ import useFetchChats from "../hooks/useFetchChats";
 import useUnreadCountListener from "../hooks/useUnreadCountListener";
 
 
+
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
   const gender = useSelector((state) => state.user.gender);
@@ -42,6 +43,9 @@ const ChatScreenList = ({ navigation }) => {
   const { data: chats, isLoading, isError, refetch } = useFetchChats();
   const unread = useSelector(state => state.user.unreadCount);
   let unreadCount = unread;
+  const ref = useRef(null);
+
+  useScrollToTop(ref);
 
   console.log("chat Request count", chatRequests);
   
@@ -304,6 +308,7 @@ const ChatScreenList = ({ navigation }) => {
             ))}
           </View>
           <FlatList
+          ref={ref}
             style={styles.chatListContainer}
             data={getFilteredChats()}
             keyExtractor={(item) => item.id}

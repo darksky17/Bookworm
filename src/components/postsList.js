@@ -180,8 +180,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
   const userId = auth.currentUser?.uid;
   const [hasVoted, setHasVoted] = useState(() => {
     if (post.type === "Poll" && post.voterList) {
-      console.log("pp");
-      console.log(post.voterList);
+   
       return Object.keys(post.voterList).includes(userId);
     }
     return false;
@@ -383,6 +382,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
 };
 
 const PostsList = ({
+  ref,
   posts,
   navigation,
   onLike,
@@ -393,8 +393,7 @@ const PostsList = ({
   onBookmark,
   onPressOptions,
   onPollUpdate,
-  refreshing,
-  onRefresh,
+  refreshControl,
   emptyComponent,
   contentContainerStyle,
   scrollEnabled=true,
@@ -448,19 +447,13 @@ const PostsList = ({
 
   return (
     <FlatList
+    ref={ref}
       data={posts}
       renderItem={renderPost}
       keyExtractor={(item) => item.id}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={contentContainerStyle || styles.feedContainer}
-      // refreshControl={
-      //   <RefreshControl
-      //     refreshing={refreshing}
-      //     onRefresh={onRefresh}
-      //     colors={[theme.colors.primary]}
-      //     tintColor={theme.colors.primary}
-      //   />
-      // }
+      refreshControl={refreshControl}
       ListEmptyComponent={emptyComponent || (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No posts yet</Text>
@@ -622,11 +615,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: theme.spacing.vertical.sm,
   },
-  emptySubtext: {
-    fontSize: theme.fontSizes.medium,
-    color: theme.colors.muted,
-    textAlign: "center",
-  },
+
 });
 
 export default PostsList;

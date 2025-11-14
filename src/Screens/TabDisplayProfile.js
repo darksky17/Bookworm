@@ -30,6 +30,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { handleLike, handleDislike } from "../utils/postactions";
 import ShareBottomSheet from "../components/ShareBottomSheet";
 import { pollUpdate } from "../utils/pollUdate";
+import { useScrollToTop } from "@react-navigation/native";
 
 const TabDisplayProfileScreen = ({navigation})=>{
     
@@ -56,6 +57,7 @@ const TabDisplayProfileScreen = ({navigation})=>{
   const scrollRef = useRef(null);
   const [scrollPos, setScrollPos] = useState(null)  ;
   const scrollYSwipe = useRef(0);
+  useScrollToTop(scrollRef);
   const renderLimit = useRef(5);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
@@ -69,11 +71,14 @@ const TabDisplayProfileScreen = ({navigation})=>{
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    postsCount
   } = useFetchPostsForProfile(userId);
 
   const posts = useMemo(() => {
     return data?.pages.flatMap(page => page.posts) || [];
 }, [data]);
+
+
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('blur', () => {
@@ -502,7 +507,7 @@ if (isDeleting) {
                 <Text style={{color:theme.colors.text, fontWeight:"bold", fontSize:theme.fontSizes.medium}}>{userData.displayName}</Text>
                 <View style={{ flexDirection:"row", alignItems:"flex-start", gap:horizontalScale(55), paddingTop:theme.spacing.vertical.md}}>
                 <View style={{justifyContent:"center", alignItems:"center"}}>
-                    <Text style={{fontSize:theme.fontSizes.medium, fontWeight:"bold", color:theme.colors.text }}>{posts.length}</Text>
+                    <Text style={{fontSize:theme.fontSizes.medium, fontWeight:"bold", color:theme.colors.text }}>{data?.pages[0]?.postsCount || 0}</Text>
                    <Text style={{color:theme.colors.muted}}>Posts</Text>
                     </View>
                     <View style={{justifyContent:"center", alignItems:"center"}}>

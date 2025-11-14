@@ -56,6 +56,7 @@ import useNotificationCountListener from "../hooks/useNotificationCountListener.
 const MatchScreen = ({ navigation }) => {
   
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const location = useSelector((state) => state.user.location);
   const [matches, setMatches] = useState([]);
   const [scanning, setScanning] = useState(false);
@@ -430,12 +431,14 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
                         flexDirection: "row",
                         justifyContent: "space-between",
                         alignItems: "center",
+                        
                       }}
                     >
                       <View
                         style={{
                           flexDirection: "row",
                           gap: horizontalScale(10),
+                          flex:0.6
                         }}
                       >
                         <Icon
@@ -455,6 +458,8 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
                               fontFamily: theme.fontFamily.regular,
                               fontSize: moderateScale(14),
                             }}
+                            ellipsizeMode="tail"
+                            numberOfLines={1}
                           >
                             {item.displayName}
                           </Text>
@@ -476,7 +481,10 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
                 </View>
               )}
               ListEmptyComponent={
+                <View style={{"flex":1, gap:15, alignItems:"center"}}>
                 <Text style={styles.noMatches}>No matches found nearby.</Text>
+                <Button onPress={()=>{navigation.navigate("AccountSettings")}} buttonColor={theme.colors.primary} textColor={theme.colors.text} mode="contained">Change Prefrences</Button>
+                </View>
               }
             />
           </View>
@@ -497,13 +505,15 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
                     Do you want to start a chat?
                   </Text>
                   <Pressable
-                    onPress={() => {
+                    onPress={async () => {
                       newChat(selectedMatch.uid);
                       setScanning(false);
                       setShowMatches(false);
                       setShowChatModal(false);
+                     
                       setTimeout(() => {
                         navigation.navigate("Chats");
+                        queryClient.invalidateQueries(["chats"]);
                       }, 700);
                     }}
                   >

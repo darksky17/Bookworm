@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,6 @@ import {
   setDateOfBirth,
   setGender,
 } from "../../redux/userSlice.js";
-import { Picker } from "@react-native-picker/picker";
 
 import moment from "moment";
 
@@ -37,18 +36,21 @@ import {
   horizontalScale,
   moderateScale,
 } from "../../design-system/theme/scaleUtils.js";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Dropdown } from "react-native-element-dropdown";
 
 const Screen1 = ({ navigation }) => {
   
   const dispatch = useDispatch();
-
+  const insets = useSafeAreaInsets();
   const [name, setNameState] = useState("");
   const [email, setEmailState] = useState("");
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   const [gender, setGenderState] = useState("");
-
+  const monthRef = useRef(null);
+  const yearRef= useRef(null);
   const phoneNumber = auth.currentUser?.phoneNumber;
   const userId = auth.currentUser.uid;
 
@@ -189,16 +191,12 @@ const Screen1 = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <Container>
-            {/* <Header title={"Tell Us About Yourself"} /> */}
-            <View style={styles.container}>
-              <View
+             <View
                 style={{
                   alignItems: "center",
                   fontWeight: "bold",
                   paddingHorizontal: horizontalScale(10),
+                  marginTop:insets.top
                 }}
               >
                 <Text
@@ -212,6 +210,12 @@ const Screen1 = ({ navigation }) => {
                   Tell Us About Yourself
                 </Text>
               </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <Container>
+            {/* <Header title={"Tell Us About Yourself"} /> */}
+            <View style={styles.container}>
+       
               <View style={{ flex: 1, gap: verticalScale(40) }}>
                 <TextInput
                   style={styles.input}
@@ -234,28 +238,39 @@ const Screen1 = ({ navigation }) => {
                   <TextInput
                     style={[styles.dateInput, styles.dayInput]}
                     placeholder="DD"
+                    maxLength={2}
                     value={day}
-                    onChangeText={(value) =>
-                      setDay(value.replace(/[^0-9]/g, "").slice(0, 2))
+                    onChangeText={(value) =>{
+                      setDay(value.replace(/[^0-9]/g, "").slice(0, 2)); if(value.length>1){
+                      monthRef.current.focus();
+                      }}
                     }
                     keyboardType="numeric"
                     placeholderTextColor={theme.colors.text}
                   />
                   <Text style={styles.separator}>/</Text>
                   <TextInput
+                  ref={monthRef}
                     style={[styles.dateInput, styles.monthInput]}
                     placeholder="MM"
+                    maxLength={2}
                     value={month}
-                    onChangeText={(value) =>
-                      setMonth(value.replace(/[^0-9]/g, "").slice(0, 2))
+                    onChangeText={(value) =>{
+                      setMonth(value.replace(/[^0-9]/g, "").slice(0, 2));
+                     if(value.length>1){
+                      yearRef.current.focus();
+                     }
+                    }
                     }
                     keyboardType="numeric"
                     placeholderTextColor={theme.colors.text}
                   />
                   <Text style={styles.separator}>/</Text>
                   <TextInput
+                  ref={yearRef}
                     style={[styles.dateInput, styles.yearInput]}
                     placeholder="YYYY"
+                    maxLength={4}
                     value={year}
                     onChangeText={(value) =>
                       setYear(value.replace(/[^0-9]/g, "").slice(0, 4))
@@ -265,24 +280,19 @@ const Screen1 = ({ navigation }) => {
                   />
                 </View>
 
-                <Picker
-                  selectedValue={gender}
-                  onValueChange={(itemValue) => setGenderState(itemValue)}
-                  dropdownIconColor={theme.colors.secondary}
-                  color={theme.colors.text}
-                  mode="dialog"
-                  prompt="Select Your Gender"
-                  style={{
-                    borderWidth: 1, 
-                    paddingVertical: 6,
-                    paddingHorizontal: 6,
-                    backgroundColor: theme.colors.text,            
-                  }}
-                >
-                  <Picker.Item label="Male" value="male" />
-                  <Picker.Item label="Female" value="female" />
-                  <Picker.Item label="Other" value="other" />
-                </Picker>
+
+                <Dropdown data={[{label:"Male", value:"male"}, {label:"Female", value:"female"}, {label:"Other", value:"other"}]}
+          style={{borderRadius:10, borderWidth:1, padding:12}}
+          onChange={(item)=>{setGenderState(item.value)}}
+          placeholder="Select Gender"
+          labelField="label"
+          valueField="value"
+          selectedTextStyle={{fontWeight:"bold"}}
+          containerStyle={{borderRadius:10}}
+          activeColor={theme.colors.primary}
+          value={gender}
+          maxHeight={300}/>
+
               </View>
               <View>
                 <Button
