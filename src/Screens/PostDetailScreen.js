@@ -1,5 +1,5 @@
 import React, {useRef, useState, useCallback, useEffect} from "react";
-import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Keyboard, Platform, Modal, Share, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Keyboard, Platform, Modal, Share, Alert, Vibration } from "react-native";
 import Container from "../components/Container";
 import theme from "../design-system/theme/theme";
 import { useRoute } from "@react-navigation/native";
@@ -55,6 +55,7 @@ const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
 const [sharedPost, setSharedPost] = useState(null);
 const [sendingComment, setSendingComment] = useState(false);
 const [behaviour, setBehaviour] = useState("padding");
+const [reRenderTool, setReRenderTool] = useState(0);
 
 useEffect(() => {
   const showListener = Keyboard.addListener("keyboardDidShow", () => {
@@ -246,10 +247,22 @@ useEffect(() => {
               : pomment
           );
         });
-        
+
+        const trigger = comment;
+
         setComment("");
         setReplyTo(null);
-        // refetchComments();
+        if(trigger.startsWith("@WormAI ")){
+          
+          setTimeout(()=>{
+            queryClient.invalidateQueries(['comments', post.id]);
+            setReRenderTool(1);
+          }, 700)
+       
+        }
+
+      
+        
       } catch (error) {
         alert("Failed to add comment");
         queryClient.setQueryData(['comments', post.id], previousData);
@@ -458,11 +471,26 @@ useEffect(() => {
               <View style={{flexDirection:"row", gap:5, alignItems:"flex-start"}} >
              
                   <View style={styles.avatarContainer}>
-                  <Text style={styles.avatarText}>
+                  {/* <Text style={styles.avatarText}>
                     {(c.displayName || "U").charAt(0).toUpperCase()}
-                  </Text>
+                  </Text> */}
+
+{c.userId==="WormAI" ?(
+          <>
+      <Image
+            source={require("../assets/play_store_512.png") }
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="cover"
+          />
+          </>):(
+            <>
+         <Text style={styles.avatarText}>
+          { c.displayName?.charAt(0)?.toUpperCase() || ("U")}
+        </Text> 
+        </>
+          )}
                 </View>
-                <Text style={styles.commentAuthor}>{c.displayName}</Text>
+                <Text style={styles.commentAuthor}>{c.userId==="WormAI"?"WormAI":c.displayName}</Text>
                
        
               </View>
@@ -497,9 +525,24 @@ useEffect(() => {
             <View style={styles.commentMeta}>
               <View style={{flexDirection:"row", gap:5, alignItems:"flex-start"}}>
                 <View style={styles.avatarContainer}>
-                  <Text style={styles.avatarText}>
+                  {/* <Text style={styles.avatarText}>
                     {(c.displayName || "U").charAt(0).toUpperCase()}
-                  </Text>
+                  </Text> */}
+
+{c.userId==="WormAI" ?(
+          <>
+      <Image
+            source={require("../assets/play_store_512.png") }
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="cover"
+          />
+          </>):(
+            <>
+         <Text style={styles.avatarText}>
+          { c.displayName?.charAt(0)?.toUpperCase() || ("U")}
+        </Text> 
+        </>
+          )}
                 </View>
                 <Text style={styles.commentAuthor}>{c.displayName}</Text>
               </View>
@@ -646,9 +689,17 @@ pollUpdate(postId, ["posts"], queryClient, newVoterList);
               <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
             </TouchableOpacity>
           ) : (
+            <View style={{flexDirection:"row", justifyContent:"space-around", alignItems:"center", marginLeft:horizontalScale(10)}}>
+             {post.type!=="Poll" && replyTo==null &&(
+              <Pressable onPress={()=>{setComment("@WormAI sumamrize this"); Vibration.vibrate(80)}}>              
+                <Image source={require("../assets/BookWorm_logo_new.png")} style={{width:30, height:22}} />
+              </Pressable>
+              )}
+
             <TouchableOpacity onPress={handleSendComment} style={styles.sendButton} disabled={!comment.trim() || sendingComment}>
               <Ionicons name="send" size={22} color={theme.colors.primary} />
             </TouchableOpacity>
+            </View>
           )}
         </View>
         </View>
@@ -848,6 +899,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
+    overflow:"hidden",
     marginRight: theme.spacing.horizontal.xs, // was sm
   },
   avatarText: {

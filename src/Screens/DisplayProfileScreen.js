@@ -357,9 +357,20 @@ else{
       gap: verticalScale(10)
     }}>
       <View style={styles.avatarContainer}>
-        <Text style={styles.avatarText}>
-          {("U").charAt(0).toUpperCase()}
-        </Text>
+        {userData.displayName==="WormAI" ?(
+          <>
+      <Image
+            source={require("../assets/play_store_512.png") }
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="cover"
+          />
+          </>):(
+            <>
+         <Text style={styles.avatarText}>
+          { userData.displayName?.charAt(0)?.toUpperCase() || ("U")}
+        </Text> 
+        </>
+          )}
       </View>
       <Text style={{
         color: theme.colors.text,
@@ -381,7 +392,7 @@ else{
             fontWeight: "bold",
             color: theme.colors.text
           }}>
-            {datap?.pages[0]?.postsCount}
+            {datap?.pages[0]?.postsCount || 0}
           </Text>
           <Text style={{ color: theme.colors.muted }}>Posts</Text>
         </View>
@@ -471,7 +482,7 @@ else{
             )}
             <Button
               mode="contained-tonal"
-              disabled={isBlocked}
+              disabled={isBlocked || userData.displayName==="WormAI"}
               onPress={() => !userData.hasRequestedChat && checkChatRequest(userId)}
               buttonColor={userData.hasRequestedChat?"grey":theme.colors.primary}
               textColor={theme.colors.text}
@@ -627,9 +638,23 @@ else{
     </View>
   );
 
+  const WormAIAbout = (
+    <View style={{
+      paddingHorizontal: theme.spacing.horizontal.md,
+      paddingTop: theme.spacing.vertical.lg,
+      justifyContent:"center",
+      alignItems:"center"
+      
+    }}>
+     <Text style={{color:theme.colors.text, fontSize:theme.fontSizes.small}}>Hi! I am WormAI. You can utilize me to get summarries of really long posts and reviews!
+      Although, I would suggest that you actually take the time to read the user provided reviews instead of relying on me.
+     </Text>
+    </View>
+  );
+
   const tabs = [
     { label: "Posts", content: postsContent },
-    { label: "About", content: aboutContent }
+    { label: "About", content: userData.displayName==="WormAI"?WormAIAbout:aboutContent }
   ];
   
 
@@ -813,6 +838,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.primary,
         justifyContent: "center",
         alignItems: "center",
+        overflow:"hidden",
         marginRight: theme.spacing.horizontal.xs, // was sm
       },
       avatarText: {

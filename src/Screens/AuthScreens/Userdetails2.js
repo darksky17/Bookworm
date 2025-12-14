@@ -241,10 +241,10 @@ const Userdetails2 = ({ navigation }) => {
       Alert.alert("Error", "Please select your current read.");
       return;
     }
-    if (bookSummary.length < 50) {
+    if (bookSummary.length < 20) {
       Alert.alert(
         "Error",
-        "Please make sure that your book summary is at least 50 characters long."
+        "Please make sure that your book summary is at least 20 characters long."
       );
       return;
     }

@@ -88,6 +88,11 @@ const AddPhotosScreen = ({ navigation }) => {
       });
 
       if (!result.canceled) {
+        console.log(result);
+        const fileSize = result.assets[0].fileSize;
+        if (fileSize > 10485760) {
+            throw new Error("Image size cannot be greater than 10mb")
+        } 
         const updated = [...selectedPhotos];
         const emptyIndex = updated.findIndex((item) => item.uri === "");
 
@@ -111,7 +116,7 @@ const AddPhotosScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", "An error occurred while selecting an image.");
+      Alert.alert("Error", error.message);
     }
   };
 

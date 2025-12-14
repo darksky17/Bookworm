@@ -16,6 +16,7 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import Geolocation from "react-native-geolocation-service";
+import { FadeIn, FadeOut } from "react-native-reanimated";
 import { useDispatch, useSelector } from "react-redux";
 import {
   updateDoc,
@@ -68,6 +69,7 @@ const MatchScreen = ({ navigation }) => {
   const unsubscribeRef = useRef(null);
   const pause = useSelector((state) => state.user.pauseMatch);
   const scanningRef = useRef(scanning);
+  const [isInititatingChat, setIsInitiatingChat] = useState(false);
 
 
   useEffect(() => {
@@ -355,6 +357,18 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
     });
   };
 
+
+  if(isInititatingChat){
+    return(
+      <Animated.View entering={FadeIn} exiting={FadeOut} style={{flex:1, justifyContent:"center", alignItems:"center"}}>
+          <Image
+              source={require("../assets/Bookworms_Shake_Hands_Video.gif")}
+              style={{width:300, height:300, borderRadius:100}}
+            />
+      <Text style={{color:theme.colors.text, fontWeight:"bold"}}>Initiating chat, please wait.</Text>
+      </Animated.View>
+    )
+  }
   return (
     <Container>
       <View style={{flexDirection:"row", justifyContent:"space-between"}}>
@@ -483,7 +497,7 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
               ListEmptyComponent={
                 <View style={{"flex":1, gap:15, alignItems:"center"}}>
                 <Text style={styles.noMatches}>No matches found nearby.</Text>
-                <Button onPress={()=>{navigation.navigate("AccountSettings")}} buttonColor={theme.colors.primary} textColor={theme.colors.text} mode="contained">Change Prefrences</Button>
+                <Button onPress={()=>{navigation.navigate("AccountSettings")}} buttonColor={theme.colors.primary} textColor={theme.colors.text} mode="contained">Change Preferences</Button>
                 </View>
               }
             />
@@ -506,15 +520,19 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
                   </Text>
                   <Pressable
                     onPress={async () => {
-                      newChat(selectedMatch.uid);
+                      setIsInitiatingChat(true);
+                      await newChat(selectedMatch.uid);
                       setScanning(false);
                       setShowMatches(false);
                       setShowChatModal(false);
                      
-                      setTimeout(() => {
+                    
+                        
+                       await  queryClient.invalidateQueries(["chats"]);    
+                       setIsInitiatingChat(false);
+                       
                         navigation.navigate("Chats");
-                        queryClient.invalidateQueries(["chats"]);
-                      }, 700);
+                   
                     }}
                   >
                     <Text style={styles.chatPromptButton}>Start Chat!</Text>
