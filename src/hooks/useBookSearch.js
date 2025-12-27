@@ -17,7 +17,7 @@ export const useBookSearch = () => {
     setLoadingBooks(true);
     try {
       const response = await fetch(
-        `${GOOGLE_BOOKS_API_URL}?q=${encodeURIComponent(
+        `${GOOGLE_BOOKS_API_URL}?q=intitle:${encodeURIComponent(
           query
         )}&key=${BOOKS_API_KEY}`
       );

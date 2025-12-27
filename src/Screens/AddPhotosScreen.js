@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
+import * as ImagePickerExpo from "expo-image-picker";
+import ImagePicker from "react-native-image-crop-picker";
 import { useDispatch, useSelector } from "react-redux";
 import { setPhotos } from "../redux/userSlice";
 import { auth, updateDoc, setDoc } from "../Firebaseconfig.js";
@@ -71,7 +72,7 @@ const AddPhotosScreen = ({ navigation }) => {
   const handleImagePicker = async () => {
     try {
       const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+        await ImagePickerExpo.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           "Permission Denied",
@@ -80,16 +81,25 @@ const AddPhotosScreen = ({ navigation }) => {
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+      // const result = await ImagePicker.launchImageLibraryAsync({
+      //   mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      //   allowsEditing: true,
+      //   quality: 1,
+      //   aspect:[9,16]
+      // });
+
+      
+      const result = await ImagePicker.openPicker({
+        cropping: true,
+        freeStyleCropEnabled:true,
         quality: 1,
         aspect:[9,16]
       });
 
       if (!result.canceled) {
-        console.log(result);
-        const fileSize = result.assets[0].fileSize;
+        console.log("Wow", result);
+        const fileSize = result.size;
+
         if (fileSize > 10485760) {
             throw new Error("Image size cannot be greater than 10mb")
         } 
@@ -104,17 +114,21 @@ const AddPhotosScreen = ({ navigation }) => {
         }
 
         if (emptyIndex !== -1) {
-          updated[emptyIndex].uri = result.assets[0].uri;
+          updated[emptyIndex].uri = result.path;
         } else {
           updated.push({
             key: `${Date.now()}`,
-            uri: result.assets[0].uri,
+            uri: result.path,
           });
         }
 
         setSelectedPhotos(updated);
       }
     } catch (error) {
+      if (error.code === 'E_PICKER_CANCELLED') {
+        // User cancelled — this is NOT an error
+        return;
+      }
       console.error("Error picking image:", error);
       Alert.alert("Error", error.message);
     }

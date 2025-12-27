@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "BookWorm",
-    "scheme":"bookworm",
+    "scheme": "bookworm",
     "slug": "Demo1",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,12 +16,19 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.bookworm.demo"
     },
-    "experiments":{
-      "reactCompiler":true
+    "experiments": {
+      "reactCompiler": true
     },
     "android": {
       "package": "com.bookworm.demo",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "POST_NOTIFICATIONS"],
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
       "googleServicesFile": "./src/google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon_latest.png",
@@ -37,7 +44,10 @@
               "host": "bookworm.infodata.in"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -46,17 +56,24 @@
     },
     "plugins": [
       [
-      "expo-build-properties",
-      {"android": {
-        "kotlinVersion": "2.2.20"
-      }
-    }
-  ]
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.1.20"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
         "projectId": "685ddbfc-a7b9-4ad0-9268-61d134a63996"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/685ddbfc-a7b9-4ad0-9268-61d134a63996"
     }
   }
 }

@@ -101,7 +101,7 @@ const PollComponent = ({pollOptions, voterList, hasVoted, setHasVoted, postId, o
     return(
       <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center"}}>
     <Pressable disabled={hasVoted} onPress={()=>{ handleVote(option)}} style={{width:"90%",paddingLeft:8, paddingVertical:10, position:"relative", maxHeight:"100%", borderRadius:5, overflow:"hidden"}}>
-    <Animated.View style={[{backgroundColor:hasVoted?theme.colors.primary:"", position:"absolute", top:0, left:0, bottom:0,right:0}, animatedStyle]} />
+    <Animated.View style={[{backgroundColor:hasVoted?theme.colors.primary:"transparent", position:"absolute", top:0, left:0, bottom:0,right:0}, animatedStyle]} />
     
    <View style={{flexDirection:"row", gap:10, alignItems:"center"}}>
    <View><Text style={{fontWeight:"bold", alignSelf:"flex-start", paddingLeft:2, color:"black"}}>{option}</Text></View>

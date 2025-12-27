@@ -568,7 +568,9 @@ const normalizeMessage = (msg) => ({
         
         return updated;
       });
-  
+
+      scrollpos.current?.scrollToEnd({animated:true})
+      
       const messagesRef = collection(db, "Chats", chatId, "messages");
   
       try {

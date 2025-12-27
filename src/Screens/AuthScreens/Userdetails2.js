@@ -26,7 +26,6 @@ import {
   fetchUserDataByQuery,
   fetchUserDataById,
 } from "../../components/FirestoreHelpers";
-import { MultiSelect, Dropdown } from "react-native-element-dropdown";
 import { GOOGLE_BOOKS_API_URL, BOOKS_API_KEY } from "../../constants/api";
 import { Button } from "react-native-paper";
 // import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -190,13 +189,17 @@ const Userdetails2 = ({ navigation }) => {
         )}&key=${BOOKS_API_KEY}`
       );
       const data = await response.json();
-
+        
       const authorsSet = new Set();
 
       if (data.items) {
         data.items.forEach((item) => {
           const authors = item.volumeInfo.authors || [];
-          authors.forEach((author) => authorsSet.add(author));
+          authors.forEach((author) => {
+            if(author.toUpperCase().startsWith(query.toUpperCase()))
+            authorsSet.add(author.toUpperCase().trim())
+
+          });
         });
       }
 
@@ -225,6 +228,7 @@ const Userdetails2 = ({ navigation }) => {
         return;
       }
       setSelectedAuthors([...selectedAuthors, author]);
+      setAuthorSearchQuery("");
     }
   };
 
@@ -372,7 +376,7 @@ const Userdetails2 = ({ navigation }) => {
 
           <View style={{ gap: 15 }}>
             <Text style={styles.subHeader}>
-              Select Your Favorite Authors (3-5):
+              Select Your Favorite Authors (max 5):
             </Text>
 
             <TouchableOpacity

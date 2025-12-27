@@ -690,10 +690,10 @@ pollUpdate(postId, ["posts"], queryClient, newVoterList);
             </TouchableOpacity>
           ) : (
             <View style={{flexDirection:"row", justifyContent:"space-around", alignItems:"center", marginLeft:horizontalScale(10)}}>
-             {post.type!=="Poll" && replyTo==null &&(
-              <Pressable onPress={()=>{setComment("@WormAI sumamrize this"); Vibration.vibrate(80)}}>              
+             {replyTo==null &&(
+              <TouchableOpacity onPress={()=>{setComment("@WormAI "); Vibration.vibrate(80)}}>              
                 <Image source={require("../assets/BookWorm_logo_new.png")} style={{width:30, height:22}} />
-              </Pressable>
+              </TouchableOpacity>
               )}
 
             <TouchableOpacity onPress={handleSendComment} style={styles.sendButton} disabled={!comment.trim() || sendingComment}>
@@ -753,14 +753,17 @@ pollUpdate(postId, ["posts"], queryClient, newVoterList);
             )}
 
 {menuComment && (menuComment.userId !== userId) && (
+  <>
             <TouchableOpacity style={styles.menuItem} onPress={()=>{BlockUser(menuComment.userId); setMenuVisible(false)}}>              
            
                <Text style={[styles.menuItemText, { color: theme.colors.error }]}>Block Account</Text>
             </TouchableOpacity>
-)}
+
     <TouchableOpacity onPress={() =>{navigation.navigate("DisplayProfile", {userId:menuComment.userId}); setMenuVisible(false)}} style={styles.menuItem}>
               <Text style={[styles.menuItemText, { color: theme.colors.text }]}>View Profile</Text>
             </TouchableOpacity>
+            </>
+            )}
 
             <TouchableOpacity onPress={() => setMenuVisible(false)} style={styles.menuItem}>
               <Text style={[styles.menuItemText, { color: theme.colors.muted }]}>Cancel</Text>

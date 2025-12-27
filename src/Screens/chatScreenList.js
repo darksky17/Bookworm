@@ -18,6 +18,7 @@ import {
 import { auth } from "../Firebaseconfig";
 import Header from "../components/Header";
 import Feather from "@expo/vector-icons/Feather";
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Container from "../components/Container";
 import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 import { Platform } from "react-native";
@@ -59,7 +60,18 @@ const ChatScreenList = ({ navigation }) => {
       if (updated.has(filter)) {
         updated.delete(filter); // toggle off
       } else {
+        if(updated.has("Normal") && filter==="Ascended"){
+          updated.delete("Normal")
+          updated.add("Ascended");
+        }
+        else if(updated.has("Ascended") && filter==="Normal"){
+          updated.delete("Ascended")
+          updated.add("Normal");
+        }
+
+        else{
         updated.add(filter); // toggle on
+        }
       }
 
       return updated;
@@ -354,6 +366,10 @@ const ChatScreenList = ({ navigation }) => {
                           {item.ascended ? item.name : item.displayName}
                         </Text>
                         {item.latestMessage ? (
+                          <View style={{flex:1, marginLeft:5, flexDirection:"row", alignItems:"center"}}>
+                           {item.latestSenderId === auth.currentUser.uid &&(
+                            <Ionicons name="checkmark-done-sharp" size={18} color="grey" />
+                           )}
                           <Text
                             style={{
                               fontSize: theme.fontSizes.small,
@@ -369,6 +385,7 @@ const ChatScreenList = ({ navigation }) => {
                           >
                             {item.latestMessage}
                           </Text>
+                          </View>
                         ) : null}
                       </View>
                     </Pressable>

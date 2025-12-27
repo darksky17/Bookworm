@@ -30,6 +30,7 @@ import { useNetInfoInstance } from "@react-native-community/netinfo";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { horizontalScale, verticalScale } from "./design-system/theme/scaleUtils";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import ToastManager, { Toast } from 'toastify-react-native'
 
 
 
@@ -140,14 +141,20 @@ const AppNavigator = () => {
       console.log("✅ Setting background message handler");
       messaging().setBackgroundMessageHandler(async (remoteMessage) => {
         console.log("📩 Background message:", remoteMessage);
+    
       });
+      messaging().onMessage(async (remoteMessage) => {
+        console.log("📩 Foreground message");
+        
+      });
+      
     }
   }, [notificationPref]);
 
 
 
   useEffect(() => {
-    if (!notificationPrefReady) return;
+    if (!notificationPrefReady || !serverCheck) return;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
@@ -229,7 +236,7 @@ const AppNavigator = () => {
     });
 
     return () => unsubscribe(); // 🔁 Always unsubscribe listeners
-  }, [notificationPrefReady, notificationPref]);
+  }, [notificationPrefReady, notificationPref, serverCheck]);
 
   const NOTIF_PREF_KEY = "notificationPref";
   const DEFAULT_PREF = true;

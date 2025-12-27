@@ -522,6 +522,18 @@ if (lastSeen && typeof lastSeen.toDate === 'function') {
                     onPress={async () => {
                       setIsInitiatingChat(true);
                       await newChat(selectedMatch.uid);
+                      const idToken = await  auth.currentUser.getIdToken();
+                      await fetch(`${SERVER_URL}/send-message-notification/matched`, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${idToken}`,
+                        },
+                        body: JSON.stringify({
+                          receiverId: selectedMatch.uid,
+                          message: `${Myuser.displayName} just matched with you`,
+                        }),
+                      });
                       setScanning(false);
                       setShowMatches(false);
                       setShowChatModal(false);

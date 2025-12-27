@@ -79,7 +79,8 @@ const useUnreadCountListener = () => {
                         ...chat, 
                         latestMessage: chatData.lastMessage,
                         unreadCount: chatData.unreadCounts?.[auth.currentUser.uid] || 0,
-                        timestamp: chatData.timestamp?.toDate?.() || chat.timestamp
+                        timestamp: chatData.timestamp?.toDate?.() || chat.timestamp,
+                        latestSenderId: chatData.lastSenderId
                       }  
                     : chat
                 );

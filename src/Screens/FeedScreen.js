@@ -35,7 +35,7 @@ import ShareBottomSheet from "../components/ShareBottomSheet.js";
 import { pollUpdate } from "../utils/pollUdate.js";
 import PostsList from "../components/postsList.js";
 import { useScrollToTop } from "@react-navigation/native";
-import { medium } from "@cloudinary/url-gen/qualifiers/fontHinting";
+
 
 
 
