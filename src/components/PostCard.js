@@ -24,7 +24,7 @@ const PollComponent = ({pollOptions, voterList, hasVoted, setHasVoted, postId, o
     
      
     const idToken = await auth.currentUser.getIdToken();
-    console.log("Enter hered on frontend");
+    
     const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
       method: "POST",
       headers: {

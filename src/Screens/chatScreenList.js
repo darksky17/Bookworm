@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useFocusEffect, useScrollToTop } from "@react-navigation/native";
+import { useFocusEffect, useRoute, useScrollToTop } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import {
   View,
@@ -32,12 +32,14 @@ import {
 } from "../design-system/theme/scaleUtils";
 import useFetchChats from "../hooks/useFetchChats";
 import useUnreadCountListener from "../hooks/useUnreadCountListener";
+import { setShowChatToast } from "../redux/appSlice";
 
 
 
 const ChatScreenList = ({ navigation }) => {
   const pause = useSelector((state) => state.user.pauseMatch);
   const gender = useSelector((state) => state.user.gender);
+  const showChatToast =  useSelector((state)=> state.app.showChatToast);
   const chatRequests = useSelector((state) => state.user.chatRequestsCount);
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [initializing, setInitializing] = useState(true);
@@ -45,12 +47,58 @@ const ChatScreenList = ({ navigation }) => {
   const unread = useSelector(state => state.user.unreadCount);
   let unreadCount = unread;
   const ref = useRef(null);
+  const dispatch = useDispatch();
+  const route = useRoute();
 
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log("👀 ChatScreenList Focused - Disabling Toasts");
+      
+      // 1. Disable toasts when user is looking at the chat list
+      dispatch(setShowChatToast(false));
+
+      // 2. Handle autoRedirect when screen is focused
+      if (route.params?.autoRedirect) {
+        console.log("🚩 AutoRedirect Flag Detected!");
+        
+        if (isLoading) {
+          console.log("⏳ Chats are still loading, waiting...");
+          return;
+        }
+    
+        if (chats) {
+          const targetId = route.params?.targetChatId;
+          console.log("🎯 Searching for Chat ID:", targetId);
+    
+          const targetChat = chats.find(c => (c.chatid === targetId || c.chatId === targetId));
+    
+          if (targetChat) {
+            console.log("✅ Chat Found! Navigating to ChatDisplay...");
+            
+            // Use setParams to clear the flag
+            navigation.setParams({ autoRedirect: undefined, targetChatId: undefined });
+    
+            navigation.navigate("ChatDisplay", { allData: targetChat });
+          } else {
+            console.log("❌ Chat ID not found in current chats array. Length:", chats.length);
+          }
+        }
+      }
+
+      return () => {
+        console.log("🙈 ChatScreenList Unfocused - Enabling Toasts");
+        
+        // 3. Re-enable toasts when user switches tabs or leaves this screen
+        dispatch(setShowChatToast(true));
+      };
+    }, [dispatch, route.params?.autoRedirect, route.params?.targetChatId, isLoading, chats, navigation])
+  );
   useScrollToTop(ref);
 
   console.log("chat Request count", chatRequests);
   
-  useUnreadCountListener();
+  // useUnreadCountListener();
 
   const toggleFilter = (filter) => {
     setActiveFilters((prev) => {

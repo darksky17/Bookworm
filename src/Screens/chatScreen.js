@@ -43,6 +43,7 @@ import {
   startAfter,
   Timestamp
 } from "../Firebaseconfig";
+import { useSelector, useDispatch } from "react-redux";
 import storage from "@react-native-firebase/storage";
 import { Bubble, Send, InputToolbar, Actions } from "react-native-gifted-chat";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -75,6 +76,7 @@ import Animated, {
 import { Dimensions } from "react-native";
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import dayjs from "dayjs";
+import { setCurrentActiveChat } from "../redux/appSlice";
 
 
 const ChatDisplay = ({ route, navigation }) => {
@@ -102,19 +104,9 @@ const ChatDisplay = ({ route, navigation }) => {
   const scrollpos = useRef(null);
   const initialScrolled = useRef(false); 
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
+  const Myuser = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
-  // useEffect(() => {
-  //   if (!isLoadingInitial && messages.length > 0 && !hasScrolledToEnd) {
-  //     // Delay to ensure all Post components are fully rendered
-  //     const timer = setTimeout(() => {
-  //       scrollpos.current?.scrollToEnd({ animated: false });
-  //       setHasScrolledToEnd(true);
-  //     }, 300); // Increase delay if posts have images loading
-  
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [isLoadingInitial, messages.length, hasScrolledToEnd]);
-  
 
   const fetchLocalChats = async (chatId) => {
     try {
@@ -136,7 +128,16 @@ const ChatDisplay = ({ route, navigation }) => {
     }
   };
 
+useEffect(()=>{
+  if(!chatId) return
+  dispatch(setCurrentActiveChat(chatId))
+  console.log(chatId);
 
+  return(()=>{
+    dispatch(setCurrentActiveChat(null))
+  })
+
+}, [chatId])
   // Add keyboard listeners
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -396,16 +397,14 @@ const normalizeMessage = (msg) => ({
                   return timeA - timeB;
                 });
     
-                console.log("📊 Message order after adding:");
-                updated.forEach((m, i) => {
-                  console.log(`  ${i}: ${m._id} at ${m.createdAt.toISOString()}`);
-                });
+           
                 
                 // Update cache
                 storeChatInAsync(chatId, updated);
                 
                 return updated;
               });
+              scrollpos.current?.scrollToEnd({animated:true})
             } else {
               console.log("⏭️ Ignoring own message:", doc.id);
             }
@@ -655,7 +654,9 @@ const normalizeMessage = (msg) => ({
           },
           body: JSON.stringify({
             receiverId: allData.id,
+            senderDisplayName: allData.ascended? Myuser.name : Myuser.displayName,
             message: lastMessageText,
+            chatId:chatId
           }),
         });
   

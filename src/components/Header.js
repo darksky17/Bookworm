@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: theme.colors.background,
     flexDirection: "row",
-    width: "50%",
+    width: "55%",
     // elevation: 4,
     paddingBottom: verticalScale(10),
     paddingLeft: horizontalScale(20),

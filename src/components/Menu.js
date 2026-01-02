@@ -36,7 +36,7 @@ const Menu = ({
 
   const Unmatch = async (chatId) => {
     if (unsubscribeRef.current) {
-      console.log("Unsubscribing before unmatch...");
+      
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }

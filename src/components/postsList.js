@@ -42,7 +42,7 @@ const PollComponent = ({pollOptions, voterList, hasVoted, setHasVoted, postId, o
     
      
     const idToken = await auth.currentUser.getIdToken();
-    console.log("Enter hered on frontend");
+   
     const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
       method: "POST",
       headers: {
@@ -66,19 +66,18 @@ const PollComponent = ({pollOptions, voterList, hasVoted, setHasVoted, postId, o
   }
 
   const handleUndo = async (option)=>{
-    console.log("I am running and here is chosen option ->", option); //confirmed
-    console.log("I am running and here is postId  ->", postId);  //confirmed
+
     const userId = auth.currentUser.uid;
     const newVoterList = {...voterList};
     setHasVoted(false);
-    console.log("I am running and here is newVoterList before edit->", newVoterList);  //confirmed
+  
     if(newVoterList[auth.currentUser.uid] === option){
       delete newVoterList[auth.currentUser.uid]
       onUpdate?.(newVoterList);    // This is the culprit, it is failing everything after itself
     } 
-    console.log("I am running and here is newVoterList after edit->", newVoterList); // not showing
+
     const idToken = await auth.currentUser.getIdToken();
-    console.log("I am running and here is Idtoken  ->", idToken); //not showing 
+   
     const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
       method: "POST",
       headers: {
@@ -185,7 +184,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
     }
     return false;
   });
-// console.log(post);
+
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "";
   
@@ -230,7 +229,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
             </Text>
           </View>
           <View style={styles.authorDetails}>
-            <Text style={styles.displayName}>{post.displayName || "Unknown User"}</Text>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.displayName}>{post.displayName || "Unknown User"}</Text>
             <Text style={styles.timestamp}>
               {formatTimestamp(post.timestamp)}{post.edited ? <Text style={{ fontWeight: "bold" }}> - Edited</Text> : ""}
             </Text>

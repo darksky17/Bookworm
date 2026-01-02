@@ -116,6 +116,8 @@ const ShareBottomSheet = ({post, onClose, bottomSheetRef, bottomSheetVisible})=>
               postId:post.id,
             }
 
+            console.log(post.id);
+
             await updateDoc(chatDocRef, {
               lastMessage: note!==""? note : "Shared a Post",
               lastSenderId: auth.currentUser.uid,

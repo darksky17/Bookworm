@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { NavigationContainer, getStateFromPath, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useDispatch } from "react-redux";
-import { Text, View,Image, Platform, Alert } from "react-native";
+import { Text, View,Image, Platform, Alert, TouchableOpacity } from "react-native";
 import { StatusBar } from 'expo-status-bar';
 import { Provider, useSelector } from "react-redux";
 import { store } from "./redux/store";
@@ -31,11 +31,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { horizontalScale, verticalScale } from "./design-system/theme/scaleUtils";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import ToastManager, { Toast } from 'toastify-react-native'
+import { navigate } from "./RootNavigation";
+import { navigationRef } from "./RootNavigation";
+
 
 
 
 const AppNavigator = () => {
-  const queryClient = new QueryClient();
+  const queryClient = useMemo(() => new QueryClient(), []);
   const [openModal, setOpenModal] = useState(false);
   const [downloadlink, setDownloadLink] = useState(null);
   const notificationPref = useSelector((state) => state.user.notificationpref);
@@ -50,6 +53,28 @@ const AppNavigator = () => {
   const [isReady, setIsReady] = useState(true);
   const { netInfo: { type, isConnected }, refresh } = useNetInfoInstance();
   const [serverCheck, setServerCheck] = useState(false);
+  const showChatToast =  useSelector((state)=> state.app.showChatToast);
+  const activeChat = useSelector((state)=>state.app.currentActiveChat);
+
+  // Use refs to store current values without recreating the listener
+  const showChatToastRef = useRef(showChatToast);
+  const activeChatRef = useRef(activeChat);
+  const isAuthenticatedRef = useRef(isAuthenticated);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    showChatToastRef.current = showChatToast;
+  }, [showChatToast]);
+
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
+
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
+
+
 
   
   const linking = {
@@ -131,25 +156,55 @@ const AppNavigator = () => {
   useEffect(() => {
     checkForUpdates();
   }, []);
+
+  // Set background message handler only once (should not be in a useEffect that runs multiple times)
+  useEffect(() => {
+    if (Platform.OS === "android" && notificationPref === true) {
+      console.log("✅ Setting background message handler");
+      messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+        console.log("📩 Background message:", remoteMessage);
+      });
+    }
+  }, []); // Only run once on mount
+
+  // Set up foreground message listener - use refs to avoid recreating listener
   useEffect(() => {
     if (notificationPref !== true) {
       console.log("🚫 Notification disabled or not loaded yet");
       return;
     }
 
-    if (Platform.OS === "android") {
-      console.log("✅ Setting background message handler");
-      messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-        console.log("📩 Background message:", remoteMessage);
-    
-      });
-      messaging().onMessage(async (remoteMessage) => {
-        console.log("📩 Foreground message");
-        
-      });
+    const unsubscribe = messaging().onMessage(async (remoteMessage) => {
+      console.log("📩 Foreground message", JSON.stringify(remoteMessage));
       
-    }
-  }, [notificationPref]);
+      // Use refs to get current values without recreating listener
+      const currentShowChatToast = showChatToastRef.current;
+      const currentActiveChat = activeChatRef.current;
+      const currentIsAuthenticated = isAuthenticatedRef.current;
+      
+      console.log("Current showChatToast value:", currentShowChatToast);
+   
+      if(!currentShowChatToast || currentActiveChat === remoteMessage.data.chatId || !currentIsAuthenticated){
+        console.log("Cant display toast here", currentActiveChat, currentIsAuthenticated);
+        return;
+      }
+         
+
+      Toast.show({
+        type: 'info',
+        text1: `${remoteMessage.data.senderDisplayName}`,
+        text2: `${remoteMessage.data.message}`,
+        target:`${remoteMessage.data.chatId}`,
+        position: 'top',
+        visibilityTime: 3000,
+        autoHide: true,
+      });
+    });
+      
+    
+
+    return unsubscribe;
+  }, [notificationPref]); // Only depend on notificationPref, not the frequently changing values
 
 
 
@@ -198,7 +253,7 @@ const AppNavigator = () => {
           if (!data.exists) {
             
             // setInitialRoute("Phoneauth");
-            console.log("I was triggeder too");
+            
             const newUserRef = doc(db, "Users", auth.currentUser.uid);
             await setDoc(newUserRef, {
               phoneNumber: auth.currentUser.phoneNumber,
@@ -208,12 +263,12 @@ const AppNavigator = () => {
               pauseMatch: false,
               currentMatches: [],
             });
-          console.log("CREATED NEW DOC FROM aPP root");
+          
             setInitialRoute("Userdeet1");
           } else {
             const userData = userDocSnap.data();
             if (!userData.step1Completed) {
-              console.log("Sending this lad to userDeet1 because a doc laready exists", initialRoute);
+              
               setInitialRoute("Userdeet1");
             } else if (!userData.step2Completed) {
               setInitialRoute("Userdeet2");
@@ -262,6 +317,35 @@ const AppNavigator = () => {
   useEffect(() => {
     initializeNotificationPref();
   }, []);
+
+  // Memoize toastConfig to prevent unnecessary re-renders of ToastManager
+  // MUST be before any early returns to follow Rules of Hooks
+  const toastConfig = useMemo(() => ({
+    info: (props) => (
+      <TouchableOpacity 
+        onPress={() => {Toast.hide();
+          navigate("MainTabs", {
+            screen: "Chats", 
+            params: { autoRedirect: true, targetChatId: props.target }
+          });
+        }} 
+        style={{ flex: 1, width: "80%", backgroundColor: 'grey', padding: 12, borderRadius: 10 }}
+      >
+        <Text style={{ color: "white", fontWeight: '800' }}>{props.text1}</Text>
+        {props.text2 && <Text style={{ color: 'white' }} numberOfLines={2} ellipsizeMode="tail">{props.text2}</Text>}
+      </TouchableOpacity>
+    ),
+    // Override other toast types as needed
+  }), []);
+
+  const MyTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: theme.colors.background, // Or your desired background color
+    },
+  };
+
   if (!serverCheck) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center"}}>
@@ -335,13 +419,6 @@ const AppNavigator = () => {
       </Modal>
     );
   }
-  const MyTheme = {
-    ...DefaultTheme,
-    colors: {
-      ...DefaultTheme.colors,
-      background: theme.colors.background, // Or your desired background color
-    },
-  };
 
   if(!isConnected){
     return(
@@ -358,12 +435,13 @@ const AppNavigator = () => {
       <SafeAreaProvider>
              <BottomSheetModalProvider>    
               <KeyboardProvider>
-         <NavigationContainer linking={linking} initialState={initialState} theme={MyTheme} key={`${isAuthenticated ? 'main' : 'auth'}-${initialRoute || 'none'}`}>
+         <NavigationContainer ref={navigationRef} linking={linking} initialState={initialState} theme={MyTheme} key={`${isAuthenticated ? 'main' : 'auth'}-${initialRoute || 'none'}`}>
         <StatusBar style="dark"/>
  
         {isAuthenticated? <MainNavigator /> : <AuthNavigator initialRoute={initialRoute} />}
 
       </NavigationContainer>
+      <ToastManager config={toastConfig} animationStyle="none" />
       </KeyboardProvider>
       </BottomSheetModalProvider>
       </SafeAreaProvider>

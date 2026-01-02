@@ -335,7 +335,7 @@ useFocusEffect(
 
 
    <ShareBottomSheet
-   post={selectedpost}
+   post={sharedPost}
    bottomSheetRef={bottomSheetRef}
    bottomSheetVisible={bottomSheetVisible}
    onClose={ ()=>{

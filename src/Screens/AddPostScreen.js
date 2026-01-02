@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, Text, BackHandler, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Modal, FlatList, Keyboard, Image, Pressable } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { auth } from "../Firebaseconfig";
 import { SERVER_URL} from "../constants/api";
 import Container from "../components/Container";
@@ -14,7 +15,7 @@ import storage from "@react-native-firebase/storage";
 import BookSelector from "../components/bookSelector";
 import { Dropdown } from "react-native-element-dropdown";
 const MAX_IMAGES = 3;
-
+import { setShowChatToast } from "../redux/appSlice";
 const PostComponent=React.memo(({postType, bookTitle, bookAuthor, handleBookSelect, title, setTitle, content, setContent, pollOptions, setPollOptions})=>{
   if(postType==="BookReview"){
     return(
@@ -138,6 +139,7 @@ const AddPostScreen = ({navigation}) => {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   // Book search modal state
 ;
@@ -153,6 +155,22 @@ const AddPostScreen = ({navigation}) => {
    
   
   }
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log("👀 AddPost Focused - Disabling Toasts");
+      
+      // 1. Disable toasts when user is looking at the chat list
+      dispatch(setShowChatToast(false));
+
+      return () => {
+        console.log("🙈 AddPost Unfocused - Enabling Toasts");
+        
+        // 2. Re-enable toasts when user switches tabs or leaves this screen
+        dispatch(setShowChatToast(true));
+      };
+    }, [dispatch])
+  );
 
 
   React.useEffect(() => {

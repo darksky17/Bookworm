@@ -29,7 +29,7 @@ import HomeScreen from '../Screens/HomeScreen';
 const MainStack = createNativeStackNavigator();
 
 const MainNavigator = () => {
-  // useUnreadCountListener();
+  useUnreadCountListener();
   useNotificationCountListener();
   return (
     <MainStack.Navigator 

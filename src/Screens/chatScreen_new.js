@@ -367,7 +367,7 @@ import React, {
   
         // Hide modal if the user already made a choice
         if (choice.some((c) => c.startsWith(userId)) && !chatData.ascended) {
-          console.log("🔴 MODAL TRIGGERED FROM USER CHOICE CHECK");
+         
           setModalState(true);
           setIsDisabled(true);
         }
