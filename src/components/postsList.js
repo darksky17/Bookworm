@@ -25,143 +25,143 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { useSelector, useDispatch } from 'react-redux';
 import { setSavedPosts } from '../redux/userSlice.js';
 import ImageView from "react-native-image-viewing";
-import { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
+import { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
 
-const PollComponent = ({pollOptions, voterList, hasVoted, setHasVoted, postId, onUpdate})=>{
- 
+const PollComponent = ({ pollOptions, voterList, hasVoted, setHasVoted, postId, onUpdate }) => {
 
-  const handleVote = async(option)=>{
+
+  const handleVote = async (option) => {
     const userId = auth.currentUser.uid;
-       const newVoterList = {...voterList};
+    const newVoterList = { ...voterList };
 
 
-         newVoterList[auth.currentUser.uid]=option;
-         setHasVoted(true);
-         onUpdate?.(newVoterList);
-    
-     
+    newVoterList[auth.currentUser.uid] = option;
+    setHasVoted(true);
+    onUpdate?.(newVoterList);
+
+
     const idToken = await auth.currentUser.getIdToken();
-   
+
     const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${idToken}`,
       },
-      body:JSON.stringify({option:option}),
+      body: JSON.stringify({ option: option }),
 
-      
+
     });
 
     const res = await response.json();
-    if(response.ok){
+    if (response.ok) {
       setHasVoted(true);
       return
-    } else{
+    } else {
       Alert.alert("We got a problem here");
       onUpdate?.(voterList);
       setHasVoted(Object.keys(voterList).includes(auth.currentUser.uid));
     }
   }
 
-  const handleUndo = async (option)=>{
+  const handleUndo = async (option) => {
 
     const userId = auth.currentUser.uid;
-    const newVoterList = {...voterList};
+    const newVoterList = { ...voterList };
     setHasVoted(false);
-  
-    if(newVoterList[auth.currentUser.uid] === option){
+
+    if (newVoterList[auth.currentUser.uid] === option) {
       delete newVoterList[auth.currentUser.uid]
       onUpdate?.(newVoterList);    // This is the culprit, it is failing everything after itself
-    } 
+    }
 
     const idToken = await auth.currentUser.getIdToken();
-   
+
     const response = await fetch(`${SERVER_URL}/posts/${postId}/handlevote`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${idToken}`,
       },
-      body:JSON.stringify({option:option}),
+      body: JSON.stringify({ option: option }),
 
-      
+
     });
 
     const res = await response.json();
-    if(response.ok){
+    if (response.ok) {
       setHasVoted(false);
       return
-    } else{
+    } else {
       Alert.alert("We got a problem here");
       onUpdate?.(voterList);
       setHasVoted(Object.keys(voterList).includes(userId));
     }
-    
+
 
   }
 
-  const totalVoters= Object.keys(voterList).length;
+  const totalVoters = Object.keys(voterList).length;
 
   const votes = Object.values(voterList);
 
-  const OptionLayout =({option, percentage})=>{
+  const OptionLayout = ({ option, percentage }) => {
     const widthProgress = useSharedValue(0);
     useEffect(() => {
       widthProgress.value = withTiming(percentage, { duration: 300 });
-      
+
     }, [percentage]);
 
 
-    const animatedStyle =useAnimatedStyle(()=>({ width:`${widthProgress.value}%` }));
-     
-    
-    return(
-      <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center"}}>
-    <Pressable disabled={hasVoted} onPress={()=>{ handleVote(option)}} style={{width:"90%",paddingLeft:8, paddingVertical:10, position:"relative", maxHeight:"100%", borderRadius:5, overflow:"hidden"}}>
-    <Animated.View style={[{backgroundColor:hasVoted?theme.colors.primary:"transparent", position:"absolute", top:0, left:0, bottom:0,right:0}, animatedStyle]} />
-    
-   <View style={{flexDirection:"row", gap:10, alignItems:"center"}}>
-   <View><Text style={{fontWeight:"bold", alignSelf:"flex-start", paddingLeft:2, color:"black"}}>{option}</Text></View>
-   {hasVoted && option===voterList[auth.currentUser.uid] &&(<Ionicons name="star" size={18} color="black" />)}
-
-   </View>
+    const animatedStyle = useAnimatedStyle(() => ({ width: `${widthProgress.value}%` }));
 
 
-  
-    </Pressable>
-   {hasVoted&&(  
-   <View>
-   <Text numberOfLines={1} ellipsizeMode="tail" style={{fontWeight:"bold"}}>{percentage.toFixed(0)}%</Text>
-   </View>
-   )}
-    </View>
-    
-)
+    return (
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <Pressable disabled={hasVoted} onPress={() => { handleVote(option) }} style={{ width: "90%", paddingLeft: 8, paddingVertical: 10, position: "relative", maxHeight: "100%", borderRadius: 5, overflow: "hidden" }}>
+          <Animated.View style={[{ backgroundColor: hasVoted ? theme.colors.primary : "transparent", position: "absolute", top: 0, left: 0, bottom: 0, right: 0 }, animatedStyle]} />
+
+          <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+            <View><Text style={{ fontWeight: "bold", alignSelf: "flex-start", paddingLeft: 2, color: "black" }}>{option}</Text></View>
+            {hasVoted && option === voterList[auth.currentUser.uid] && (<Ionicons name="star" size={18} color="black" />)}
+
+          </View>
+
+
+
+        </Pressable>
+        {hasVoted && (
+          <View>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={{ fontWeight: "bold" }}>{percentage.toFixed(0)}%</Text>
+          </View>
+        )}
+      </View>
+
+    )
   }
-  
-  return(
-    
-  <>{
-    pollOptions.map((option,index)=>{
-      const votesLength = votes.filter(v=>v===option).length
-      return(
-        
-        <View key={index}style={{marginBottom:8}}>
-      <OptionLayout option={option} percentage={votesLength<1?0:((votesLength*100)/totalVoters)} />
 
+  return (
+
+    <>{
+      pollOptions.map((option, index) => {
+        const votesLength = votes.filter(v => v === option).length
+        return (
+
+          <View key={index} style={{ marginBottom: 8 }}>
+            <OptionLayout option={option} percentage={votesLength < 1 ? 0 : ((votesLength * 100) / totalVoters)} />
+
+          </View>
+
+        )
+      })}
+      <View style={{ flexDirection: "row", marginTop: 10, alignItems: "center" }}>
+        <Text style={{ fontSize: theme.fontSizes.xs }}> {totalVoters} Vote(s)</Text>
+        {hasVoted && (
+          <Pressable onPress={() => { const value = voterList[auth.currentUser.uid]; handleUndo(value); }}><Text style={{ color: theme.colors.secondary, fontWeight: "bold" }}>   Undo</Text></Pressable>
+        )}
       </View>
-       
-      )
-    })}
-    <View style={{flexDirection:"row", marginTop:10, alignItems:"center"}}>
-      <Text style={{fontSize:theme.fontSizes.xs}}> {totalVoters} Vote(s)</Text>
-      {hasVoted&&(
-      <Pressable onPress={ ()=>{const value=voterList[auth.currentUser.uid]; handleUndo(value);}}><Text style={{color:theme.colors.secondary, fontWeight:"bold"}}>   Undo</Text></Pressable>
-    )}
-      </View>
-  </>
+    </>
 
 
   )
@@ -179,7 +179,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
   const userId = auth.currentUser?.uid;
   const [hasVoted, setHasVoted] = useState(() => {
     if (post.type === "Poll" && post.voterList) {
-   
+
       return Object.keys(post.voterList).includes(userId);
     }
     return false;
@@ -187,31 +187,31 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "";
-  
+
     const now = new Date();
     const commentTime = new Date(timestamp);
     const diffInMs = now - commentTime;
     const diffInSeconds = Math.floor(diffInMs / 1000);
-  
+
     if (diffInSeconds < 60) {
       return `${diffInSeconds}s`;
     }
-  
+
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     if (diffInMinutes < 60) {
       return `${diffInMinutes}m`;
     }
-  
+
     const diffInHours = Math.floor(diffInMinutes / 60);
-    if(diffInHours<24){
-    return `${diffInHours}h`;
+    if (diffInHours < 24) {
+      return `${diffInHours}h`;
     }
     const diffInDays = Math.floor(diffInHours / 24);
-    if(diffInDays < 7){
-    return `${diffInDays}d`;
+    if (diffInDays < 7) {
+      return `${diffInDays}d`;
     }
-     const diffInWeeks = Math.floor(diffInDays / 7);
-     return `${diffInWeeks}w`;
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    return `${diffInWeeks}w`;
   };
 
 
@@ -260,19 +260,21 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
         </View>
       )}
 
- 
-{post.type === "Poll" &&(
-  <>{console.log("PostItem - onPollUpdate prop:", !!onPollUpdate)}
- <PollComponent pollOptions={post.pollOptions} voterList={post.voterList} hasVoted={hasVoted} setHasVoted={setHasVoted} postId={post.id} onUpdate={(newVoterList) => {console.log("About to call onPollUpdate with:", post.id, newVoterList);
-  onPollUpdate(post.id, newVoterList)}} />
- </>
-)}
+
+      {post.type === "Poll" && (
+        <>
+          <PollComponent pollOptions={post.pollOptions} voterList={post.voterList} hasVoted={hasVoted} setHasVoted={setHasVoted} postId={post.id} onUpdate={(newVoterList) => {
+            console.log("About to call onPollUpdate with:", post.id, newVoterList);
+            onPollUpdate(post.id, newVoterList)
+          }} />
+        </>
+      )}
 
       {/* Post Content - make this area touchable */}
-      {post.type!=="Poll" &&(
-      <TouchableOpacity onPress={() => onContentPress(post)} activeOpacity={0.7}>
-        <Text style={styles.postContent}>{post.Content}</Text>
-      </TouchableOpacity>
+      {post.type !== "Poll" && (
+        <TouchableOpacity onPress={() => onContentPress(post)} activeOpacity={0.7}>
+          <Text style={styles.postContent}>{post.Content}</Text>
+        </TouchableOpacity>
       )}
       {post.images?.length > 0 && (
         <>
@@ -371,9 +373,9 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={()=>{onShare(post)}}
+          onPress={() => { onShare(post) }}
         >
-           <Ionicons name="paper-plane-outline" size={24} color="black" />
+          <Ionicons name="paper-plane-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
     </View>
@@ -395,10 +397,10 @@ const PostsList = ({
   refreshControl,
   emptyComponent,
   contentContainerStyle,
-  scrollEnabled=true,
-  nestedScrollEnabled=false,
+  scrollEnabled = true,
+  nestedScrollEnabled = false,
   onEndReached = undefined,
-  onEndReachedThreshold=undefined,
+  onEndReachedThreshold = undefined,
   ...props
 }) => {
   const dispatch = useDispatch();
@@ -446,7 +448,7 @@ const PostsList = ({
 
   return (
     <FlatList
-    ref={ref}
+      ref={ref}
       data={posts}
       renderItem={renderPost}
       keyExtractor={(item) => item.id}
@@ -456,7 +458,7 @@ const PostsList = ({
       ListEmptyComponent={emptyComponent || (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No posts yet</Text>
-          
+
         </View>
       )}
       scrollEnabled={scrollEnabled}
@@ -591,7 +593,7 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.vertical.xs,
     borderTopWidth: 1,
     borderTopColor: "#E0E0E0",
-    
+
   },
   actionButton: {
     paddingHorizontal: theme.spacing.horizontal.xs,

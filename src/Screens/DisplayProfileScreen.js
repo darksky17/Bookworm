@@ -1,5 +1,5 @@
-import React, {useRef, useState, useCallback, useEffect, useMemo} from "react";
-import { View, Text, StyleSheet, ScrollView, FlatList, Image,  Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Pressable, Share, Alert, ActivityIndicator } from "react-native";
+import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
+import { View, Text, StyleSheet, ScrollView, FlatList, Image, Dimensions, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, Pressable, Share, Alert, ActivityIndicator } from "react-native";
 import Container from "../components/Container";
 import theme from "../design-system/theme/theme";
 import { moderateScale, horizontalScale, verticalScale } from "../design-system/theme/scaleUtils";
@@ -24,14 +24,15 @@ import _ from 'lodash';
 import ChatRequestModal from "../components/chatRequestModal";
 import ShareBottomSheet from "../components/ShareBottomSheet";
 import { pollUpdate } from "../utils/pollUdate";
+import BookshelfDisplay from "../components/BookshelfDisplay";
 
-const DisplayProfileScreen = ({navigation})=>{
-    
-    const route = useRoute();
-    const { userId } = route.params; 
-    const [renderAbout, setRenderAbout] = useState(false);
-  
-    const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
+const DisplayProfileScreen = ({ navigation }) => {
+
+  const route = useRoute();
+  const { userId } = route.params;
+  const [renderAbout, setRenderAbout] = useState(false);
+
+  const [rerendertool, setReRenderTool] = useState(1);   // to re render screen on Like action
   const [postMenuVisible, setPostMenuVisible] = useState(false);
   const [profileMenuVisible, setProfileMenuVisible] = useState(false);
   const [selectedpost, setSelectedPost] = useState([]);
@@ -40,9 +41,9 @@ const DisplayProfileScreen = ({navigation})=>{
   const [trigger, setTrigger] = useState(false);
   const [initializing, setInitializng] = useState(true);
   const [userData, setUserData] = useState([]);
-  const [isfollowing, setIsFollowing] =useState(false);
-  const [ isBlocked, setIsBlocked] = useState(false);
-  const [ hasBlocked, setHasBlocked] = useState(false);
+  const [isfollowing, setIsFollowing] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [hasBlocked, setHasBlocked] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [type, setType] = useState("Post");
@@ -52,10 +53,12 @@ const DisplayProfileScreen = ({navigation})=>{
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const bottomSheetRef = useRef(null); // Control BottomSheet programmatically
   const [sharedPost, setSharedPost] = useState(null);
+  const [bookshelfData, setBookShelfData] = useState([]);
+  const [isFetchingShelf, setIsFetchingShelf] = useState(false);
 
 
   const {
-    data:datap,
+    data: datap,
     isLoading,
     isError,
     error,
@@ -65,11 +68,11 @@ const DisplayProfileScreen = ({navigation})=>{
     refetch,
   } = useFetchPostsForProfile(userId);
   useEffect(() => {
-   
+
     const fetchAllData = async () => {
       try {
         const idToken = await auth.currentUser.getIdToken();
-        
+
         // Fetch user data
         const res = await fetch(`${SERVER_URL}/displayprofile/${userId}`, {
           method: "PUT",
@@ -81,23 +84,54 @@ const DisplayProfileScreen = ({navigation})=>{
             followerId: auth.currentUser.uid
           }),
         });
-  
+
         const data = await res.json();
         setIsBlocked(data.hasbeenblocked);
         setHasBlocked(data.hasblocked);
         setUserData(data);
-    
+
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
         setInitializng(false);
       }
     };
-  
+
     fetchAllData();
   }, [rerendertool]);
 
-  
+  useEffect(() => {
+
+    const fetchShelf = async () => {
+      setIsFetchingShelf(true);
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+
+        // Fetch user data
+        const res = await fetch(`${SERVER_URL}/displayprofile/${userId}/bookshelf`, {
+          method: "PUT",
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        const data = await res.json();
+        setBookShelfData(data);
+        setIsFetchingShelf(false);
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setIsFetchingShelf(false);
+      }
+    }
+
+    fetchShelf();
+
+  }, [userId])
+
+
+
 
   const posts = useMemo(() => {
     if (!datap || isBlocked || hasBlocked) return [];
@@ -105,18 +139,18 @@ const DisplayProfileScreen = ({navigation})=>{
   }, [datap, isBlocked, hasBlocked]);
 
   const visiblePosts = useMemo(() => {
-    if(!posts) return;
+    if (!posts) return;
     return posts.slice(0, renderLimit.current);
-}, [posts, renderLimit.current]);
+  }, [posts, renderLimit.current]);
 
   const handleShared = async (post) => {
     try {
       const shareUrl = `${SHARE_PREFIX}/posts/${post.id}`;
-      const shareTitle = post.type === "BookReview" 
+      const shareTitle = post.type === "BookReview"
         ? `Check out "${post.BookTitle}"`
         : `Check out "${post.title}"`;
       const message = `${post.Content?.slice(0, 100)}...\n\nCheck this out on BookWorm:\n${shareUrl}`;
-  
+
       await Share.share({
         message: message,
         url: shareUrl,
@@ -138,10 +172,10 @@ const DisplayProfileScreen = ({navigation})=>{
   const handleSharedProfile = async (profile) => {
     try {
       const shareUrl = `${SHARE_PREFIX}/profile/${userId}`;
-      const shareTitle =  `Check out "${profile.displayName}"`
+      const shareTitle = `Check out "${profile.displayName}"`
 
       const message = `\n\nCheck this profile on BookWorm:\n${shareUrl}`;
-  
+
       await Share.share({
         message: message,
         url: shareUrl,
@@ -158,9 +192,9 @@ const DisplayProfileScreen = ({navigation})=>{
     const keysToUpdate = [
       ["savedPosts"],
       ["postsforprofile", userId],
-      ["posts",""],
+      ["posts", ""],
     ];
-  
+
     // Try updating all relevant infinite-query caches independently
     for (const key of keysToUpdate) {
       try {
@@ -169,24 +203,24 @@ const DisplayProfileScreen = ({navigation})=>{
         console.warn("pollUpdate failed for key", key, e);
       }
     }
-  
+
     // Keep the single-post cache in sync if it's present
     try {
-      queryClient.setQueryData(["post", postId, false], (old)=>{
-        if(!old) return old;
+      queryClient.setQueryData(["post", postId, false], (old) => {
+        if (!old) return old;
         return { ...old, voterList: newVoterList };
       });
     } catch (e) {
       console.warn("single post cache update failed", e);
     }
   };
-  
 
 
 
-  const handleFollow = async ()=>{
 
-    
+  const handleFollow = async () => {
+
+
 
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -209,16 +243,16 @@ const DisplayProfileScreen = ({navigation})=>{
 
   };
 
-  const handleUnfollow = async (overrideuser, overridefollower)=>{
+  const handleUnfollow = async (overrideuser, overridefollower) => {
 
     try {
       const idToken = await auth.currentUser.getIdToken();
 
-     
-    const resolveuser = typeof overrideuser === 'string' ? overrideuser : userId;
-    const resolvefollower =
-      typeof overridefollower === 'string' ? overridefollower : auth.currentUser.uid;
-     
+
+      const resolveuser = typeof overrideuser === 'string' ? overrideuser : userId;
+      const resolvefollower =
+        typeof overridefollower === 'string' ? overridefollower : auth.currentUser.uid;
+
       const res = await fetch(`${SERVER_URL}/displayprofile/unfollow`, {
         method: "PUT",
         headers: {
@@ -230,9 +264,9 @@ const DisplayProfileScreen = ({navigation})=>{
           followerId: resolvefollower
         }),
       });
-     
+
       const data = await res.json();
-      
+
       setReRenderTool(prevValue => prevValue + 1);
 
     } catch (error) {
@@ -241,112 +275,113 @@ const DisplayProfileScreen = ({navigation})=>{
 
   };
 
-  const unBlockUser = async (item)=>{
+  const unBlockUser = async (item) => {
 
-   
+
 
     Alert.alert(
-        "Unblock User?",
-        `Are you sure you want to Unblock ${item.displayName}?.`,
-        [
-          {
-            text: "Cancel", 
-            onPress: () => {}, 
-            style: "cancel" // No action, just closes the alert
-          },
-          {
-            text: "Unblock", 
-            onPress: async () => {
- 
-              try {
-                const userDocRef = doc(db, "Users", auth.currentUser.uid);
-                await updateDoc(userDocRef, {blockedUsers:arrayRemove(userId)});
-                
-                
-                Alert.alert("User Unlbocked!");
-                setReRenderTool(prev => prev + 1);
-                
-                 
-  
-              } catch(error){
-                
-                console.log("Error Unblocking user", error);
+      "Unblock User?",
+      `Are you sure you want to Unblock ${item.displayName}?.`,
+      [
+        {
+          text: "Cancel",
+          onPress: () => { },
+          style: "cancel" // No action, just closes the alert
+        },
+        {
+          text: "Unblock",
+          onPress: async () => {
+
+            try {
+              const userDocRef = doc(db, "Users", auth.currentUser.uid);
+              await updateDoc(userDocRef, { blockedUsers: arrayRemove(userId) });
+
+
+              Alert.alert("User Unlbocked!");
+              setReRenderTool(prev => prev + 1);
+
+
+
+            } catch (error) {
+
+              console.log("Error Unblocking user", error);
 
             }
 
-         
-        
+
+
+          },
+        },
+      ]
+    );
+
+
+
+
+  }
+
+
+
+  const checkChatRequest = async (targetId) => {
+
+    const userDocref = doc(db, "Users", auth.currentUser.uid);
+    const usersnap = await getDoc(userDocref);
+    const userChatRequests = usersnap.data().chatRequests || [];
+    const exists = userChatRequests.some(
+      (request) => request.requestorId === targetId
+    );
+
+    if (exists) {
+      navigation.navigate("ChatRequests");
+      return;
+    }
+
+    const idToken = await auth.currentUser.getIdToken();
+
+    try {
+
+      const response = await fetch(`${SERVER_URL}/chat-request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          targetId: targetId,
+          introMessage: "",
+        }),
+
+      });
+
+      if (response.status === 201) {
+        try {
+          const idToken = await auth.currentUser.getIdToken();
+          const response = await fetch(`${SERVER_URL}/chat-list/${auth.currentUser.uid}/chat`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
             },
-          },
-        ]
-      );
-     
+            body: JSON.stringify({ participantId: targetId }),
+          });
+          const allData = await response.json();
+          navigation.navigate("ChatDisplay", {
+            allData
+          });
+        } catch (e) {
+          console.log("there an error going to chats from displayprofile", e);
+        }
+      }
 
- 
- 
-}
+      else {
+        setChatRequestsModal(true);
+      }
 
+    } catch (e) {
+      console.log("Problem with chatrequestfunction", e);
+    }
 
-
-const checkChatRequest= async (targetId) =>{
-
-  const userDocref = doc(db, "Users", auth.currentUser.uid);
-  const usersnap = await getDoc(userDocref);
-  const userChatRequests = usersnap.data().chatRequests || [];
-  const exists = userChatRequests.some(
-    (request) => request.requestorId === targetId
-  );
-
-  if(exists){
-    navigation.navigate("ChatRequests");
-    return;
   }
-
-  const idToken = await auth.currentUser.getIdToken();
-
-  try{
-    
-     const response = await fetch(`${SERVER_URL}/chat-request`,{
-      method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            targetId: targetId,
-            introMessage: "",
-          }),
-
-     });
- 
-if(response.status === 201){
-  try{
-  const idToken = await auth.currentUser.getIdToken();
-  const response = await fetch(`${SERVER_URL}/chat-list/${auth.currentUser.uid}/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ participantId: targetId }),
-  });
-  const allData = await response.json();
-  navigation.navigate("ChatDisplay", {allData
-  });
-} catch(e){
-  console.log("there an error going to chats from displayprofile", e);
-}
-}
-
-else{
-  setChatRequestsModal(true);
-}
-
-  } catch(e){
-     console.log("Problem with chatrequestfunction", e);
-  }
-
-}
 
 
   const profileSection = (
@@ -357,20 +392,20 @@ else{
       gap: verticalScale(10)
     }}>
       <View style={styles.avatarContainer}>
-        {userData.displayName==="WormAI" ?(
+        {userData.displayName === "WormAI" ? (
           <>
-      <Image
-            source={require("../assets/play_store_512.png") }
-            style={{ width: "100%", height: "100%" }}
-            resizeMode="cover"
-          />
-          </>):(
-            <>
-         <Text style={styles.avatarText}>
-          { userData.displayName?.charAt(0)?.toUpperCase() || ("U")}
-        </Text> 
-        </>
-          )}
+            <Image
+              source={require("../assets/play_store_512.png")}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="cover"
+            />
+          </>) : (
+          <>
+            <Text style={styles.avatarText}>
+              {userData.displayName?.charAt(0)?.toUpperCase() || ("U")}
+            </Text>
+          </>
+        )}
       </View>
       <Text style={{
         color: theme.colors.text,
@@ -379,7 +414,7 @@ else{
       }}>
         {userData.displayName}
       </Text>
-      
+
       <View style={{
         flexDirection: "row",
         alignItems: "flex-start",
@@ -431,7 +466,7 @@ else{
               textColor={theme.colors.text}
               mode="contained-tonal"
               style={{ borderRadius: 5, flex: 0.5 }}
-              onPress={()=>{handleSharedProfile(userId)}}
+              onPress={() => { handleSharedProfile(userId) }}
             >
               Share Profile
             </Button>
@@ -451,7 +486,7 @@ else{
             textColor={theme.colors.text}
             mode="contained-tonal"
             style={{ borderRadius: 5, flex: 1 }}
-            onPress={async ()=>{await unBlockUser(userData)}}
+            onPress={async () => { await unBlockUser(userData) }}
           >
             Unblock User
           </Button>
@@ -482,13 +517,13 @@ else{
             )}
             <Button
               mode="contained-tonal"
-              disabled={isBlocked || userData.displayName==="WormAI"}
+              disabled={isBlocked || userData.displayName === "WormAI"}
               onPress={() => !userData.hasRequestedChat && checkChatRequest(userId)}
-              buttonColor={userData.hasRequestedChat?"grey":theme.colors.primary}
+              buttonColor={userData.hasRequestedChat ? "grey" : theme.colors.primary}
               textColor={theme.colors.text}
               style={{ borderRadius: 5, flex: 0.5 }}
             >
-              {userData.hasRequestedChat?"Request Sent":"Message"}
+              {userData.hasRequestedChat ? "Request Sent" : "Message"}
             </Button>
           </>
         )}
@@ -501,22 +536,22 @@ else{
       <Text>No Information available</Text>
     </View>
   ) : (
-    <View style={{flex:1}}>
-        {visiblePosts.length<1 && (
-      <View style={{flex:1, justifyContent:"center", alignItems:"center"}}> 
-        <Text style={{fontWeight:"bold", color:theme.colors.muted, fontSize:theme.fontSizes.large}}>No Posts Yet</Text>
-      </View>
-    )}
-    
+    <View style={{ flex: 1 }}>
+      {visiblePosts.length < 1 && (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ fontWeight: "bold", color: theme.colors.muted, fontSize: theme.fontSizes.large }}>No Posts Yet</Text>
+        </View>
+      )}
+
       {visiblePosts.map((post, index) => (
-        
+
         <PostItem
           key={post.id}
           post={post}
-          onLike={(post)=>handleLike(post,["postsforprofile", userId], queryClient)}
-          onDislike={(post)=>handleDislike(post,["postsforprofile", userId], queryClient)}
-          onSave={() => {}}
-          onShare={()=>handleSend(post)}
+          onLike={(post) => handleLike(post, ["postsforprofile", userId], queryClient)}
+          onDislike={(post) => handleDislike(post, ["postsforprofile", userId], queryClient)}
+          onSave={() => { }}
+          onShare={() => handleSend(post)}
           navigation={navigation}
           onContentPress={(post) => navigation.navigate("PostDetail", { id: post.id })}
           onPressOptions={(item) => {
@@ -527,13 +562,13 @@ else{
         />
       ))}
 
-{isFetchingNextPage && (
-                <View style={{alignItems: 'center', marginVertical: 20}}>
-                  <ActivityIndicator color={theme.colors.primary} size="small" />
-                  <Text style={{color: theme.colors.muted, marginTop: 10}}>Loading more posts...</Text>
-                </View>
-              )}
-      
+      {isFetchingNextPage && (
+        <View style={{ alignItems: 'center', marginVertical: 20 }}>
+          <ActivityIndicator color={theme.colors.primary} size="small" />
+          <Text style={{ color: theme.colors.muted, marginTop: 10 }}>Loading more posts...</Text>
+        </View>
+      )}
+
       {/* Modals */}
       <PostOptionsModal
         visible={postMenuVisible}
@@ -550,16 +585,16 @@ else{
           setPostMenuVisible(false);
         }}
         onShare={() => handleShared(selectedpost)}
-        onViewProfile={() => {}}
+        onViewProfile={() => { }}
         onBlock={() => {
           BlockUser(userId, { navigation });
           setPostMenuVisible(false);
         }}
-        onReport={()=>{setPostMenuVisible(false);setType("Post"); setReportModalVisible(true)}}
+        onReport={() => { setPostMenuVisible(false); setType("Post"); setReportModalVisible(true) }}
         post={selectedpost}
         userId={auth.currentUser.uid}
       />
-      
+
       <ProfileOptionsModal
         visible={profileMenuVisible}
         onClose={() => setProfileMenuVisible(false)}
@@ -575,17 +610,17 @@ else{
           BlockUser(userId, { navigation });
           setProfileMenuVisible(false);
         }}
-        onReport={() => {setType("Profile");setProfileMenuVisible(false); setReportModalVisible(true)}}
+        onReport={() => { setType("Profile"); setProfileMenuVisible(false); setReportModalVisible(true) }}
         hasfollowed={userData.hasfollowed}
       />
       <ChatRequestModal
-      targetId={userId}
-      visible={chatRequestsModal} 
-      onClose={()=>setChatRequestsModal(false)}
-      reRender={()=>setReRenderTool(8)}
-      displayName={userData.displayName}
+        targetId={userId}
+        visible={chatRequestsModal}
+        onClose={() => setChatRequestsModal(false)}
+        reRender={() => setReRenderTool(8)}
+        displayName={userData.displayName}
       />
-  
+
     </View>
   );
 
@@ -642,84 +677,97 @@ else{
     <View style={{
       paddingHorizontal: theme.spacing.horizontal.md,
       paddingTop: theme.spacing.vertical.lg,
-      justifyContent:"center",
-      alignItems:"center"
-      
+      justifyContent: "center",
+      alignItems: "center"
+
     }}>
-     <Text style={{color:theme.colors.text, fontSize:theme.fontSizes.small}}>Hi! I am WormAI. You can utilize me to get summarries of really long posts and reviews!
-      Although, I would suggest that you actually take the time to read the user provided reviews instead of relying on me.
-     </Text>
+      <Text style={{ color: theme.colors.text, fontSize: theme.fontSizes.small }}>Hi! I am WormAI. You can utilize me to get summarries of really long posts and reviews!
+        Although, I would suggest that you actually take the time to read the user provided reviews instead of relying on me.
+      </Text>
     </View>
   );
-
+  const bookshelfContent = useMemo(() => {
+    if (isFetchingShelf) {
+      return (
+        <View style={{ padding: 20 }}>
+          <ActivityIndicator />
+        </View>
+      )
+    } else {
+      return (
+        <BookshelfDisplay data={bookshelfData} />
+      )
+    }
+  }, [isFetchingShelf, bookshelfData])
   const tabs = [
     { label: "Posts", content: postsContent },
-    { label: "About", content: userData.displayName==="WormAI"?WormAIAbout:aboutContent }
+    { label: "About", content: userData.displayName === "WormAI" ? WormAIAbout : aboutContent },
+    { label: "Bookshelf", content: bookshelfContent }
   ];
-  
 
- 
 
-  
-  
+
+
+
+
 
   const onProfileSectionLayout = (event) => {
     const { height } = event.nativeEvent.layout;
     setProfileHeight(height);
-};
+  };
   const handleScroll = useCallback((event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
     const threshold = profileHeight - verticalScale(1);
-    
+
     const shouldStick = scrollY >= threshold;
-    
+
     if (shouldStick !== isSticky) {
-        setIsSticky(shouldStick);
-        
-        if (shouldStick) {
-            console.log("Header is now sticky!");
-            setTrigger(true);
-        } else {
-            console.log("Header is no longer sticky");
-           setTrigger(false);
-        }
+      setIsSticky(shouldStick);
+
+      if (shouldStick) {
+        console.log("Header is now sticky!");
+        setTrigger(true);
+      } else {
+        console.log("Header is no longer sticky");
+        setTrigger(false);
+      }
     }
     event.persist();
 
     thhrottleScroll(event);
-}, [profileHeight, isSticky]);
+  }, [profileHeight, isSticky]);
 
-const thhrottleScroll = useCallback(
-  _.throttle((event)=>{
-    const scrollY = event.nativeEvent.contentOffset.y;
-        const contentHeight = event.nativeEvent.contentSize.height;
-        const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+  const thhrottleScroll = useCallback(
+    _.throttle((event) => {
+      const scrollY = event.nativeEvent.contentOffset.y;
+      const contentHeight = event.nativeEvent.contentSize.height;
+      const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
 
-        
-            
-            
-            
-            const isNearBottom = scrollY + scrollViewHeight >= contentHeight - 300;
-            if (isNearBottom && hasNextPage && !isFetchingNextPage) {
-              console.log("Will fethch");
-                fetchNextPage();
-            }
 
-            
-            const scrollProgress = scrollY / Math.max(contentHeight - scrollViewHeight, 1);
-            if (scrollProgress > 0.5 && renderLimit.current < posts.length) {
-              setReRenderTool(10);
-              renderLimit.current = Math.min(renderLimit.current + 3, posts.length);
-      
-        }
-    }, 50), 
+
+
+
+      const isNearBottom = scrollY + scrollViewHeight >= contentHeight - 300;
+      if (isNearBottom && hasNextPage && !isFetchingNextPage) {
+        console.log("Will fethch");
+        fetchNextPage();
+      }
+
+
+      const scrollProgress = scrollY / Math.max(contentHeight - scrollViewHeight, 1);
+      if (scrollProgress > 0.5 && renderLimit.current < posts.length) {
+        setReRenderTool(10);
+        renderLimit.current = Math.min(renderLimit.current + 3, posts.length);
+
+      }
+    }, 50),
     [hasNextPage, isFetchingNextPage, fetchNextPage, posts.length]
-);
+  );
 
 
 
 
- 
+
 
   if (initializing) {
     return (
@@ -729,66 +777,67 @@ const thhrottleScroll = useCallback(
     );
   }
 
-if(isDeleting){
-  return(
-  
-    <View style={{flex:1, justifyContent:"center", alignItems:"center"}}> 
-    <ActivityIndicator color={theme.colors.primary} size={44} />
+  if (isDeleting) {
+    return (
 
-    </View>
-    
-  )}
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator color={theme.colors.primary} size={44} />
 
-  
+      </View>
 
-    return(
-        <Container>
-    <View style={styles.headerRow}>
-    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconLeft}>
-      <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-    </TouchableOpacity>
-    <View style={{ flex: 1, flexDirection:"row" }} />
-
-    {userId === auth.currentUser.uid ?(
-      <TouchableOpacity 
-    style={styles.headerIconRight}
-    onPress={() => {navigation.navigate("Settings")}}
-  >
-    <Ionicons name="menu" size={22} color={theme.colors.text} />
-  </TouchableOpacity>
-    ):
-    
-    (
-      <>
-
-   {trigger && userData.isfollowing===false && userId!==auth.currentUser.uid ? (
-     
-    <Button onPress={handleFollow} buttonColor= {theme.colors.primary} textColor={theme.colors.text}mode="contained-tonal"   style={{
-      borderRadius: moderateScale(5),
-      width: horizontalScale(95),
-    }}
-    disabled={isBlocked}
-    contentStyle={{
-      height: verticalScale(39),
-      paddingHorizontal: horizontalScale(1),
-    }}> Follow </Button>
-   
-   ):(
-    
-    <TouchableOpacity 
-    style={styles.headerIconRight}
-    onPress={() => {setProfileMenuVisible(true)}}
-  >
-    <Ionicons name="ellipsis-vertical" size={22} color={theme.colors.text} />
-  </TouchableOpacity>
-   )
+    )
   }
-  </>
-)}
-  </View>
 
 
-<SwipeableTabs
+
+  return (
+    <Container>
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconLeft}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, flexDirection: "row" }} />
+
+        {userId === auth.currentUser.uid ? (
+          <TouchableOpacity
+            style={styles.headerIconRight}
+            onPress={() => { navigation.navigate("Settings") }}
+          >
+            <Ionicons name="menu" size={22} color={theme.colors.text} />
+          </TouchableOpacity>
+        ) :
+
+          (
+            <>
+
+              {trigger && userData.isfollowing === false && userId !== auth.currentUser.uid ? (
+
+                <Button onPress={handleFollow} buttonColor={theme.colors.primary} textColor={theme.colors.text} mode="contained-tonal" style={{
+                  borderRadius: moderateScale(5),
+                  width: horizontalScale(95),
+                }}
+                  disabled={isBlocked}
+                  contentStyle={{
+                    height: verticalScale(39),
+                    paddingHorizontal: horizontalScale(1),
+                  }}> Follow </Button>
+
+              ) : (
+
+                <TouchableOpacity
+                  style={styles.headerIconRight}
+                  onPress={() => { setProfileMenuVisible(true) }}
+                >
+                  <Ionicons name="ellipsis-vertical" size={22} color={theme.colors.text} />
+                </TouchableOpacity>
+              )
+              }
+            </>
+          )}
+      </View>
+
+
+      <SwipeableTabs
         tabs={tabs}
         profileSection={profileSection}
         onScroll={handleScroll}
@@ -797,55 +846,56 @@ if(isDeleting){
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={15}
       />
-               <ReportProfileModal
+      <ReportProfileModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
-        targetId={type==="Profile"?userId:selectedpost.id}
+        targetId={type === "Profile" ? userId : selectedpost.id}
         type={type}
       />
-        <ShareBottomSheet
-   post={sharedPost}
-   bottomSheetRef={bottomSheetRef}
-   bottomSheetVisible={bottomSheetVisible}
-   onClose={ ()=>{
-    setBottomSheetVisible(false);}}
-   />
+      <ShareBottomSheet
+        post={sharedPost}
+        bottomSheetRef={bottomSheetRef}
+        bottomSheetVisible={bottomSheetVisible}
+        onClose={() => {
+          setBottomSheetVisible(false);
+        }}
+      />
 
-  </Container>
-  
-    
-)
+    </Container>
+
+
+  )
 };
 
 const styles = StyleSheet.create({
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: theme.spacing.horizontal.md,  
-    },
-    headerIconLeft: {
-      padding: 8,
-      paddingLeft: 0,
-    },
-    headerIconRight: {
-      padding: 8,
-      paddingRight: 0,
-    },
-    avatarContainer: {
-        width: horizontalScale(80), // was 40
-        height: verticalScale(80), // was 40
-        borderRadius: moderateScale(40), // was 20
-        backgroundColor: theme.colors.primary,
-        justifyContent: "center",
-        alignItems: "center",
-        overflow:"hidden",
-        marginRight: theme.spacing.horizontal.xs, // was sm
-      },
-      avatarText: {
-        fontSize: theme.fontSizes.large, // was medium
-        fontFamily: theme.fontFamily.bold,
-        color: theme.colors.text,
-      },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.horizontal.md,
+  },
+  headerIconLeft: {
+    padding: 8,
+    paddingLeft: 0,
+  },
+  headerIconRight: {
+    padding: 8,
+    paddingRight: 0,
+  },
+  avatarContainer: {
+    width: horizontalScale(80), // was 40
+    height: verticalScale(80), // was 40
+    borderRadius: moderateScale(40), // was 20
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    marginRight: theme.spacing.horizontal.xs, // was sm
+  },
+  avatarText: {
+    fontSize: theme.fontSizes.large, // was medium
+    fontFamily: theme.fontFamily.bold,
+    color: theme.colors.text,
+  },
 });
 
 export default DisplayProfileScreen;

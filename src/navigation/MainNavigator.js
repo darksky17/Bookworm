@@ -24,7 +24,8 @@ import useNotificationCountListener from '../hooks/useNotificationCountListener'
 import ChatRequestsScreen from '../Screens/ChatRequestsScreen';
 import StoreTabs from '../Screens/StoreScreens/StoreTabNav';
 import HomeScreen from '../Screens/HomeScreen';
-
+import AddBookShelf from '../Screens/AddBookShelf';
+import EditStatusScreen from '../Screens/EditStatusScreen';
 
 const MainStack = createNativeStackNavigator();
 
@@ -32,11 +33,11 @@ const MainNavigator = () => {
   useUnreadCountListener();
   useNotificationCountListener();
   return (
-    <MainStack.Navigator 
-      screenOptions={{ headerShown: false, animation:"slide_from_right" }}
+    <MainStack.Navigator
+      screenOptions={{ headerShown: false, animation: "slide_from_right" }}
       initialRouteName={"MainTabs"}
     >
-      
+
       <MainStack.Screen name="AddPhotos" component={AddPhotosScreen} />
       <MainStack.Screen name="MainTabs" component={Tabnav} />
       <MainStack.Screen name="StoreTabs" component={StoreTabs} />
@@ -58,7 +59,8 @@ const MainNavigator = () => {
       <MainStack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
       <MainStack.Screen name="Notifications" component={NotificationScreen} />
       <MainStack.Screen name="ChatRequests" component={ChatRequestsScreen} />
-    
+      <MainStack.Screen name="AddBookShelf" component={AddBookShelf} />
+      <MainStack.Screen name="EditStatusScreen" component={EditStatusScreen} />
 
     </MainStack.Navigator>
   );

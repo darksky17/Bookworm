@@ -9,6 +9,7 @@ import {
   FlatList,
   ActivityIndicator,
   StyleSheet,
+  Image,
   Keyboard,
 } from "react-native";
 import { useBookSearch } from "../hooks/useBookSearch";
@@ -21,6 +22,7 @@ import {
 
 const BookSearchModal = ({
   visible,
+  isbookshelf = false,
   onClose,
   onSelectBook,
   currentSelection = "",
@@ -28,7 +30,7 @@ const BookSearchModal = ({
   title = "Search Books",
 }) => {
   const { bookOptions, loadingBooks, searchQuery, handleSearch, clearSearch } =
-    useBookSearch();
+    useBookSearch({ isbookshelf: isbookshelf });
 
   const handleClose = () => {
     clearSearch();
@@ -36,7 +38,11 @@ const BookSearchModal = ({
   };
 
   const handleBookSelect = (book) => {
-    onSelectBook(book.value, book.author); // Pass both title and full book data
+    if (isbookshelf) {
+      onSelectBook(book);
+    } else {
+      onSelectBook(book.value, book.author);
+    } // Pass both title and full book data
     handleClose();
     Keyboard.dismiss();
   };
@@ -95,10 +101,37 @@ const BookSearchModal = ({
               ItemSeparatorComponent={() => <View style={styles.separator} />}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.bookItem}
+                  style={isbookshelf ? {
+                    paddingVertical: verticalScale(15),
+                    paddingHorizontal: horizontalScale(5),
+                    flexDirection: "row",
+                    alignItems: "center",
+                  } : styles.bookItem}
                   onPress={() => handleBookSelect(item)}
-                >
-                  <Text style={styles.bookTitle}>{item.label}</Text>
+                >{isbookshelf ? (<>
+                  <Image
+                    source={{ uri: item.thumbnail }}
+                    height={60} width={60}
+                    resizeMode="contain"
+                  />
+                  <View>
+                    <Text style={{
+                      fontSize: theme.fontSizes.medium,
+                      color: "#333",
+                      lineHeight: verticalScale(22),
+
+                    }}>{item.value}</Text>
+                    <Text style={{
+                      fontSize: theme.fontSizes.small,
+                      color: "#333",
+                    }}>{item.author} | {item.pageCount} pages</Text>
+                  </View>
+                </>) :
+                  (
+                    <>
+                      <Text style={styles.bookTitle}>{item.label}</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               )}
             />
@@ -200,7 +233,7 @@ const styles = StyleSheet.create({
   },
   bookItem: {
     paddingVertical: verticalScale(15),
-    paddingHorizontal: horizontalScale(10),
+    paddingHorizontal: horizontalScale(5),
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",

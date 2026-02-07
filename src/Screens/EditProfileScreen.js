@@ -52,10 +52,10 @@ const EditProfileScreen = ({ navigation }) => {
   const userId = auth.currentUser.uid;
 
   const handleSaveBook = async () => {
-    if (currentreade.length > 20 || currentreade.length < 1) {
+    if (currentreade.length > 50 || currentreade.length < 1) {
       Alert.alert(
         "Error",
-        "Please make sure that the book title is atleast 1 char long and at max 20."
+        "Please make sure that the book title is atleast 1 char long and at max 50."
       );
       return;
     }
@@ -129,7 +129,7 @@ const EditProfileScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      <Container containerStyle={{paddingBottom:insets.bottom}}>
+      <Container containerStyle={{ paddingBottom: insets.bottom }}>
         <Header title={"Edit Profile"} />
         <ScrollView>
           <View style={styles.container}>
