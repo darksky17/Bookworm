@@ -47,6 +47,7 @@
     "ngeohash": "^0.6.3",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-autolink": "^4.2.0",
     "react-native-device-info": "^14.0.4",
     "react-native-draggable-flatlist": "^4.0.3",
     "react-native-element-dropdown": "^2.12.4",

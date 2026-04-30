@@ -27,7 +27,7 @@ import { setSavedPosts } from '../redux/userSlice.js';
 import ImageView from "react-native-image-viewing";
 import { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
-
+import Autolink from "react-native-autolink";
 const PollComponent = ({ pollOptions, voterList, hasVoted, setHasVoted, postId, onUpdate }) => {
 
 
@@ -273,7 +273,7 @@ export const PostItem = ({ post, onLike, onDislike, onSave, onShare, onContentPr
       {/* Post Content - make this area touchable */}
       {post.type !== "Poll" && (
         <TouchableOpacity onPress={() => onContentPress(post)} activeOpacity={0.7}>
-          <Text style={styles.postContent}>{post.Content}</Text>
+          <Autolink style={styles.postContent} text={post.Content} />
         </TouchableOpacity>
       )}
       {post.images?.length > 0 && (

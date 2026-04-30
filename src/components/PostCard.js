@@ -8,6 +8,7 @@ import theme from '../design-system/theme/theme';
 import { SERVER_URL } from '../constants/api';
 import { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import Animated from 'react-native-reanimated';
+import Autolink from "react-native-autolink";
 
 
 const PollComponent = ({pollOptions, voterList, hasVoted, setHasVoted, postId, onUpdate})=>{
@@ -183,7 +184,7 @@ return(
 )}
 <Text style={styles.displayName}>{post.displayName}</Text>
 {post.type!=="Poll" &&(
-<Text style={styles.content}>{post.Content}</Text>
+<Autolink style={styles.content} text={post.Content} />
     )}
  
 {post.type === "Poll" &&(
